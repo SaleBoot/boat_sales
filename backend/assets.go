@@ -308,11 +308,31 @@ func (a *app) syncAssetsLocked() (assetManifest, error) {
 	return manifest, nil
 }
 
+// 跨界调用前端工具链。它的核心功能是：在 Go 程序内部触发一个外部的 npm 命令，
+// 用于同步前端的资源文件（特别是 GLTF 模型文件）。
+//
+// --- 为什么要在后端代码里写这个？
+// 这种设计通常出现在 “全栈一体化” 的管理后台中：
+// 资源自动化: 当管理员在后台点击了某个“同步资源”或“同步模型”按钮时，后端直接触发前端的构建流水线。
+// 保证一致性: 确保后端 API 提供的模型数据与前端 dist 目录下的静态资源是同步更新的。
+// 简化运维: 运维人员只需要启动 Go 后端，不需要手动去前端目录运行各种 npm 命令。
+//
+// ### 3. 注意事项（潜在坑点）
+//   - **性能阻塞**: 这是一个同步操作。如果 `npm run sync:gltf` 耗时很久（比如正在处理超大 3D 模型），
+//     Go 的这个 Handler 会一直卡住。在生产环境下，通常建议将其改为**异步执行**（通过 Goroutine）。
+//   - **环境依赖**: 运行该代码的服务器必须安装了 **Node.js** 和 **npm**，否则 `exec.Command` 会直接报 `file not found`。
+//   - **并发冲突**: 如果两个管理员同时点击同步，可能会触发两个 `npm` 进程。代码中可能需要加入
+//     **文件锁**或**状态位**来防止并发同步导致的资源损毁。
 func (a *app) runFrontendAssetSync() error {
+	// 等同于你在终端手动输入 npm run sync:gltf
+	// 负责从某个地方下载、压缩或转换 .gltf 3D 模型文件。
 	command := exec.Command("npm", "run", "sync:gltf")
+	// “在执行 npm 之前，先切换到前端项目所在的目录（a.frontendDir）”。如果不设置，npm 会因为找不到 package.json 而报错
 	command.Dir = a.frontendDir
+	// 继承当前系统的环境变量。这确保了 npm 和 node 的路径能被正确找到。
 	command.Env = os.Environ()
-	output, err := command.CombinedOutput()
+	// 同时运行命令并捕获标准输出（stdout）和标准错误（stderr）。
+	output, err := command.CombinedOutput() //这个函数是阻塞的
 	if err != nil {
 		return fmt.Errorf("run frontend asset sync: %w\n%s", err, strings.TrimSpace(string(output)))
 	}

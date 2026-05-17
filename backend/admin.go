@@ -93,25 +93,25 @@ func discoverProjectPaths() (projectPaths, error) {
 	searchDir := currentDir
 	for {
 		repoRoot := searchDir
-		if filepath.Base(searchDir) == "gltf" {
+		if filepath.Base(searchDir) == "gltf" { // "gltf"目录实际是go backend 代码目录
 			repoRoot = filepath.Dir(searchDir)
 		}
 
-		sourceDir := filepath.Join(repoRoot, "gltf")
-		frontendDir := filepath.Join(repoRoot, "frontend")
+		sourceDir := filepath.Join(repoRoot, "gltf")       //golang backend 代码目录
+		frontendDir := filepath.Join(repoRoot, "frontend") // 前端代码目录
 		if isDirectory(sourceDir) && isDirectory(frontendDir) {
 			publicDir := filepath.Join(frontendDir, "public", "gltf")
 			manifestPath := filepath.Join(publicDir, "asset-manifest.json")
 			return projectPaths{
 				repoRoot:               repoRoot,
-				sourceDir:              sourceDir,
-				frontendDir:            frontendDir,
-				publicDir:              publicDir,
-				manifestPath:           manifestPath,
+				sourceDir:              sourceDir,    //golang backend 代码目录
+				frontendDir:            frontendDir,  // 前端代码目录
+				publicDir:              publicDir,    // glb文件夹目录
+				manifestPath:           manifestPath, // asset-manifest.json路径
 				textureAssignmentsPath: filepath.Join(repoRoot, "data", "texture-assignments.json"),
 				authPath:               filepath.Join(repoRoot, "data", "admin-auth.json"),
 				ordersPath:             filepath.Join(repoRoot, "data", "orders.json"),
-				distDir:                filepath.Join(frontendDir, "dist"),
+				distDir:                filepath.Join(frontendDir, "dist"), //// 前端编译结果目录
 				contentPath:            filepath.Join(repoRoot, "data", "site-content.json"),
 				focusTargetsDir:        filepath.Join(repoRoot, "data", "focus-targets"),
 			}, nil
@@ -142,6 +142,7 @@ func (a *app) registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/admin/auth/login", a.handleAdminLogin)
 	mux.HandleFunc("POST /api/admin/auth/logout", a.requireAdminSession(a.handleAdminLogout))
 	mux.HandleFunc("POST /api/admin/auth/change-password", a.requireAdminSession(a.handleAdminChangePassword))
+
 	mux.HandleFunc("GET /api/admin/models", a.requireAdminSession(a.handleAdminDashboard))
 	mux.HandleFunc("POST /api/admin/models/upload", a.requireAdminSession(a.handleAdminUpload))
 	mux.HandleFunc("PUT /api/admin/models/{modelID}/content", a.requireAdminSession(a.handleAdminUpdateModelContent))

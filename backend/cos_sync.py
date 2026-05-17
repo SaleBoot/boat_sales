@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# 将本地文件夹的内容“镜像”（Sync）到腾讯云对象存储（COS）中
 from __future__ import annotations
 
 import argparse
