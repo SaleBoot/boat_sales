@@ -19,17 +19,26 @@ const EMPTY_VIDEO_FORM = {
 }
 
 const DEFAULT_HERO_FORM = {
+  // 京穗船舶 · 智能船型选购体验
   kicker: '\u4eac\u7a57\u8239\u8236 \u00b7 \u667a\u80fd\u8239\u578b\u9009\u8d2d\u4f53\u9a8c',
+  // 为您找到更适合任务需求的船型方案。
   heading: '\u4e3a\u60a8\u627e\u5230\u66f4\u9002\u5408\u4efb\u52a1\u9700\u6c42\u7684\u8239\u578b\u65b9\u6848\u3002',
+  // ('从新能源船、应急救援船、公务执法艇到游艇，您可以通过 3D 沉浸式看船、查看核心参数与选装方案，更直观地了解产品，更从容地做出选择。',)
   summary:
     '\u4ece\u65b0\u80fd\u6e90\u8239\u3001\u5e94\u6025\u6551\u63f4\u8239\u3001\u516c\u52a1\u6267\u6cd5\u8247\u5230\u6e38\u8247\uff0c\u60a8\u53ef\u4ee5\u901a\u8fc7 3D \u6c89\u6d78\u5f0f\u770b\u8239\u3001\u67e5\u770b\u6838\u5fc3\u53c2\u6570\u4e0e\u9009\u88c5\u65b9\u6848\uff0c\u66f4\u76f4\u89c2\u5730\u4e86\u89e3\u4ea7\u54c1\uff0c\u66f4\u4ece\u5bb9\u5730\u505a\u51fa\u9009\u62e9\u3002',
   proofPoints: [
+    // 沉浸式 3D 看船
     '\u6c89\u6d78\u5f0f 3D \u770b\u8239',
+    // 关键参数一目了然
     '\u5173\u952e\u53c2\u6570\u4e00\u76ee\u4e86\u7136',
+    // 专属方案快速沟通
     '\u4e13\u5c5e\u65b9\u6848\u5feb\u901f\u6c9f\u901a'
   ],
+  // 立即看船
   primaryButtonLabel: '\u7acb\u5373\u770b\u8239',
+  // 获取专属方案
   secondaryButtonLabel: '\u83b7\u53d6\u4e13\u5c5e\u65b9\u6848',
+  // 继续了解
   scrollCueLabel: '\u7ee7\u7eed\u4e86\u89e3'
 }
 
@@ -1116,7 +1125,16 @@ function getOrderStatusCounts(orders) {
   )
 }
 
-function AdminLogin({ apiOrigin, apiOriginInput, setApiOriginInput, onSaveApiOrigin, loginForm, setLoginForm, onLogin, isSubmitting, notice }) {
+function AdminLogin({ apiOrigin, 
+                      apiOriginInput, 
+                      setApiOriginInput, 
+                      onSaveApiOrigin, 
+                      loginForm, 
+                      setLoginForm, 
+                      onLogin, 
+                      isSubmitting, 
+                      notice }) 
+{
   return (
     <div className="admin-auth-shell">
       <section className="admin-auth-card">

@@ -1,0 +1,316 @@
+{
+  "updatedAt": "2026-05-13T11:23:37Z",
+  "settings": {
+    "primaryModelId": "",
+    "heroImagePath": "pdf/FrontPage.png",
+    "brochurePath": "pdf/2026京穗船舶产品宣传册.pdf",
+    "compareLimit": 4
+  },
+  "hero": {
+    "kicker": "京穗船舶 · 智能船型选购体验",
+    "heading": "为您找到更适合任务需求的船型方案。",
+    "summary": "从新能源船、应急救援船、公务执法艇到游艇，您可以通过 3D 沉浸式看船、查看核心参数与选装方案，更直观地了解产品，更从容地做出选择。",
+    "proofPoints": [
+      "沉浸式 3D 看船",
+      "关键参数一目了然",
+      "专属方案快速沟通"
+    ],
+    "primaryButtonLabel": "立即看船",
+    "secondaryButtonLabel": "获取专属方案",
+    "scrollCueLabel": "继续了解"
+  },
+  "videos": [],
+  "models": {
+    "40mijianchuan": {
+      "displayName": "40米趸船",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "tbrender.png",
+      "summary": ""
+    },
+    "951": {
+      "displayName": "JS-951",
+      "type": "",
+      "price": "",
+      "selectedModelPath": "951NS/950ns.fbx",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "",
+      "summary": "JS-951"
+    },
+    "Cabnet": {
+      "displayName": "",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "render-card.png",
+      "summary": ""
+    },
+    "FireFighting": {
+      "displayName": "",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "tbrender.png",
+      "summary": ""
+    },
+    "LiuYun": {
+      "displayName": "",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "tbrender.png",
+      "summary": ""
+    },
+    "PleasureBoat": {
+      "displayName": "",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "render-card.png",
+      "summary": ""
+    },
+    "PleasureBoat1": {
+      "displayName": "",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "1.png",
+      "summary": ""
+    },
+    "TestHigh": {
+      "displayName": "",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "tbrender.png",
+      "summary": ""
+    },
+    "TwoLayerBoat": {
+      "displayName": "",
+      "type": "",
+      "price": "",
+      "specs": {
+        "overallLength": "",
+        "waterlineLength": "",
+        "beam": "",
+        "depth": "",
+        "draft": "",
+        "navigationArea": "",
+        "mainEnginePower": "",
+        "designSpeed": "",
+        "ratedCapacity": "",
+        "powerType": "",
+        "material": "",
+        "certificateType": ""
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "render-card.png",
+      "summary": ""
+    },
+    "Yacht": {
+      "displayName": "JS-950铝合金双体游艇",
+      "type": "游艇",
+      "price": "",
+      "specs": {
+        "overallLength": "9.98",
+        "waterlineLength": "8.756",
+        "beam": "3.50",
+        "depth": "1.00",
+        "draft": "0.52",
+        "navigationArea": "游艇IV类",
+        "mainEnginePower": "22KW*1",
+        "designSpeed": "10",
+        "ratedCapacity": "12",
+        "powerType": "电动舷外挂机",
+        "material": "铝合金",
+        "certificateType": "CCS"
+      },
+      "orderConfig": {
+        "appearanceOptions": [],
+        "colorOptions": [],
+        "interiorOptions": [],
+        "powerOptions": [],
+        "optionalSeriesOptions": [],
+        "focusTargets": {}
+      },
+      "detailImagePath": "1.png",
+      "summary": ""
+    }
+  }
+}

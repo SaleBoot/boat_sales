@@ -6,8 +6,8 @@
   "scripts": {
     "sync:gltf": "node scripts/sync-gltf.mjs && node scripts/validate-material-bindings.mjs && node scripts/fix-shared-permissions.mjs",
     "merge:detail-images": "node scripts/merge-site-content-detail-images.mjs",
-    "predev": "npm run sync:gltf",
-    "prebuild": "npm run sync:gltf",
+    "predev": "echo 'Info: Skipping GLTF sync. Run \"npm run sync:gltf\" manually if assets are missing.'", 
+    "prebuild": "echo 'Info: Skipping GLTF sync. Run \"npm run sync:gltf\" manually if assets are missing.'",
     "dev": "vite",
     "build": "vite build && node scripts/fix-shared-permissions.mjs",
     "preview": "vite preview"

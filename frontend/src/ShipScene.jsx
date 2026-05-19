@@ -16,15 +16,22 @@ function updateOrthographicFrustum(camera, aspect, frustumHeight) {
   camera.top = halfHeight
   camera.bottom = -halfHeight
 }
-
+// 将“原材料名称”转化为一种标准化的、只有小写字母和数字的格式。
 function normalizeMaterialName(value) {
   if (!value) {
     return ''
   }
 
   return value
-    .toLowerCase()
+    .toLowerCase()  // 统一转小写
+    // 删除前缀 m
+    // ^m：匹配字符串开头的一个字符 m。
+    // [_\s-]*：匹配后面跟着的任意个（0个或多个）下划线 _、空格 \s 或连字符 -。
     .replace(/^m[_\s-]*/, '')
+    // 剔除所有非字母数字字符：删掉所有的空格、特殊符号、特殊标点。
+    // [^a-z0-9]：匹配除了小写字母和数字以外的所有字符。
+    // +：匹配一个或多个。
+    // g：全局匹配（整串扫描）。
     .replace(/[^a-z0-9]+/g, '')
 }
 
@@ -1039,7 +1046,8 @@ function applyShaderTintMaterial(material, colorPreset, options = {}) {
     forceTint = false
   } = options
 
-  if (!material?.isMeshStandardMaterial || (!forceTint && !isColorTintCandidate(material, { allowHighMetalness }))) {
+  if (!material?.isMeshStandardMaterial || 
+    (!forceTint && !isColorTintCandidate(material, { allowHighMetalness }))) {
     return material
   }
 
@@ -1263,29 +1271,41 @@ export default function ShipScene({
     import.meta.env.BASE_URL
   )
   const resolveAssetPath = (relativePath) => `${assetBaseUrl}${relativePath}`
+  // 在 React 或前端项目中，它的核心任务是：确保无论传入什么样的资源路径（assetPath），
+  // 最终都能拼凑出一个可以正常访问的完整 URL。
   const resolveManifestPath = (assetPath) => {
     if (!assetPath) {
       return ''
     }
-
+    // 绝对地址检查（网络路径）
+    // 正则表达式：^https?:\/\/ 匹配以 http:// 或 https:// 开头的字符串（不区分大小写）。
+    // 逻辑：如果这个资源已经是完整的网络地址了（比如已经在 CDN 上或引用的是外部图片），那就原样返回，不要再折腾它。
     if (/^https?:\/\//i.test(assetPath)) {
       return assetPath
     }
 
+    // 
     if (assetPath.startsWith('/')) {
+      // 为了拼接到 assetBaseUrl（通常以 / 结尾）后面，代码使用 slice(1) 删掉了 assetPath 开头的斜杠。
       return `${assetBaseUrl}${assetPath.slice(1)}`
     }
 
     return `${assetBaseUrl}${assetPath}`
   }
 
+  // (1)modelConfig?.id ,,,先检查 modelConfig 是否存在（即不是 null 或 undefined）
+  //       如果存在：继续读取 .id 的值。
+  //       如果不存在：直接返回 undefined，而不会报错。
+  // (2)?? —— 空值合并运算符 (Nullish Coalescing),作用：它会检查左侧的值。如果左侧是 null
+  //      或 undefined，就返回右侧的值（这里是 ''）。
   const modelId = modelConfig?.id ?? ''
+  // 
   const resolvedRequestedFocusTarget = resolveRequestedFocusTarget(modelId, focusTarget)
   const renderConfig = modelConfig?.renderConfig ?? {}
   const waterConfig = renderConfig?.water ?? {}
   const waterTuning = {
-    ...getWaterTuning(modelId),
-    ...(waterConfig && typeof waterConfig === 'object' ? waterConfig : {})
+    ...getWaterTuning(modelId), // 默认配置,
+    ...(waterConfig && typeof waterConfig === 'object' ? waterConfig : {}) // 用户配置
   }
   const compositeParts = modelConfig?.parts ?? EMPTY_ARRAY
   const hasCompositeParts = compositeParts.length > 0
@@ -1310,7 +1330,8 @@ export default function ShipScene({
     ...baseExteriorCameraPreset,
     zoom: baseExteriorCameraPreset.zoom * overviewZoomScale
   }
-  const interiorDeckPresetConfig = mergeInteriorDeckPresets(getInteriorDeckPresets(modelId), renderConfig.interiorDecks)
+  const interiorDeckPresetConfig = mergeInteriorDeckPresets(getInteriorDeckPresets(modelId), 
+                                                            renderConfig.interiorDecks)
   const directConsolePreset = useMemo(() => {
     const rawPreset = focusTargetPresets?.console
     if (!rawPreset || typeof rawPreset !== 'object') {
@@ -1323,6 +1344,7 @@ export default function ShipScene({
       deck: '1'
     })
   }, [focusTargetPresets])
+
   const directSmartSystemPreset = useMemo(() => {
     const rawPreset = focusTargetPresets?.['smart-system']
     if (!rawPreset || typeof rawPreset !== 'object') {
@@ -1335,6 +1357,7 @@ export default function ShipScene({
       deck: '1'
     })
   }, [focusTargetPresets])
+
   const stabilizedSmartSystemPreset = useMemo(() => {
     if (!directSmartSystemPreset) {
       return null
@@ -1358,6 +1381,7 @@ export default function ShipScene({
       target: nextTarget
     }
   }, [directConsolePreset, directSmartSystemPreset, modelId])
+
   const resolvedOrderFocusPresets = useMemo(() => {
     const baseOrderFocusPresets = normalizeOrderFocusPresets(getOrderFocusPresets(modelId), renderConfig.focusTargets)
     const exteriorFallbackDistance = getExteriorCameraDistance(exteriorCameraPreset)
@@ -1375,6 +1399,7 @@ export default function ShipScene({
 
     return normalizeOrderFocusPresets(orderFocusPresets, focusTargetPresets)
   }, [modelId, overviewZoomScale, exteriorCameraPreset, focusTargetPresets, renderConfig.focusTargets])
+  
   const shouldShowWaterSurface = (waterConfig.enabled ?? WATER_SURFACE_ENABLED) && !isStudioLook
   // ===== TwoLayerBoat Locked Block START =====
   // TwoLayerBoat 维持固定 GLB 入口，避免被自动配置改动影响贴图稳定性。

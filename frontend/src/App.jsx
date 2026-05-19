@@ -3,406 +3,79 @@ import AdminPage from './AdminPage'
 import OrderPage from './OrderPage'
 import OrderSuccessPage from './OrderSuccessPage'
 import ShipScene from './ShipScene'
-
-const PREFERRED_MODEL_ID = 'FireFighting'
-const MODEL_STORAGE_KEY = 'salesboat.selected-model-id'
-const NON_VESSEL_MODEL_IDS = new Set(['Dabao'])
-const HERO_IMAGE_FILE_NAME = 'FrontPage.png'
-const BROCHURE_FILE_NAME = '2026\u4eac\u7a57\u8239\u8236\u4ea7\u54c1\u5ba3\u4f20\u518c.pdf'
-const DEFAULT_SITE_SETTINGS = {
-  primaryModelId: '',
-  heroImagePath: `pdf/${HERO_IMAGE_FILE_NAME}`,
-  brochurePath: `pdf/${BROCHURE_FILE_NAME}`,
-  compareLimit: 4
-}
-
-const DEFAULT_HERO_CONTENT = {
-  kicker: '\u4eac\u7a57\u8239\u8236 \u00b7 \u667a\u80fd\u8239\u578b\u9009\u8d2d\u4f53\u9a8c',
-  heading: '\u4e3a\u60a8\u627e\u5230\u66f4\u9002\u5408\u4efb\u52a1\u9700\u6c42\u7684\u8239\u578b\u65b9\u6848\u3002',
-  summary:
-    '\u4ece\u65b0\u80fd\u6e90\u8239\u3001\u5e94\u6025\u6551\u63f4\u8239\u3001\u516c\u52a1\u6267\u6cd5\u8247\u5230\u6e38\u8247\uff0c\u60a8\u53ef\u4ee5\u901a\u8fc7 3D \u6c89\u6d78\u5f0f\u770b\u8239\u3001\u67e5\u770b\u6838\u5fc3\u53c2\u6570\u4e0e\u9009\u88c5\u65b9\u6848\uff0c\u66f4\u76f4\u89c2\u5730\u4e86\u89e3\u4ea7\u54c1\uff0c\u66f4\u4ece\u5bb9\u5730\u505a\u51fa\u9009\u62e9\u3002',
-  proofPoints: [
-    '\u6c89\u6d78\u5f0f 3D \u770b\u8239',
-    '\u5173\u952e\u53c2\u6570\u4e00\u76ee\u4e86\u7136',
-    '\u4e13\u5c5e\u65b9\u6848\u5feb\u901f\u6c9f\u901a'
-  ],
-  primaryButtonLabel: '\u7acb\u5373\u770b\u8239',
-  secondaryButtonLabel: '\u83b7\u53d6\u4e13\u5c5e\u65b9\u6848',
-  scrollCueLabel: '\u7ee7\u7eed\u4e86\u89e3'
-}
-
-const legacyFallbackSpecs = {
-  overallLength: '15.80',
-  waterlineLength: '15.10',
-  beam: '3.50',
-  depth: '1.20',
-  draft: '0.50',
-  navigationArea: '',
-  mainEnginePower: '10 - 75 HP',
-  designSpeed: '25',
-  ratedCapacity: '32',
-  powerType: '\u7535\u52a8\u8237\u5916\u673a',
-  material: '\u94dd\u5408\u91d1\u6216\u73bb\u7483\u94a2',
-  certificateType: '\u68c0\u9a8c\u8bc1\u4e66'
-}
-
-const modelSpecGroups = [
-  {
-    title: '\u8239\u4f53\u53c2\u6570',
-    fields: ['overallLength', 'waterlineLength', 'beam']
-  },
-  {
-    title: '\u5c3a\u5ea6\u4e0e\u822a\u533a',
-    fields: ['depth', 'draft', 'navigationArea']
-  },
-  {
-    title: '\u52a8\u529b\u4e0e\u4e58\u5458',
-    fields: ['mainEnginePower', 'designSpeed', 'ratedCapacity', 'powerType']
-  },
-  {
-    title: '\u6750\u8d28\u4e0e\u8ba4\u8bc1',
-    fields: ['material', 'certificateType']
-  }
-]
-
-const modelSpecFieldLabels = {
-  overallLength: '\u603b\u957f',
-  waterlineLength: '\u6c34\u7ebf\u957f',
-  beam: '\u8239\u5bbd',
-  depth: '\u578b\u6df1',
-  draft: '\u5403\u6c34',
-  navigationArea: '\u822a\u533a',
-  mainEnginePower: '\u4e3b\u673a\u529f\u7387',
-  designSpeed: '\u8bbe\u8ba1\u822a\u901f',
-  ratedCapacity: '\u989d\u5b9a\u4e58\u5458',
-  powerType: '\u52a8\u529b\u5f62\u5f0f',
-  material: '\u6750\u8d28',
-  certificateType: '\u8bc1\u4e66\u7c7b\u578b'
-}
-
-const viewerSpecFields = ['overallLength', 'draft', 'mainEnginePower']
-
-const vesselCategories = [
-  '\u65b0\u80fd\u6e90\u8239',
-  '\u5e94\u6025\u6551\u63f4\u8239',
-  '\u516c\u52a1\u6267\u6cd5\u8247',
-  '\u6e38\u8247'
-]
-
-const vesselCategoryMenus = [
-  { id: 'new-energy', label: '\u65b0\u80fd\u6e90\u8239' },
-  { id: 'rescue', label: '\u5e94\u6025\u6551\u63f4\u8239' },
-  { id: 'duty', label: '\u516c\u52a1\u6267\u6cd5\u8247' },
-  { id: 'yacht', label: '\u6e38\u8247' }
-]
-
-function getModelDisplayLabel(model) {
-  if (!model) {
-    return ''
-  }
-
-  if (model.label && model.label !== model.id) {
-    return model.label
-  }
-
-  if (model.id === 'FireFighting') {
-    return '\u6d88\u9632\u6551\u63f4\u8239'
-  }
-
-  if (model.id === 'Cabnet') {
-    return '\u516c\u52a1\u8239'
-  }
-
-  return model.label
-}
-
-function getCategoryIdForModel(model) {
-  const explicitType = `${model?.type ?? ''}`.trim()
-  if (explicitType === '\u65b0\u80fd\u6e90\u8239') {
-    return 'new-energy'
-  }
-
-  if (explicitType === '\u5e94\u6025\u6551\u63f4\u8239') {
-    return 'rescue'
-  }
-
-  if (explicitType === '\u516c\u52a1\u6267\u6cd5\u8247') {
-    return 'duty'
-  }
-
-  if (explicitType === '\u6e38\u8247') {
-    return 'yacht'
-  }
-
-  const rawLabel = `${model?.label ?? model?.id ?? ''}`.toLowerCase()
-  const rawId = `${model?.id ?? ''}`.toLowerCase()
-
-  if (rawLabel.includes('yacht') || rawId.includes('yacht') || rawLabel.includes('\u6e38\u8247')) {
-    return 'yacht'
-  }
-
-  if (
-    rawId.includes('fire') ||
-    rawLabel.includes('fire') ||
-    rawLabel.includes('rescue') ||
-    rawLabel.includes('\u6551\u63f4')
-  ) {
-    return 'rescue'
-  }
-
-  if (
-    rawId.includes('cabnet') ||
-    rawId.includes('twolayer') ||
-    rawLabel.includes('duty') ||
-    rawLabel.includes('\u6267\u6cd5') ||
-    rawLabel.includes('\u516c\u52a1')
-  ) {
-    return 'duty'
-  }
-
-  return 'new-energy'
-}
-
-function getRouteFromHash(hash) {
-  if (hash === '#/admin' || hash.startsWith('#/admin?')) {
-    return 'admin'
-  }
-
-  if (hash === '#/order' || hash.startsWith('#/order?')) {
-    return 'order'
-  }
-
-  if (hash === '#/order-success' || hash.startsWith('#/order-success?')) {
-    return 'order-success'
-  }
-
-  return 'showcase'
-}
-
-function getRequestedModelId() {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-
-  const searchParams = new URLSearchParams(window.location.search)
-  return searchParams.get('model')?.trim() ?? ''
-}
-
-function isCaptureModeEnabled() {
-  if (typeof window === 'undefined') {
-    return false
-  }
-
-  const searchParams = new URLSearchParams(window.location.search)
-  return searchParams.get('capture') === '1'
-}
-
-function getPlatformLabel(platform) {
-  if (platform === 'youtube') {
-    return 'YouTube'
-  }
-
-  if (platform === 'bilibili') {
-    return 'Bilibili'
-  }
-
-  return platform || '\u672a\u77e5\u5e73\u53f0'
-}
-
-function getModelSpecs(model) {
-  return {
-    ...legacyFallbackSpecs,
-    ...(model?.specs ?? {})
-  }
-}
-
-function formatPrice(value) {
-  return new Intl.NumberFormat('zh-CN', {
-    style: 'currency',
-    currency: 'CNY',
-    maximumFractionDigits: 0
-  }).format(Number(value) || 0)
-}
-
-function getModelReferencePrice(model) {
-  const candidate = `${model?.price ?? ''}`.trim()
-  if (!candidate) {
-    return null
-  }
-
-  const amount = Number(candidate)
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return null
-  }
-
-  return amount
-}
-
-function getModelPriceLabel(model) {
-  const amount = getModelReferencePrice(model)
-  if (amount === null) {
-    return ''
-  }
-
-  return `\u53c2\u8003\u4ef7 ${formatPrice(amount)}`
-}
-
-function formatModelSpecValue(fieldKey, rawValue) {
-  const value = `${rawValue ?? ''}`.trim()
-  if (!value) {
-    return '\u5f85\u586b\u5199'
-  }
-
-  if (['overallLength', 'waterlineLength', 'beam', 'depth', 'draft'].includes(fieldKey)) {
-    return `${value} m`
-  }
-
-  if (fieldKey === 'designSpeed') {
-    return `\u2265 ${value} km/h`
-  }
-
-  if (fieldKey === 'ratedCapacity') {
-    return `${value}\uff08\u542b\u8239\u5458\uff09`
-  }
-
-  return value
-}
-
-function buildViewerSpecItems(model) {
-  const specs = getModelSpecs(model)
-
-  return viewerSpecFields.map((fieldKey) => ({
-    label: modelSpecFieldLabels[fieldKey],
-    value: formatModelSpecValue(fieldKey, specs[fieldKey])
-  }))
-}
-
-function buildComparisonSpecSections(model) {
-  const specs = getModelSpecs(model)
-
-  return modelSpecGroups.map((group) => ({
-    title: group.title,
-    items: group.fields.map((fieldKey) => ({
-      key: fieldKey,
-      label: modelSpecFieldLabels[fieldKey],
-      value: formatModelSpecValue(fieldKey, specs[fieldKey])
-    }))
-  }))
-}
-
-function buildComparisonCardItems(model) {
-  const specs = getModelSpecs(model)
-
-  return modelSpecGroups.flatMap((group) => group.fields.map((fieldKey) => ({
-    key: fieldKey,
-    label: modelSpecFieldLabels[fieldKey],
-    value: formatModelSpecValue(fieldKey, specs[fieldKey])
-  })))
-}
-
-function getModelDetailImageAssetPath(model) {
-  if (!model) {
-    return ''
-  }
-
-  if (`${model.detailImagePath ?? ''}`.trim()) {
-    return `gltf/${encodeURIComponent(model.id)}/${encodeRelativeAssetPath(model.detailImagePath)}`
-  }
-
-  return `gltf/${encodeURIComponent(model.id)}/tbrender.png`
-}
-
-function encodeRelativeAssetPath(relativePath) {
-  return `${relativePath ?? ''}`
-    .split('/')
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join('/')
-}
-
-function normalizeCompareModelIds(compareModelIds, models, selectedModelId, maxCount = DEFAULT_SITE_SETTINGS.compareLimit) {
-  const validModelIds = new Set(models.map((model) => model.id))
-  const nextIds = []
-
-  compareModelIds.forEach((modelId) => {
-    if (!validModelIds.has(modelId) || nextIds.includes(modelId) || modelId === selectedModelId) {
-      return
-    }
-
-    nextIds.push(modelId)
-  })
-
-  return nextIds.slice(0, maxCount)
-}
-
-function isVesselModel(model) {
-  return model?.id && !NON_VESSEL_MODEL_IDS.has(model.id)
-}
-
-function normalizeHeroContent(hero) {
-  const proofPoints = Array.isArray(hero?.proofPoints)
-    ? hero.proofPoints.map((item) => `${item ?? ''}`.trim()).filter(Boolean).slice(0, 3)
-    : []
-
-  return {
-    kicker: `${hero?.kicker ?? ''}`.trim() || DEFAULT_HERO_CONTENT.kicker,
-    heading: `${hero?.heading ?? ''}`.trim() || DEFAULT_HERO_CONTENT.heading,
-    summary: `${hero?.summary ?? ''}`.trim() || DEFAULT_HERO_CONTENT.summary,
-    proofPoints: proofPoints.length ? proofPoints : DEFAULT_HERO_CONTENT.proofPoints,
-    primaryButtonLabel: `${hero?.primaryButtonLabel ?? ''}`.trim() || DEFAULT_HERO_CONTENT.primaryButtonLabel,
-    secondaryButtonLabel: `${hero?.secondaryButtonLabel ?? ''}`.trim() || DEFAULT_HERO_CONTENT.secondaryButtonLabel,
-    scrollCueLabel: `${hero?.scrollCueLabel ?? ''}`.trim() || DEFAULT_HERO_CONTENT.scrollCueLabel
-  }
-}
-
-function normalizeSiteSettings(settings) {
-  const compareLimit = Number(settings?.compareLimit ?? DEFAULT_SITE_SETTINGS.compareLimit)
-  return {
-    primaryModelId: `${settings?.primaryModelId ?? DEFAULT_SITE_SETTINGS.primaryModelId}`.trim(),
-    heroImagePath: `${settings?.heroImagePath ?? DEFAULT_SITE_SETTINGS.heroImagePath}`.trim() || DEFAULT_SITE_SETTINGS.heroImagePath,
-    brochurePath: `${settings?.brochurePath ?? DEFAULT_SITE_SETTINGS.brochurePath}`.trim() || DEFAULT_SITE_SETTINGS.brochurePath,
-    compareLimit: Math.max(1, Math.min(4, Number.isFinite(compareLimit) ? compareLimit : DEFAULT_SITE_SETTINGS.compareLimit))
-  }
-}
-
-function normalizeBasePath(basePath) {
-  const normalizedValue = `${basePath ?? ''}`.trim()
-  if (!normalizedValue) {
-    return '/'
-  }
-
-  return normalizedValue.endsWith('/') ? normalizedValue : `${normalizedValue}/`
-}
-
-function buildApiUrl(basePath, path) {
-  const normalizedBasePath = normalizeBasePath(basePath)
-  const normalizedPath = `${path ?? ''}`.replace(/^\/+/, '')
-  return `${normalizedBasePath}${normalizedPath}`
-}
-
+import {
+  DEFAULT_HERO_CONTENT,
+  DEFAULT_SITE_SETTINGS, 
+  vesselCategoryMenus
+} from './constants/constants'
+
+import {
+  buildComparisonSpecSections,
+  buildViewerSpecItems,
+  getCategoryIdForModel,
+  getModelDetailImageAssetPath,
+  getModelDisplayLabel,
+  getModelPriceLabel,
+  getRouteFromHash,
+  getRuntimeBasePath, 
+  isCaptureModeEnabled,
+  isVesselModel,
+  normalizeHeroContent,
+  normalizeSiteSettings, 
+  getStaticAssetBaseUrl,
+  normalizeCompareModelIds
+} from './utils/utils_model'
+
+ 
+// -------------------------------------------------------
 export default function App() {
   const runtimeBasePath = getRuntimeBasePath()
   const staticAssetBaseUrl = getStaticAssetBaseUrl(
-    import.meta.env.VITE_STATIC_ASSET_ORIGIN,
-    import.meta.env.BASE_URL
+    // import.meta.env 专门用于获取项目的环境变量。
+    // 动态适配环境：在本地开发时，VITE_STATIC_ASSET_ORIGIN 可能是空的，资源指向本地；在生产环境，它被替换为真正的 CDN 地址。
+    import.meta.env.VITE_STATIC_ASSET_ORIGIN, // 传入 CDN 地址
+    import.meta.env.BASE_URL  // 传入部署路径
   )
+
   const captureMode = isCaptureModeEnabled()
   const resolveStaticPath = (relativePath) => `${staticAssetBaseUrl}${relativePath}`
   const resolveApiPath = (relativePath) => `${runtimeBasePath}${relativePath}`
-
+  // ---------------------------------------
+  // 在组件首次加载时，根据浏览器地址栏的 Hash（井号后面的内容）来确定初始路由状态。
+  // 
+  // window.location.hash 指的是 URL 中 # 及其后面的部分。
+  // 例子：如果地址是 [https://example.com/#/profile](https://example.com/#/profile)，那么 hash 就是 "/#/profile"。
+  // 
+  // useState(() => ...) （核心重点）
+  // 注意到 useState 里面传的不是一个普通的值，而是一个匿名函数。
+  // 在 React 中，如果你给 useState 传递一个函数，React 只会在组件第一次渲染时执行这个函数，
+  // 并将其返回值作为初始状态。
+  // 为什么这么做？ 如果 getRouteFromHash 涉及复杂的字符串解析逻辑，直接写 useState(getRouteFromHash(...)) 
+  // 会导致组件每次重新渲染时都重新执行这段解析逻辑。虽然 React 只会采纳第一次的结果，但计算过程被浪费了。
+  // 使用函数式写法可以显著提升性能。
   const [route, setRoute] = useState(() => getRouteFromHash(window.location.hash))
+  // 
   const [isScrolled, setIsScrolled] = useState(false)
   const [sceneViewToggleTarget, setSceneViewToggleTarget] = useState(null)
   const [openCategoryId, setOpenCategoryId] = useState(null)
   const [openCompareSelectId, setOpenCompareSelectId] = useState(null)
   const [modelManifest, setModelManifest] = useState(null)
+  //  (当前选中的船型),
   const [selectedModelId, setSelectedModelId] = useState('')
   const [viewerFocusTarget, setViewerFocusTarget] = useState('exterior')
+  //  (用于对比的船型列表),
   const [compareModelIds, setCompareModelIds] = useState([])
+  // 从 API 获取的网站内容
   const [siteContent, setSiteContent] = useState({ settings: DEFAULT_SITE_SETTINGS, hero: DEFAULT_HERO_CONTENT, videos: [], models: {} })
   const [viewerFocusTargets, setViewerFocusTargets] = useState({})
   const [enteringCompareModelId, setEnteringCompareModelId] = useState('')
+  // ---------------------------------------
+  // 使用 useRef 来引用 DOM 元素，如 viewerScreenRef。
   const viewerScreenRef = useRef(null)
+
+  // ---------------------------------------
+  // 派生状态与计算: 使用 useMemo 钩子来根据基础状态计算派生数据。
+  // 例如，models 列表是根据 modelManifest 和 siteContent 计算得出的。modelsByCategory 则是根据 models 进一步处理成分类数据。
   const modelContentById = siteContent?.models ?? {}
   const models = useMemo(
     () => (modelManifest?.models ?? [])
@@ -424,12 +97,15 @@ export default function App() {
       }),
     [modelManifest, modelContentById]
   )
+
   const videos = siteContent?.videos ?? []
   const siteSettings = normalizeSiteSettings(siteContent?.settings)
   const heroContent = normalizeHeroContent(siteContent?.hero)
 
   const primaryModel = models.find((model) => model.id === selectedModelId) ?? null
-  const selectedModelLabel = getModelDisplayLabel(primaryModel) || (models.length ? '\u9009\u62e9\u8239\u578b' : '\u6b63\u5728\u52a0\u8f7d\u8239\u578b')
+  const selectedModelLabel = getModelDisplayLabel(primaryModel) || 
+                            (models.length ? '\u9009\u62e9\u8239\u578b' // 选择船型
+                                           : '\u6b63\u5728\u52a0\u8f7d\u8239\u578b') // 正在加载船型
   const selectedModelPriceLabel = getModelPriceLabel(primaryModel)
   const brochurePath = resolveStaticPath(siteSettings.brochurePath)
   const heroImagePath = resolveStaticPath(siteSettings.heroImagePath)
@@ -438,6 +114,9 @@ export default function App() {
     : ''
   const viewerSpecItems = buildViewerSpecItems(primaryModel)
   const primaryDetailSpecCards = buildComparisonSpecSections(primaryModel)
+
+  // 使用 useMemo 钩子来根据基础状态计算派生数据。 
+  // modelsByCategory 则是根据 models 进一步处理成分类数据。
   const modelsByCategory = useMemo(
     () => vesselCategoryMenus
       .map((category) => ({
@@ -447,11 +126,12 @@ export default function App() {
       .filter((category) => category.models.length > 0),
     [models]
   )
+  
   const compareModels = useMemo(
     () => compareModelIds
       .map((modelId) => models.find((model) => model.id === modelId) ?? null)
-      .filter(Boolean),
-    [compareModelIds, models]
+      .filter(Boolean),// callback
+    [compareModelIds, models] // 依赖数租
   )
   const maxCompareModelCount = siteSettings.compareLimit
   const activeCategoryId = primaryModel ? getCategoryIdForModel(primaryModel) : modelsByCategory[0]?.id ?? null
@@ -470,7 +150,8 @@ export default function App() {
 
     const loadFocusTargets = async () => {
       try {
-        const response = await fetch(buildApiUrl(runtimeBasePath, `api/models/${encodeURIComponent(selectedModelId)}/focus-targets`))
+        const response = await fetch(
+            buildApiUrl(runtimeBasePath, `api/models/${encodeURIComponent(selectedModelId)}/focus-targets`) )
         if (!response.ok) {
           throw new Error(`Failed to load focus targets: ${response.status}`)
         }
@@ -1205,48 +886,4 @@ export default function App() {
       </div>
     </div>
   )
-}
-
-function assetBaseUrlFallback(baseUrl) {
-  return baseUrl ?? '/'
-}
-
-function normalizeBaseUrl(baseUrl) {
-  const normalizedValue = `${baseUrl ?? ''}`.trim()
-  if (!normalizedValue) {
-    return '/'
-  }
-
-  return normalizedValue.endsWith('/') ? normalizedValue : `${normalizedValue}/`
-}
-
-function getStaticAssetBaseUrl(staticAssetOrigin, fallbackBaseUrl) {
-  const explicitOrigin = `${staticAssetOrigin ?? ''}`.trim()
-  if (explicitOrigin) {
-    return normalizeBaseUrl(explicitOrigin)
-  }
-
-  if (typeof window !== 'undefined') {
-    const pathname = window.location.pathname || '/'
-    const basePath = pathname.endsWith('/')
-      ? pathname
-      : pathname.slice(0, pathname.lastIndexOf('/') + 1)
-
-    return normalizeBaseUrl(basePath || '/')
-  }
-
-  return normalizeBaseUrl(assetBaseUrlFallback(fallbackBaseUrl))
-}
-
-function getRuntimeBasePath() {
-  if (typeof window === 'undefined') {
-    return '/'
-  }
-
-  const pathname = window.location.pathname || '/'
-  const basePath = pathname.endsWith('/')
-    ? pathname
-    : pathname.slice(0, pathname.lastIndexOf('/') + 1)
-
-  return normalizeBaseUrl(basePath || '/')
 }
