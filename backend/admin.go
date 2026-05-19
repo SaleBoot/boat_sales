@@ -93,11 +93,11 @@ func discoverProjectPaths() (projectPaths, error) {
 	searchDir := currentDir
 	for {
 		repoRoot := searchDir
-		if filepath.Base(searchDir) == "gltf" { // "gltf"目录实际是go backend 代码目录
+		if filepath.Base(searchDir) == "backend" { // "gltf"目录实际是go backend 代码目录
 			repoRoot = filepath.Dir(searchDir)
 		}
 
-		sourceDir := filepath.Join(repoRoot, "gltf")       //golang backend 代码目录
+		sourceDir := filepath.Join(repoRoot, "backend")    //golang backend 代码目录
 		frontendDir := filepath.Join(repoRoot, "frontend") // 前端代码目录
 		if isDirectory(sourceDir) && isDirectory(frontendDir) {
 			publicDir := filepath.Join(frontendDir, "public", "gltf")
