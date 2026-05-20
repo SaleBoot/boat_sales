@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import ShipScene from './ShipScene'
+import ShipScene from '../ShipScene'
 
 const productCategories = ['新能源船', '应急救援船', '公务执法艇', '游艇']
 
