@@ -88,7 +88,158 @@ import {
 } from '../../constants/constants_ship_scene.js';
 
 
+function setupLights(scene, modelRoot, isStudioLook) {
+  const ambientLight = new THREE.HemisphereLight(
+    new THREE.Color(isStudioLook ? '#dde8f6' : '#bfd9f2'),
+    new THREE.Color(isStudioLook ? '#32251c' : '#52606c'),
+    isStudioLook ? 0.62 : 1.02
+  )
 
+  const keyLight = new THREE.DirectionalLight(
+    new THREE.Color(isStudioLook ? '#fff1de' : '#ffd7ab'),
+    isStudioLook ? 2.05 : 1.18
+  )
+  keyLight.position.set(...(isStudioLook ? [5.4, 3.5, 4.8] : [6.8, 4.6, 2.2]))
+  keyLight.target = modelRoot
+  keyLight.castShadow = true
+  keyLight.shadow.mapSize.set(2048, 2048)
+  keyLight.shadow.bias = -0.0002
+  keyLight.shadow.normalBias = 0.03
+  keyLight.shadow.camera.near = 0.5
+  keyLight.shadow.camera.far = 24
+  keyLight.shadow.camera.left = -8
+  keyLight.shadow.camera.right = 8
+  keyLight.shadow.camera.top = 8
+  keyLight.shadow.camera.bottom = -8
+
+  const underGlowLight = new THREE.PointLight(
+    new THREE.Color(isStudioLook ? '#72f6ff' : '#ffffff'),
+    isStudioLook ? 0 : 0,
+    10,
+    2
+  )
+  underGlowLight.position.set(0.2, -0.55, 1.1)
+
+  scene.add(ambientLight, keyLight, underGlowLight)
+
+  return {
+    ambientLight,
+    keyLight,
+    underGlowLight
+  }
+}
+
+function setupCameras(scene, exteriorCameraPreset, interiorDeckPresetConfig, isStudioLook) {
+  // 外部相机（正交）：用于外部环绕观察，提供无透视失真的产品展示视图，类似于工程蓝图。
+  const exteriorCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.005, 5000)
+  // 内部相机（透视）：用于内部第一人称漫游，提供具有深度感的真实沉浸式体验。
+  const interiorCamera = new THREE.PerspectiveCamera(56, 1, isStudioLook ? 0.02 : 0.005, 5000)
+  
+  exteriorCamera.position.set(...exteriorCameraPreset.position)
+  exteriorCamera.zoom = exteriorCameraPreset.zoom
+  interiorCamera.position.set(...(interiorDeckPresetConfig['1']?.position ?? [0, 0.68, -0.82]))
+  
+  scene.add(exteriorCamera, interiorCamera)
+
+  return {
+    exteriorCamera,
+    interiorCamera
+  }
+}
+
+function setupRenderer(canvas, isStudioLook) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setClearColor('#010203', 1)
+  renderer.outputColorSpace = THREE.SRGBColorSpace
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = isStudioLook ? 0.92 : 0.94
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  return renderer
+}
+
+function setupOrbitControls(camera, canvas, targetY) {
+  const controls = new OrbitControls(camera, canvas)
+  controls.enableDamping = true
+  controls.enablePan = false
+  controls.enableZoom = false
+  controls.target.set(0, targetY, 0)
+  controls.update()
+  return controls
+}
+
+function setupEnvironment(renderer, scene) {
+  const pmremGenerator = new THREE.PMREMGenerator(renderer)
+  const reflectionEnvironment = createReflectionEnvironmentScene()
+  const environmentTexture = pmremGenerator.fromScene(reflectionEnvironment.scene, 0.02).texture
+  scene.environment = environmentTexture
+  
+  // 返回创建的资源，以便在清理阶段可以释放它们
+  return {
+    pmremGenerator,
+    reflectionEnvironment,
+    environmentTexture
+  }
+}
+
+function setupTransformControls(scene, 
+    camera, 
+    canvas, 
+    onDebugTransformChangeRef, 
+    debugTransformModeRef, 
+    controls, 
+    loadedRootRef) 
+{
+  if (typeof onDebugTransformChangeRef.current !== 'function') {
+    return null
+  }
+
+  const transformControls = new TransformControls(camera, canvas)
+  transformControls.enabled = false
+  transformControls.visible = false
+  transformControls.setMode(debugTransformModeRef.current === 'rotate' ? 'rotate' : 'translate')
+  
+  transformControls.addEventListener('dragging-changed', (event) => {
+    controls.enabled = !event.value
+  })
+  
+  transformControls.addEventListener('objectChange', () => {
+    if (typeof onDebugTransformChangeRef.current === 'function' && loadedRootRef.current) {
+      onDebugTransformChangeRef.current(objectTransformToDebugPayload(loadedRootRef.current))
+    }
+  })
+  
+  scene.add(transformControls)
+  return transformControls
+}
+
+function setupScene(shouldShowWaterSurface) {
+  const scene = new THREE.Scene()
+  const presentationRoot = new THREE.Group()
+  const modelRoot = new THREE.Group()
+  const waterRoot = new THREE.Group()
+  const stageRoot = new THREE.Group()
+  const waterSurface = shouldShowWaterSurface ? createWaterSurface() : null
+  const interiorSkySphere = createInteriorSkySphere()
+  scene.add(presentationRoot)
+  presentationRoot.add(stageRoot, waterRoot, modelRoot)
+  if (interiorSkySphere) {
+    scene.add(interiorSkySphere.mesh)
+  }
+
+  return {
+    scene,
+    presentationRoot,
+    modelRoot,
+    waterRoot,
+    stageRoot,
+    waterSurface,
+    interiorSkySphere
+  }
+}
+
+// --------------------------------------------------------------
 export default function ShipScene({
   modelConfig,
   focusTarget = 'exterior',
@@ -323,85 +474,43 @@ export default function ShipScene({
     setIsLoadingHudVisible(true)
     const abortController = new AbortController()
 
-    const scene = new THREE.Scene()
-    const presentationRoot = new THREE.Group()
-    const modelRoot = new THREE.Group()
-    const waterRoot = new THREE.Group()
-    const stageRoot = new THREE.Group()
-    const waterSurface = shouldShowWaterSurface ? createWaterSurface() : null
-    const interiorSkySphere = createInteriorSkySphere()
-    scene.add(presentationRoot)
-    presentationRoot.add(stageRoot, waterRoot, modelRoot)
-    if (interiorSkySphere) {
-      scene.add(interiorSkySphere.mesh)
-    }
     
-    // 外部相机（正交）：用于外部环绕观察，提供无透视失真的产品展示视图，类似于工程蓝图。
-    const exteriorCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.005, 5000)
-    // 内部相机（透视）：用于内部第一人称漫游，提供具有深度感的真实沉浸式体验。
-    const interiorCamera = new THREE.PerspectiveCamera(56, 1, isStudioLook ? 0.02 : 0.005, 5000)
-    exteriorCamera.position.set(...exteriorCameraPreset.position)
-    exteriorCamera.zoom = exteriorCameraPreset.zoom
-    interiorCamera.position.set(...(interiorDeckPresetConfig['1']?.position ?? [0, 0.68, -0.82]))
-    scene.add(exteriorCamera, interiorCamera)
+    const {
+      scene,
+      presentationRoot,
+      modelRoot,
+      waterRoot,
+      stageRoot,
+      waterSurface,
+      interiorSkySphere
+    } = setupScene(shouldShowWaterSurface) 
+    
+
+    const { 
+      exteriorCamera, 
+      interiorCamera 
+    } = setupCameras(scene, exteriorCameraPreset, interiorDeckPresetConfig, isStudioLook)
+
 
     let activeCamera = exteriorCamera
     cameraRef.current = activeCamera
 
-    const ambientLight = new THREE.HemisphereLight(
-      new THREE.Color(isStudioLook ? '#dde8f6' : '#bfd9f2'),
-      new THREE.Color(isStudioLook ? '#32251c' : '#52606c'),
-      isStudioLook ? 0.62 : 1.02
-    )
-    const keyLight = new THREE.DirectionalLight(
-      new THREE.Color(isStudioLook ? '#fff1de' : '#ffd7ab'),
-      isStudioLook ? 2.05 : 1.18
-    )
-    keyLight.position.set(...(isStudioLook ? [5.4, 3.5, 4.8] : [6.8, 4.6, 2.2]))
-    keyLight.target = modelRoot
-    keyLight.castShadow = true
-    keyLight.shadow.mapSize.set(2048, 2048)
-    keyLight.shadow.bias = -0.0002
-    keyLight.shadow.normalBias = 0.03
-    keyLight.shadow.camera.near = 0.5
-    keyLight.shadow.camera.far = 24
-    keyLight.shadow.camera.left = -8
-    keyLight.shadow.camera.right = 8
-    keyLight.shadow.camera.top = 8
-    keyLight.shadow.camera.bottom = -8
-    const underGlowLight = new THREE.PointLight(
-      new THREE.Color(isStudioLook ? '#72f6ff' : '#ffffff'),
-      isStudioLook ? 0 : 0,
-      10,
-      2
-    )
-    underGlowLight.position.set(0.2, -0.55, 1.1)
-    scene.add(ambientLight, keyLight, underGlowLight)
+    const { ambientLight, keyLight, underGlowLight } 
+    = setupLights(scene, modelRoot, isStudioLook)
 
+    
     if (waterSurface) {
       waterRoot.add(waterSurface.mesh)
     }
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.setClearColor('#010203', 1)
-    renderer.outputColorSpace = THREE.SRGBColorSpace
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = isStudioLook ? 0.92 : 0.94
-    renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    const renderer = setupRenderer(canvas, isStudioLook)
 
-    const pmremGenerator = new THREE.PMREMGenerator(renderer)
-    const reflectionEnvironment = createReflectionEnvironmentScene()
-    const environmentTexture = pmremGenerator.fromScene(reflectionEnvironment.scene, 0.02).texture
-    scene.environment = environmentTexture
+    const { pmremGenerator, reflectionEnvironment, 
+      environmentTexture 
+    }  = setupEnvironment(renderer, scene)
 
-    const controls = new OrbitControls(exteriorCamera, canvas)
-    controls.enableDamping = true
-    controls.enablePan = false
-    controls.enableZoom = false
-    controls.target.set(0, exteriorCameraPreset.targetY, 0)
-    controls.update()
+
+    const controls = setupOrbitControls(exteriorCamera, canvas, exteriorCameraPreset.targetY)
     controlsRef.current = controls
 
     let transformControls = null
@@ -410,7 +519,9 @@ export default function ShipScene({
         return
       }
 
-      const shouldAttach = debugModeRef.current && modeRef.current === 'exterior' && Boolean(loadedRootRef.current)
+      const shouldAttach = debugModeRef.current && 
+                          modeRef.current === 'exterior' && 
+                          Boolean(loadedRootRef.current)
       transformControls.setMode(debugTransformModeRef.current === 'rotate' ? 'rotate' : 'translate')
       transformControls.enabled = shouldAttach
       transformControls.visible = shouldAttach
@@ -423,20 +534,9 @@ export default function ShipScene({
       }
     }
 
-    if (typeof onDebugTransformChangeRef.current === 'function') {
-      transformControls = new TransformControls(exteriorCamera, canvas)
-      transformControls.enabled = false
-      transformControls.visible = false
-      transformControls.setMode(debugTransformModeRef.current === 'rotate' ? 'rotate' : 'translate')
-      transformControls.addEventListener('dragging-changed', (event) => {
-        controls.enabled = !event.value && modeRef.current === 'exterior'
-      })
-      transformControls.addEventListener('objectChange', () => {
-        if (typeof onDebugTransformChangeRef.current === 'function') {
-          onDebugTransformChangeRef.current(objectTransformToDebugPayload(loadedRootRef.current))
-        }
-      })
-      scene.add(transformControls)
+    transformControls = setupTransformControls(scene, exteriorCamera, canvas, 
+        onDebugTransformChangeRef, debugTransformModeRef, controls, loadedRootRef)
+    if (transformControls) {
       transformControlsRef.current = transformControls
     }
 
@@ -919,11 +1019,8 @@ export default function ShipScene({
 
     const estimateAssetSizes = () => {
       trackedAssetUrls.forEach((assetUrl) => {
-        fetch(assetUrl, {
-          method: 'HEAD',
-          signal: abortController.signal
-        })
-          .then((response) => {
+        fetch(assetUrl, {method: 'HEAD', signal: abortController.signal})
+        .then((response) => {
             if (!response.ok) {
               return
             }
@@ -932,8 +1029,8 @@ export default function ShipScene({
             if (Number.isFinite(contentLength) && contentLength > 0) {
               setAssetExpectedBytes(assetUrl, contentLength)
             }
-          })
-          .catch(() => {})
+        })
+        .catch(() => { })
       })
     }
 
