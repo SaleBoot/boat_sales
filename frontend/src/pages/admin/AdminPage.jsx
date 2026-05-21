@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import ShipScene from '../ShipScene'
+import ShipScene from '../scene3d/ShipScene'
 
 const ADMIN_API_ORIGIN_STORAGE_KEY = 'salesboat.admin-api-origin'
 const DEFAULT_ADMIN_API_ORIGIN = ''

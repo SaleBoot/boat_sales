@@ -4,11 +4,11 @@ import {
   DEFAULT_HERO_CONTENT,
   DEFAULT_SITE_SETTINGS,
   PREFERRED_MODEL_ID,
-} from '../constants/constants';
+} from '../constants/constants_front_homepage';
 import {
   isVesselModel,
   getRequestedModelId,
-} from '../utils/utils_model';
+} from '../utils/utils_homepage';
 
 /**
  * 一个自定义 Hook，用于加载和管理应用所需的核心展示数据。

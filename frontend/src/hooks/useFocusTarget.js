@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { buildApiUrl } from '../utils/utils_model';
+import { buildApiUrl } from '../utils/utils_homepage';
 
 /**
  * 自定义 Hook，用于管理和同步视觉焦点目标。

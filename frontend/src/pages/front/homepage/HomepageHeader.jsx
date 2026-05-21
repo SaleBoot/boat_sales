@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getModelDisplayLabel } from '../../../utils/utils_model';
+import { getModelDisplayLabel } from '../../../utils/utils_homepage';
 
 export default function HomepageHeader({
   modelsByCategory,

@@ -1,4 +1,4 @@
-import { buildComparisonCardItems, getModelDisplayLabel } from '../../../utils/utils_model';
+import { buildComparisonCardItems, getModelDisplayLabel } from '../../../utils/utils_homepage';
 
 export default function DetailCompareCard({
   model,

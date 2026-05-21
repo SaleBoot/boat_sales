@@ -6,7 +6,7 @@ import {
   modelSpecFieldLabels,
   modelSpecGroups,
   viewerSpecFields
-} from '../constants/constants'
+} from '../constants/constants_front_homepage'
 
 // 获取模型的显示名称。
 export function getModelDisplayLabel(model) {

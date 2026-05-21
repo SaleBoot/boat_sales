@@ -8,12 +8,12 @@ import HomePageViewerScreen from './pages/front/homepage/HomePageViewerScreen'
 import DetailSpecShowcase   from './pages/front/homepage/DetailSpecShowcase'
 import DetailCompareStack   from './pages/front/homepage/DetailCompareStack'
 import VideoShowcase        from './pages/front/homepage/VideoShowcase'
-import ShipScene            from './pages/ShipScene'
+import ShipScene            from './pages/scene3d/ShipScene'
 import { useShowcaseData }                    from './hooks/useShowcaseData'
 import { usePointerGlow,useGlobalMenuClose }  from './hooks/useUIEvents'
 import {  
   vesselCategoryMenus
-} from './constants/constants'
+} from './constants/constants_front_homepage'
 
 import {
   buildComparisonSpecSections,
@@ -30,7 +30,7 @@ import {
   normalizeSiteSettings, 
   getStaticAssetBaseUrl,
   normalizeCompareModelIds
-} from './utils/utils_model'
+} from './utils/utils_homepage'
 
  
 // -------------------------------------------------------

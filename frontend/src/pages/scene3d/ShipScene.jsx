@@ -1,1255 +1,93 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react'
+﻿﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { createPortal } from 'react-dom'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
+import { GLTFLoader }    from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { FBXLoader }     from 'three/examples/jsm/loaders/FBXLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 
-function updateOrthographicFrustum(camera, aspect, frustumHeight) {
-  const safeAspect = Math.max(aspect, 0.01)
-  const halfHeight = frustumHeight / 2
-  const halfWidth = halfHeight * safeAspect
+import { 
+  updateOrthographicFrustum,
+  createWaterSurface,
+  focusVectorToArray, 
+  normalizeDebugTransform,  
+  getExteriorCameraDistance,
+  scaleFocusDistance,
+  getInteriorDeckPresets,
+  getWaterTuning,
+  mergeVectorPreset,
+  mergeInteriorDeckPresets, 
+  createReflectionEnvironmentScene,
+  createInteriorSkySphere,
+  getOrderFocusPresets,
+  objectTransformToDebugPayload,
+  applyDebugTransformToObject,
+  degreesVectorToEuler, 
+  getYawPitchFromCamera, 
+  getPresetRotationValue,
+  getOrbitViewDirectionFromRotation,
+  getFirstPersonLookAnglesFromPreset,
+  normalizeOrderFocusPreset,
+  normalizeOrderFocusPresets,
+  applyShaderTintMaterial,
+  clearShaderTintMaterial,
+  clearShaderTintTree ,
+  applyPackedRmaoMaterial,
+  applyDitherFadeMaterial,
+} from '../../utils/utils_3js.js';
+
+import { 
+  normalizeMaterialName, 
+  formatTransferSize,
+  formatTransferSpeed,   
+  getAssetDisplayLabel,
+  getStaticAssetBaseUrl, 
+  createInitialLoadingState,
+  isStudioLookModel,
+  getExteriorCameraPreset,
+  normalizeCameraMode, 
+  resolveRequestedFocusTarget,
+  resolveAppliedFocusTarget,
+  getColorShaderPreset,
+  getColorConfigMaterialSlots,
+  materialMatchesColorSlots,
+  normalizeOptionalMaterialOverrides,
+  materialMatchesOverrideSlots,
+  shouldApplyColorway
+} from '../../utils/utils_ship_scene.js';
+
+import {
+  WATER_SURFACE_ENABLED,
+  EXTERIOR_STAGE_Y_OFFSET,
+  EXTERIOR_TARGET_Y,
+  EMPTY_ARRAY,
+  DEFAULT_WATER_TUNING,
+  UV_SET_ALPHA_MODE_OPAQUE,
+  UV_SET_ALPHA_MODE_CUTOUT,
+  UV_SET_ALPHA_MODE_BLEND,
+  UV_SET_SIDE_FRONT,
+  UV_SET_SIDE_DOUBLE,
+  UV_SET_DEPTH_WRITE_ON,
+  UV_SET_DEPTH_WRITE_OFF,
+  UV_SET_DEPTH_TEST_ON,
+  UV_SET_DEPTH_TEST_OFF,
+  UV_SET_DITHER_MODE_ON,
+  UV_SET_DITHER_MODE_OFF,
+  CAMERA_MODE_ORBIT,
+  CAMERA_MODE_FIRST_PERSON,
+  FOCUS_COORDINATE_SPACE_SCENE,
+  FOCUS_COORDINATE_SPACE_MODEL_LOCAL,
+  DEFAULT_CAMERA_ROTATION_DEGREES,
+  TWO_LAYER_TRACKED_TEXTURE_PATHS,
+  MODEL_WATER_TUNING,
+  DEFAULT_EXTERIOR_CAMERA_PRESET,
+  STUDIO_EXTERIOR_CAMERA_PRESET,
+  DEFAULT_INTERIOR_DECK_PRESETS,
+  ENGINE_MODEL_LIBRARY,
+  TEST_HIGH_INTERIOR_DECK_PRESETS
+} from '../../constants/constants_ship_scene.js';
 
-  camera.left = -halfWidth
-  camera.right = halfWidth
-  camera.top = halfHeight
-  camera.bottom = -halfHeight
-}
-// 将“原材料名称”转化为一种标准化的、只有小写字母和数字的格式。
-function normalizeMaterialName(value) {
-  if (!value) {
-    return ''
-  }
 
-  return value
-    .toLowerCase()  // 统一转小写
-    // 删除前缀 m
-    // ^m：匹配字符串开头的一个字符 m。
-    // [_\s-]*：匹配后面跟着的任意个（0个或多个）下划线 _、空格 \s 或连字符 -。
-    .replace(/^m[_\s-]*/, '')
-    // 剔除所有非字母数字字符：删掉所有的空格、特殊符号、特殊标点。
-    // [^a-z0-9]：匹配除了小写字母和数字以外的所有字符。
-    // +：匹配一个或多个。
-    // g：全局匹配（整串扫描）。
-    .replace(/[^a-z0-9]+/g, '')
-}
-
-const WATER_SURFACE_ENABLED = true
-const EXTERIOR_STAGE_Y_OFFSET = 0.42
-const EXTERIOR_TARGET_Y = 0.5 + EXTERIOR_STAGE_Y_OFFSET * 0.35
-const EMPTY_ARRAY = []
-const DEFAULT_WATER_TUNING = {
-  levelFactor: 0.18,
-  radiusScale: 0.84,
-  zOffset: 0.16,
-  exteriorModelLiftY: 0
-}
-const UV_SET_ALPHA_MODE_OPAQUE = 'opaque'
-const UV_SET_ALPHA_MODE_CUTOUT = 'cutout'
-const UV_SET_ALPHA_MODE_BLEND = 'blend'
-const UV_SET_SIDE_FRONT = 'front'
-const UV_SET_SIDE_DOUBLE = 'double'
-const UV_SET_DEPTH_WRITE_ON = 'on'
-const UV_SET_DEPTH_WRITE_OFF = 'off'
-const UV_SET_DEPTH_TEST_ON = 'on'
-const UV_SET_DEPTH_TEST_OFF = 'off'
-const UV_SET_DITHER_MODE_ON = 'on'
-const UV_SET_DITHER_MODE_OFF = 'off'
-const CAMERA_MODE_ORBIT = 'orbit'
-const CAMERA_MODE_FIRST_PERSON = 'first-person'
-const FOCUS_COORDINATE_SPACE_SCENE = 'scene'
-const FOCUS_COORDINATE_SPACE_MODEL_LOCAL = 'model-local'
-const DEFAULT_CAMERA_ROTATION_DEGREES = [0, 0, 0]
-const TWO_LAYER_TRACKED_TEXTURE_PATHS = [
-  'gltf/TwoLayerBoat/1/1_01 - Default_Emissive.png',
-  'gltf/TwoLayerBoat/1/1_01 - Default_Normal.png',
-  'gltf/TwoLayerBoat/1/AO.png',
-  'gltf/TwoLayerBoat/1/meti.png',
-  'gltf/TwoLayerBoat/1/rou.png',
-  'gltf/TwoLayerBoat/2/1_02 - Default_Normal.png',
-  'gltf/TwoLayerBoat/2/AO_3.png',
-  'gltf/TwoLayerBoat/2/meti_1.png',
-  'gltf/TwoLayerBoat/2/rou_2.png'
-]
-const MODEL_WATER_TUNING = {
-  PleasureBoat: {
-    levelFactor: 0.06,
-    exteriorModelLiftY: -0.02
-  },
-  PleasureBoat1: {
-    exteriorModelLiftY: 0.1
-  },
-  Yacht: {
-    exteriorModelLiftY: 0.06
-  }
-}
-
-const DEFAULT_EXTERIOR_CAMERA_PRESET = {
-  position: [-6.2, 1.65, 1.7],
-  zoom: 1.18,
-  targetY: EXTERIOR_TARGET_Y,
-  stageOffsetY: EXTERIOR_STAGE_Y_OFFSET
-}
-
-const STUDIO_EXTERIOR_CAMERA_PRESET = {
-  position: [-5.4, 1.32, 2.18],
-  zoom: 1.34,
-  targetY: 0.28,
-  stageOffsetY: 0
-}
-
-const DEFAULT_INTERIOR_DECK_PRESETS = {
-  '1': {
-    position: [0, 0, -0.66],
-    yaw: 0,
-    pitch: -0.08
-  },
-  '2': {
-    position: [0, 0.98, -0.66],
-    yaw: 0,
-    pitch: -0.08
-  }
-}
-
-const ENGINE_MODEL_LIBRARY = {
-  'outboard-a': {
-    format: 'fbx',
-    path: '/gltf/TestHigh/马达（2048）/马达.fbx',
-    targetHeightScale: 0.34,
-    uvSets: [
-      {
-        id: 'tt',
-        label: 'UV tt',
-        directory: '/gltf/TestHigh/马达（2048）/tt',
-        materialNameHint: 'M_07___Default',
-        textures: {
-          baseColor: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_BaseColor.png',
-          metalness: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Metallic.png',
-          normal: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Normal.png',
-          roughness: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Roughness.png'
-        }
-      }
-    ]
-  },
-  'outboard-b': {
-    format: 'fbx',
-    path: '/gltf/TestHigh/马达（2048）/马达.fbx',
-    targetHeightScale: 0.34,
-    uvSets: [
-      {
-        id: 'tt',
-        label: 'UV tt',
-        directory: '/gltf/TestHigh/马达（2048）/tt',
-        materialNameHint: 'M_07___Default',
-        textures: {
-          baseColor: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_BaseColor.png',
-          metalness: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Metallic.png',
-          normal: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Normal.png',
-          roughness: '/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Roughness.png'
-        }
-      }
-    ]
-  },
-  'electric-outboard': {
-    format: 'fbx',
-    path: '/gltf/Dabao/dd.fbx',
-    targetHeightScale: 0.34,
-    uvSets: [
-      {
-        id: 'Texture',
-        label: 'UV Texture',
-        directory: '/gltf/Dabao/Texture',
-        materialNameHint: 'diandong_19___Default',
-        textures: {
-          baseColor: '/gltf/Dabao/Texture/diandong_19 - Default_BaseColor.png',
-          normal: '/gltf/Dabao/Texture/diandong_19 - Default_Normal.png',
-          rmao: '/gltf/Dabao/Texture/diandong_19 - Default_R+M+AO.png'
-        }
-      }
-    ]
-  }
-}
-
-const TEST_HIGH_INTERIOR_DECK_PRESETS = {
-  '1': {
-    position: [0, 0.78, -1.55],
-    yaw: 0,
-    pitch: -0.14
-  },
-  '2': {
-    position: [0, 0.78, -1.55],
-    yaw: 0,
-    pitch: -0.14
-  }
-}
-
-function isStudioLookModel(modelId) {
-  return modelId === 'TestHigh'
-}
-
-function getExteriorCameraPreset(modelId) {
-  return isStudioLookModel(modelId)
-    ? STUDIO_EXTERIOR_CAMERA_PRESET
-    : DEFAULT_EXTERIOR_CAMERA_PRESET
-}
-
-function getExteriorCameraDistance(preset = DEFAULT_EXTERIOR_CAMERA_PRESET) {
-  const position = focusVectorToArray(preset.position, DEFAULT_EXTERIOR_CAMERA_PRESET.position)
-  const target = focusVectorToArray(preset.target, [0, preset.targetY ?? EXTERIOR_TARGET_Y, 0])
-
-  return Math.max(
-    new THREE.Vector3(...position).distanceTo(new THREE.Vector3(...target)),
-    0.01
-  )
-}
-
-function scaleFocusDistance(distance, visualScale = 1) {
-  const safeDistance = Number.isFinite(Number(distance)) && Number(distance) > 0
-    ? Number(distance)
-    : getExteriorCameraDistance()
-  const safeScale = Number.isFinite(Number(visualScale)) && Number(visualScale) > 0
-    ? Number(visualScale)
-    : 1
-
-  return safeDistance / THREE.MathUtils.clamp(safeScale, 0.2, 4)
-}
-
-function getInteriorDeckPresets(modelId) {
-  return modelId === 'TestHigh'
-    ? TEST_HIGH_INTERIOR_DECK_PRESETS
-    : DEFAULT_INTERIOR_DECK_PRESETS
-}
-
-function getWaterTuning(modelId) {
-  return {
-    ...DEFAULT_WATER_TUNING,
-    ...(MODEL_WATER_TUNING[modelId] ?? {})
-  }
-}
-
-function mergeVectorPreset(basePreset = {}, overridePreset = {}) {
-  const nextPreset = { ...basePreset }
-  if (!overridePreset || typeof overridePreset !== 'object') {
-    return nextPreset
-  }
-
-  if (Array.isArray(overridePreset.position)) {
-    nextPreset.position = focusVectorToArray(overridePreset.position, nextPreset.position)
-  }
-  if (Array.isArray(overridePreset.target)) {
-    nextPreset.target = focusVectorToArray(overridePreset.target, nextPreset.target)
-  }
-  if (Array.isArray(overridePreset.rotation)) {
-    nextPreset.rotation = focusVectorToArray(overridePreset.rotation, nextPreset.rotation)
-  }
-
-  ;['zoom', 'targetY', 'stageOffsetY', 'yaw', 'pitch'].forEach((key) => {
-    if (Number.isFinite(Number(overridePreset[key]))) {
-      nextPreset[key] = Number(overridePreset[key])
-    }
-  })
-
-  ;['type', 'deck', 'cameraMode'].forEach((key) => {
-    if (`${overridePreset[key] ?? ''}`.trim()) {
-      nextPreset[key] = `${overridePreset[key]}`.trim()
-    }
-  })
-
-  return nextPreset
-}
-
-function mergeInteriorDeckPresets(basePresets = {}, overridePresets = {}) {
-  if (!overridePresets || typeof overridePresets !== 'object') {
-    return basePresets
-  }
-
-  const nextPresets = { ...basePresets }
-  Object.entries(overridePresets).forEach(([key, preset]) => {
-    const deckKey = `${key ?? ''}`.trim()
-    if (!deckKey) {
-      return
-    }
-
-    nextPresets[deckKey] = mergeVectorPreset(nextPresets[deckKey] ?? {}, preset)
-  })
-
-  return nextPresets
-}
-
-function normalizeBaseUrl(baseUrl) {
-  const normalizedValue = `${baseUrl ?? ''}`.trim()
-  if (!normalizedValue) {
-    return '/'
-  }
-
-  return normalizedValue.endsWith('/') ? normalizedValue : `${normalizedValue}/`
-}
-
-function getStaticAssetBaseUrl(staticAssetOrigin, fallbackBaseUrl) {
-  const explicitOrigin = `${staticAssetOrigin ?? ''}`.trim()
-  if (explicitOrigin) {
-    return normalizeBaseUrl(explicitOrigin)
-  }
-
-  if (typeof window !== 'undefined') {
-    const pathname = window.location.pathname || '/'
-    const basePath = pathname.endsWith('/')
-      ? pathname
-      : pathname.slice(0, pathname.lastIndexOf('/') + 1)
-
-    return normalizeBaseUrl(basePath || '/')
-  }
-
-  return normalizeBaseUrl(fallbackBaseUrl)
-}
-
-function getResourceDirectory(assetPath) {
-  const normalizedPath = `${assetPath ?? ''}`.replace(/\\/g, '/')
-  const lastSlashIndex = normalizedPath.lastIndexOf('/')
-
-  if (lastSlashIndex === -1) {
-    return ''
-  }
-
-  return normalizedPath.slice(0, lastSlashIndex + 1)
-}
-
-function getAssetDisplayLabel(assetPath) {
-  const normalizedPath = `${assetPath ?? ''}`.replace(/\\/g, '/')
-  const rawLabel = normalizedPath.split('/').pop() ?? normalizedPath
-
-  try {
-    return decodeURIComponent(rawLabel)
-  } catch {
-    return rawLabel
-  }
-}
-
-function formatTransferSize(bytes) {
-  const safeBytes = Number.isFinite(bytes) ? Math.max(bytes, 0) : 0
-
-  if (safeBytes >= 1024 * 1024 * 1024) {
-    return `${(safeBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-  }
-
-  if (safeBytes >= 1024 * 1024) {
-    return `${(safeBytes / (1024 * 1024)).toFixed(1)} MB`
-  }
-
-  if (safeBytes >= 1024) {
-    return `${(safeBytes / 1024).toFixed(1)} KB`
-  }
-
-  return `${Math.round(safeBytes)} B`
-}
-
-function formatTransferSpeed(bytesPerSecond) {
-  return `${formatTransferSize(bytesPerSecond)}/s`
-}
-
-function createInitialLoadingState(hasRenderableModel) {
-  return {
-    phase: hasRenderableModel ? '正在准备模型与贴图资源…' : '正在等待当前选中的模型…',
-    progress: 0,
-    downloadedBytes: 0,
-    totalBytes: 0,
-    loadedItems: 0,
-    totalItems: 0,
-    speedBytesPerSecond: 0,
-    activeLabel: '',
-    hasKnownTotal: false
-  }
-}
-
-function createWaterSurface() {
-  const geometry = new THREE.CircleGeometry(1, 120)
-  const material = new THREE.ShaderMaterial({
-    transparent: true,
-    depthTest: true,
-    depthWrite: false,
-    uniforms: {
-      uTime: { value: 0 },
-      uBaseColor: { value: new THREE.Color('#72b8e9') },
-      uDeepColor: { value: new THREE.Color('#0d3b61') },
-      uHighlightColor: { value: new THREE.Color('#f2fbff') }
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      varying float vWave;
-
-      uniform float uTime;
-
-      void main() {
-        vUv = uv;
-
-        vec3 transformed = position;
-        float primaryWave = sin((position.x * 10.0) + uTime * 1.35) * 0.018;
-        float secondaryWave = cos((position.y * 13.0) - uTime * 1.05) * 0.014;
-        transformed.z += primaryWave + secondaryWave;
-        vWave = transformed.z;
-
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
-      }
-    `,
-    fragmentShader: `
-      varying vec2 vUv;
-      varying float vWave;
-
-      uniform float uTime;
-      uniform vec3 uBaseColor;
-      uniform vec3 uDeepColor;
-      uniform vec3 uHighlightColor;
-
-      void main() {
-        float dist = distance(vUv, vec2(0.5));
-        float surfaceMask = smoothstep(0.56, 0.08, dist);
-        float shimmer = 0.5 + 0.5 * sin((vUv.x + vUv.y) * 24.0 + uTime * 0.9 + vWave * 40.0);
-        float edgeGlow = smoothstep(0.55, 0.24, dist);
-        float innerShadow = smoothstep(0.0, 0.44, dist);
-
-        vec3 color = mix(uDeepColor, uBaseColor, 0.62 + vWave * 7.5);
-        color = mix(color, uDeepColor * 0.9, innerShadow * 0.18);
-        color = mix(color, uHighlightColor, shimmer * 0.14 * edgeGlow);
-
-        float alpha = surfaceMask * (0.26 + shimmer * 0.12 + edgeGlow * 0.18);
-        gl_FragColor = vec4(color, alpha);
-      }
-    `
-  })
-
-  const mesh = new THREE.Mesh(geometry, material)
-  mesh.rotation.x = -Math.PI / 2
-  mesh.position.set(0, -0.8, 0.2)
-  mesh.renderOrder = -1000
-
-  return { mesh, material, geometry }
-}
-
-function createReflectionEnvironmentScene() {
-  const environmentScene = new THREE.Scene()
-  const disposables = []
-
-  const registerMesh = (geometry, material, transform) => {
-    const mesh = new THREE.Mesh(geometry, material)
-    transform(mesh)
-    environmentScene.add(mesh)
-    disposables.push(geometry, material)
-    return mesh
-  }
-
-  registerMesh(
-    new THREE.SphereGeometry(14, 48, 24),
-    new THREE.MeshBasicMaterial({
-      color: new THREE.Color('#bcd3ea'),
-      side: THREE.BackSide
-    }),
-    (mesh) => {
-      mesh.scale.set(1, 0.88, 1)
-    }
-  )
-
-  registerMesh(
-    new THREE.PlaneGeometry(20, 10),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color('#d7e6f5') }),
-    (mesh) => {
-      mesh.position.set(-6.4, 2.2, 1.8)
-      mesh.rotation.y = Math.PI / 2.55
-    }
-  )
-
-  registerMesh(
-    new THREE.PlaneGeometry(18, 9),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color('#edf4fb') }),
-    (mesh) => {
-      mesh.position.set(5.6, 2.8, -2.6)
-      mesh.rotation.y = -Math.PI / 2.2
-    }
-  )
-
-  registerMesh(
-    new THREE.CircleGeometry(1.2, 48),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffe2b8') }),
-    (mesh) => {
-      mesh.position.set(-3.8, 4.6, 2.4)
-      mesh.lookAt(0, 0.8, 0)
-    }
-  )
-
-  registerMesh(
-    new THREE.PlaneGeometry(22, 14),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color('#5d6f7e') }),
-    (mesh) => {
-      mesh.position.set(0, -2.8, 0.4)
-      mesh.rotation.x = -Math.PI / 2
-    }
-  )
-
-  return {
-    scene: environmentScene,
-    dispose: () => {
-      disposables.forEach((resource) => resource.dispose?.())
-      environmentScene.clear()
-    }
-  }
-}
-
-function createInteriorSkySphere() {
-  const canvas = document.createElement('canvas')
-  canvas.width = 2048
-  canvas.height = 1024
-
-  const context = canvas.getContext('2d')
-  if (!context) {
-    return null
-  }
-
-  const { width, height } = canvas
-  const skyGradient = context.createLinearGradient(0, 0, 0, height)
-  skyGradient.addColorStop(0, '#7fc8ff')
-  skyGradient.addColorStop(0.38, '#a8dcff')
-  skyGradient.addColorStop(0.72, '#d5efff')
-  skyGradient.addColorStop(1, '#eef8ff')
-  context.fillStyle = skyGradient
-  context.fillRect(0, 0, width, height)
-
-  const glowGradient = context.createRadialGradient(
-    width * 0.74,
-    height * 0.22,
-    width * 0.03,
-    width * 0.74,
-    height * 0.22,
-    width * 0.24
-  )
-  glowGradient.addColorStop(0, 'rgba(255, 253, 245, 0.72)')
-  glowGradient.addColorStop(0.45, 'rgba(255, 251, 240, 0.28)')
-  glowGradient.addColorStop(1, 'rgba(255, 251, 240, 0)')
-  context.fillStyle = glowGradient
-  context.fillRect(0, 0, width, height)
-
-  const hazeGradient = context.createLinearGradient(0, height * 0.56, 0, height)
-  hazeGradient.addColorStop(0, 'rgba(255, 255, 255, 0)')
-  hazeGradient.addColorStop(1, 'rgba(255, 255, 255, 0.36)')
-  context.fillStyle = hazeGradient
-  context.fillRect(0, height * 0.56, width, height * 0.44)
-
-  const drawCloud = (centerX, centerY, cloudWidth, cloudHeight, alpha) => {
-    const puffs = [
-      [-0.28, 0.08, 0.26],
-      [-0.08, -0.06, 0.31],
-      [0.18, -0.03, 0.29],
-      [0.38, 0.1, 0.22]
-    ]
-
-    puffs.forEach(([offsetX, offsetY, scale]) => {
-      const radius = cloudWidth * scale
-      const puffX = centerX + cloudWidth * offsetX
-      const puffY = centerY + cloudHeight * offsetY
-      const puff = context.createRadialGradient(
-        puffX,
-        puffY,
-        radius * 0.1,
-        puffX,
-        puffY,
-        radius
-      )
-      puff.addColorStop(0, `rgba(255, 255, 255, ${alpha})`)
-      puff.addColorStop(0.55, `rgba(255, 255, 255, ${alpha * 0.76})`)
-      puff.addColorStop(1, 'rgba(255, 255, 255, 0)')
-      context.fillStyle = puff
-      context.fillRect(puffX - radius, puffY - radius, radius * 2, radius * 2)
-    })
-  }
-
-  ;[
-    [width * 0.18, height * 0.21, width * 0.16, height * 0.09, 0.82],
-    [width * 0.42, height * 0.28, width * 0.19, height * 0.1, 0.74],
-    [width * 0.72, height * 0.18, width * 0.17, height * 0.09, 0.78],
-    [width * 0.86, height * 0.33, width * 0.14, height * 0.08, 0.68],
-    [width * 0.3, height * 0.46, width * 0.23, height * 0.12, 0.54],
-    [width * 0.64, height * 0.52, width * 0.2, height * 0.1, 0.5]
-  ].forEach((cloud) => drawCloud(...cloud))
-
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.needsUpdate = true
-
-  const geometry = new THREE.SphereGeometry(260, 64, 32)
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    side: THREE.BackSide,
-    depthWrite: false,
-    fog: false,
-    toneMapped: false
-  })
-
-  const mesh = new THREE.Mesh(geometry, material)
-  mesh.visible = false
-  mesh.renderOrder = -1000
-
-  return {
-    mesh,
-    geometry,
-    material,
-    texture
-  }
-}
-
-function getOrderFocusPresets(modelId) {
-  const exteriorPreset = getExteriorCameraPreset(modelId)
-  const exteriorTargetY = exteriorPreset.targetY ?? DEFAULT_EXTERIOR_CAMERA_PRESET.targetY
-  const defaultExteriorPreset = {
-    type: 'exterior',
-    cameraMode: CAMERA_MODE_ORBIT,
-    position: exteriorPreset.position,
-    zoom: getExteriorCameraDistance(exteriorPreset),
-    target: [0, exteriorTargetY, 0]
-  }
-  const defaultInteriorPreset = {
-    type: 'interior',
-    cameraMode: CAMERA_MODE_FIRST_PERSON,
-    deck: '1'
-  }
-  const pointPresetKeys = ['POINT1', 'POINT2', 'POINT3', 'POINT4', 'POINT5']
-  const createPointPresets = (fallbackPreset) => Object.fromEntries(
-    pointPresetKeys.map((key) => [key, { ...fallbackPreset }])
-  )
-
-  if (modelId === 'TestHigh') {
-    const exteriorPreset = {
-      type: 'exterior',
-      cameraMode: CAMERA_MODE_ORBIT,
-      position: STUDIO_EXTERIOR_CAMERA_PRESET.position,
-      zoom: getExteriorCameraDistance(STUDIO_EXTERIOR_CAMERA_PRESET),
-      target: [0, STUDIO_EXTERIOR_CAMERA_PRESET.targetY, 0]
-    }
-    const smartSystemPreset = {
-      type: 'exterior',
-      cameraMode: CAMERA_MODE_ORBIT,
-      position: [0.08, 1.1, -3.1],
-      zoom: 2.2,
-      target: [0.08, 0.75, -0.2]
-    }
-
-    return {
-      exterior: exteriorPreset,
-      overview: exteriorPreset,
-      interior: {
-        type: 'interior',
-        cameraMode: CAMERA_MODE_FIRST_PERSON,
-        deck: '1'
-      },
-      engine: {
-        type: 'exterior',
-        cameraMode: CAMERA_MODE_ORBIT,
-        position: [0.2, 1.08, -3.35],
-        zoom: 2.52,
-        target: [0.06, 0.6, -2.42]
-      },
-      console: {
-        type: 'interior',
-        cameraMode: CAMERA_MODE_FIRST_PERSON,
-        deck: '1',
-        position: [0, 0.82, -1.02],
-        yaw: 0,
-        pitch: -0.1
-      },
-      'smart-system': smartSystemPreset,
-      ...createPointPresets(smartSystemPreset)
-    }
-  }
-
-  return {
-    exterior: defaultExteriorPreset,
-    overview: defaultExteriorPreset,
-    interior: defaultInteriorPreset,
-    engine: {
-      type: 'exterior',
-      cameraMode: CAMERA_MODE_ORBIT,
-      zoom: getExteriorCameraDistance(exteriorPreset) * 0.42,
-      target: [0, exteriorTargetY * 0.72, -2.4],
-      rotation: [6, -28, 0]
-    },
-    console: {
-      type: 'interior',
-      cameraMode: CAMERA_MODE_FIRST_PERSON,
-      deck: '1',
-      target: [0, 0.78, -0.75],
-      rotation: [-6, 0, 0]
-    },
-    'smart-system': {
-      type: 'interior',
-      cameraMode: CAMERA_MODE_FIRST_PERSON,
-      deck: '1',
-      target: [0.35, 0.9, -0.95],
-      rotation: [-4, -18, 0]
-    },
-    ...createPointPresets(defaultExteriorPreset)
-  }
-}
-
-function focusVectorToArray(value, fallback = [0, 0, 0]) {
-  if (Array.isArray(value) && value.length >= 3) {
-    return [
-      Number(value[0]) || 0,
-      Number(value[1]) || 0,
-      Number(value[2]) || 0
-    ]
-  }
-
-  if (value && typeof value === 'object') {
-    return [
-      Number(value.x) || 0,
-      Number(value.y) || 0,
-      Number(value.z) || 0
-    ]
-  }
-
-  return [...fallback]
-}
-
-function transformVectorToArray(value, fallback = [0, 0, 0]) {
-  return focusVectorToArray(value, fallback)
-}
-
-function normalizeDebugTransform(value = {}) {
-  return {
-    position: transformVectorToArray(value.position, [0, 0, 0]),
-    rotation: transformVectorToArray(value.rotation, [0, 0, 0]),
-    scale: transformVectorToArray(value.scale, [1, 1, 1]).map((item) => {
-      const nextValue = Number(item)
-      return Number.isFinite(nextValue) && Math.abs(nextValue) > 0.0001 ? nextValue : 1
-    })
-  }
-}
-
-function objectTransformToDebugPayload(object3d) {
-  if (!object3d) {
-    return normalizeDebugTransform()
-  }
-
-  return {
-    position: {
-      x: Number(object3d.position.x.toFixed(4)),
-      y: Number(object3d.position.y.toFixed(4)),
-      z: Number(object3d.position.z.toFixed(4))
-    },
-    rotation: {
-      x: Number(THREE.MathUtils.radToDeg(object3d.rotation.x).toFixed(3)),
-      y: Number(THREE.MathUtils.radToDeg(object3d.rotation.y).toFixed(3)),
-      z: Number(THREE.MathUtils.radToDeg(object3d.rotation.z).toFixed(3))
-    },
-    scale: {
-      x: Number(object3d.scale.x.toFixed(4)),
-      y: Number(object3d.scale.y.toFixed(4)),
-      z: Number(object3d.scale.z.toFixed(4))
-    }
-  }
-}
-
-function applyDebugTransformToObject(object3d, transformValue) {
-  if (!object3d || !transformValue) {
-    return
-  }
-
-  const transform = normalizeDebugTransform(transformValue)
-  object3d.position.set(...transform.position)
-  object3d.rotation.set(
-    THREE.MathUtils.degToRad(transform.rotation[0]),
-    THREE.MathUtils.degToRad(transform.rotation[1]),
-    THREE.MathUtils.degToRad(transform.rotation[2])
-  )
-  object3d.scale.set(...transform.scale)
-}
-
-function degreesVectorToEuler(value, fallback = DEFAULT_CAMERA_ROTATION_DEGREES) {
-  const degrees = focusVectorToArray(value, fallback)
-  return new THREE.Euler(
-    THREE.MathUtils.degToRad(degrees[0]),
-    THREE.MathUtils.degToRad(degrees[1]),
-    THREE.MathUtils.degToRad(degrees[2]),
-    'YXZ'
-  )
-}
-
-function getLookAnglesFromRotation(rotationValue, fallbackYaw = 0, fallbackPitch = 0) {
-  if (rotationValue === undefined || rotationValue === null) {
-    return {
-      yaw: fallbackYaw,
-      pitch: fallbackPitch
-    }
-  }
-
-  const rotation = focusVectorToArray(rotationValue, DEFAULT_CAMERA_ROTATION_DEGREES)
-  return {
-    yaw: THREE.MathUtils.degToRad(rotation[1]),
-    pitch: THREE.MathUtils.degToRad(rotation[0])
-  }
-}
-
-function getYawPitchFromCamera(camera) {
-  const direction = new THREE.Vector3()
-  camera.getWorldDirection(direction)
-
-  return {
-    yaw: Math.atan2(direction.x, direction.z),
-    pitch: Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1))
-  }
-}
-
-function hasNonZeroRotation(rotationValue) {
-  if (rotationValue === undefined || rotationValue === null) {
-    return false
-  }
-
-  return focusVectorToArray(rotationValue, DEFAULT_CAMERA_ROTATION_DEGREES).some((value) => Math.abs(value) > 0.0001)
-}
-
-function getPresetRotationValue(preset) {
-  return hasNonZeroRotation(preset?.rotation) ? preset.rotation : null
-}
-
-function getOrbitViewDirectionFromRotation(rotationValue) {
-  return new THREE.Vector3(0, 0, 1).applyEuler(degreesVectorToEuler(rotationValue)).normalize()
-}
-
-function getFirstPersonLookAnglesFromPreset(preset, fallbackYaw = 0, fallbackPitch = 0) {
-  return getLookAnglesFromRotation(getPresetRotationValue(preset), fallbackYaw, fallbackPitch)
-}
-
-function normalizeCameraMode(value, fallback = CAMERA_MODE_ORBIT) {
-  const normalized = `${value ?? ''}`.trim().toLowerCase()
-  if (normalized === CAMERA_MODE_FIRST_PERSON || normalized === 'firstperson' || normalized === 'fps' || normalized === '第一人称') {
-    return CAMERA_MODE_FIRST_PERSON
-  }
-  if (normalized === CAMERA_MODE_ORBIT || normalized === 'around' || normalized === '环视') {
-    return CAMERA_MODE_ORBIT
-  }
-
-  return fallback
-}
-
-function normalizeFocusCoordinateSpace(value, fallback = FOCUS_COORDINATE_SPACE_SCENE) {
-  const normalized = `${value ?? ''}`.trim().toLowerCase()
-  if (['model-local', 'modellocal', 'local', 'model', '模型局部'].includes(normalized)) {
-    return FOCUS_COORDINATE_SPACE_MODEL_LOCAL
-  }
-  if (['scene', 'world', 'normalized', '归一化', '场景'].includes(normalized)) {
-    return FOCUS_COORDINATE_SPACE_SCENE
-  }
-
-  return fallback
-}
-
-function normalizeOrderFocusPreset(preset, fallbackPreset = {}) {
-  const safePreset = preset ?? {}
-  const fallbackPosition = focusVectorToArray(fallbackPreset.position, DEFAULT_EXTERIOR_CAMERA_PRESET.position)
-  const fallbackTarget = focusVectorToArray(fallbackPreset.target, [0, DEFAULT_EXTERIOR_CAMERA_PRESET.targetY, 0])
-  const fallbackRotation = focusVectorToArray(fallbackPreset.rotation, DEFAULT_CAMERA_ROTATION_DEGREES)
-  const rawType = `${safePreset.type ?? fallbackPreset.type ?? ''}`.trim()
-  const rawCameraMode = safePreset.cameraMode ?? fallbackPreset.cameraMode
-  const fallbackCameraMode = rawType === 'interior' ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_ORBIT
-  const cameraMode = normalizeCameraMode(rawCameraMode, fallbackCameraMode)
-  const type = cameraMode === CAMERA_MODE_FIRST_PERSON
-    ? 'interior'
-    : (rawType === 'interior' ? 'interior' : 'exterior')
-
-  return {
-    type,
-    cameraMode,
-    position: focusVectorToArray(safePreset.position, fallbackPosition),
-    zoom: Number.isFinite(Number(safePreset.zoom))
-      ? Number(safePreset.zoom)
-      : (Number(fallbackPreset.zoom) || DEFAULT_EXTERIOR_CAMERA_PRESET.zoom),
-    target: focusVectorToArray(safePreset.target, fallbackTarget),
-    rotation: focusVectorToArray(safePreset.rotation, fallbackRotation),
-    coordinateSpace: normalizeFocusCoordinateSpace(safePreset.coordinateSpace, fallbackPreset.coordinateSpace),
-    deck: `${safePreset.deck ?? fallbackPreset.deck ?? '1'}`.trim() || '1',
-    yaw: Number.isFinite(Number(safePreset.yaw)) ? Number(safePreset.yaw) : fallbackPreset.yaw,
-    pitch: Number.isFinite(Number(safePreset.pitch)) ? Number(safePreset.pitch) : fallbackPreset.pitch
-  }
-}
-
-function normalizeOrderFocusPresets(basePresets, externalPresets) {
-  const aliases = {
-    overview: 'exterior',
-    smartSystem: 'smart-system',
-    内部: 'interior',
-    外部: 'exterior',
-    发动机: 'engine',
-    中控台: 'console',
-    智能系统: 'smart-system'
-  }
-  const normalized = {}
-  Object.entries(basePresets ?? {}).forEach(([key, preset]) => {
-    normalized[key] = normalizeOrderFocusPreset(preset)
-  })
-
-  Object.entries(externalPresets ?? {}).forEach(([key, preset]) => {
-    const rawKey = `${key ?? ''}`.trim()
-    const normalizedKey = aliases[rawKey] ?? rawKey
-    if (!normalizedKey) {
-      return
-    }
-
-    normalized[normalizedKey] = normalizeOrderFocusPreset(
-      preset,
-      normalized[normalizedKey] ?? normalized.exterior ?? normalized.overview
-    )
-  })
-
-  if (!normalized.exterior) {
-    normalized.exterior = normalizeOrderFocusPreset(normalized.overview)
-  }
-  if (!normalized.overview) {
-    normalized.overview = normalized.exterior
-  }
-
-  return normalized
-}
-
-function resolveRequestedFocusTarget(modelId, requestedTarget) {
-  return `${requestedTarget ?? ''}`.trim() || 'exterior'
-}
-
-function resolveAppliedFocusTarget(
-  modelId,
-  requestedTarget,
-  availablePresets,
-  strategy = 'default'
-) {
-  const normalizedTarget = resolveRequestedFocusTarget(modelId, requestedTarget)
-  const presets = availablePresets ?? {}
-  const hasPreset = (key) => Boolean(key) && Boolean(presets[key])
-
-  if (strategy === 'console-driven') {
-    return hasPreset(normalizedTarget)
-      ? normalizedTarget
-      : hasPreset('exterior')
-      ? 'exterior'
-      : hasPreset('overview')
-      ? 'overview'
-      : normalizedTarget
-  }
-
-  if (hasPreset(normalizedTarget)) {
-    return normalizedTarget
-  }
-  if (normalizedTarget === 'smart-system' && hasPreset('console')) {
-    return 'console'
-  }
-  if (normalizedTarget === 'console' && hasPreset('interior')) {
-    return 'interior'
-  }
-  if (normalizedTarget === 'interior' && hasPreset('console')) {
-    return 'console'
-  }
-  if (normalizedTarget === 'engine' && hasPreset('exterior')) {
-    return 'exterior'
-  }
-  if (hasPreset('exterior')) {
-    return 'exterior'
-  }
-  if (hasPreset('overview')) {
-    return 'overview'
-  }
-
-  return normalizedTarget
-}
-
-function getColorShaderPreset(colorConfig, options = {}) {
-  const { explicitMaterialSlots = false } = options
-  const fallbackHex = colorConfig?.hex ?? '#f2f3f5'
-
-  return {
-    color: fallbackHex,
-    strength: explicitMaterialSlots ? 1 : 0.6,
-    lift: explicitMaterialSlots ? 0.015 : 0
-  }
-}
-
-function getColorConfigMaterialSlots(colorConfig) {
-  if (!Array.isArray(colorConfig?.materialSlots)) {
-    return new Set()
-  }
-
-  return new Set(
-    colorConfig.materialSlots
-      .map((slot) => normalizeMaterialName(slot))
-      .filter(Boolean)
-  )
-}
-
-function materialMatchesColorSlots(material, colorMaterialSlots) {
-  if (!colorMaterialSlots?.size) {
-    return false
-  }
-
-  return colorMaterialSlots.has(normalizeMaterialName(material?.name))
-}
-
-function normalizeOptionalMaterialOverrides(overrides) {
-  if (!Array.isArray(overrides)) {
-    return []
-  }
-
-  return overrides.map((override) => {
-    const materialSlots = new Set(
-      (Array.isArray(override?.materialSlots) ? override.materialSlots : [])
-        .map((slot) => normalizeMaterialName(slot))
-        .filter(Boolean)
-    )
-    const baseColorPath = `${override?.baseColorPath ?? override?.baseColor ?? ''}`.trim()
-
-    return {
-      materialSlots,
-      baseColorPath
-    }
-  }).filter((override) => override.materialSlots.size > 0 && (
-    override.baseColorPath
-  ))
-}
-
-function materialMatchesOverrideSlots(material, override) {
-  return override?.materialSlots?.has(normalizeMaterialName(material?.name))
-}
-
-function isColorTintCandidate(material, options = {}) {
-  const { allowHighMetalness = false } = options
-  if (!material) {
-    return false
-  }
-
-  const materialName = `${material.name ?? ''}`.toLowerCase()
-  if (
-    material.transparent ||
-    material.opacity < 0.98 ||
-    materialName.includes('glass') ||
-    materialName.includes('window') ||
-    materialName.includes('rail') ||
-    materialName.includes('metal')
-  ) {
-    return false
-  }
-
-  if (allowHighMetalness) {
-    return true
-  }
-
-  return (material.metalness ?? 0) < 0.72
-}
-
-function applyShaderTintMaterial(material, colorPreset, options = {}) {
-  const {
-    targetWhiteSurfaces = false,
-    allowHighMetalness = false,
-    forceTint = false
-  } = options
-
-  if (!material?.isMeshStandardMaterial || 
-    (!forceTint && !isColorTintCandidate(material, { allowHighMetalness }))) {
-    return material
-  }
-
-  const shaderTintUniforms = material.userData.shaderTintUniforms ?? {
-    uShaderTintColor: { value: new THREE.Color(colorPreset.color) },
-    uShaderTintStrength: { value: colorPreset.strength },
-    uShaderTintLift: { value: colorPreset.lift },
-    uShaderTintWhiteOnly: { value: targetWhiteSurfaces ? 1 : 0 }
-  }
-
-  shaderTintUniforms.uShaderTintColor.value.set(colorPreset.color)
-  shaderTintUniforms.uShaderTintStrength.value = colorPreset.strength
-  shaderTintUniforms.uShaderTintLift.value = colorPreset.lift
-  shaderTintUniforms.uShaderTintWhiteOnly.value = targetWhiteSurfaces ? 1 : 0
-  material.userData.shaderTintUniforms = shaderTintUniforms
-
-  if (!material.userData.hasShaderTintHook) {
-    const previousOnBeforeCompile = material.onBeforeCompile
-    material.onBeforeCompile = (shader, renderer) => {
-      if (typeof previousOnBeforeCompile === 'function') {
-        previousOnBeforeCompile(shader, renderer)
-      }
-
-      shader.uniforms.uShaderTintColor = shaderTintUniforms.uShaderTintColor
-      shader.uniforms.uShaderTintStrength = shaderTintUniforms.uShaderTintStrength
-      shader.uniforms.uShaderTintLift = shaderTintUniforms.uShaderTintLift
-      shader.uniforms.uShaderTintWhiteOnly = shaderTintUniforms.uShaderTintWhiteOnly
-
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          `#include <common>
-uniform vec3 uShaderTintColor;
-uniform float uShaderTintStrength;
-uniform float uShaderTintLift;
-uniform float uShaderTintWhiteOnly;
-`
-        )
-        .replace(
-          'vec4 diffuseColor = vec4( diffuse, opacity );',
-          `vec4 diffuseColor = vec4( diffuse, opacity );
-float tintLuma = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
-float tintChroma = max(max(diffuseColor.r, diffuseColor.g), diffuseColor.b) - min(min(diffuseColor.r, diffuseColor.g), diffuseColor.b);
-float broadTintMask = smoothstep(0.04, 0.96, tintLuma);
-float whiteTintMask = smoothstep(0.62, 0.94, tintLuma) * (1.0 - smoothstep(0.08, 0.24, tintChroma));
-float tintMask = mix(broadTintMask, whiteTintMask, clamp(uShaderTintWhiteOnly, 0.0, 1.0)) * clamp(uShaderTintStrength, 0.0, 1.0);
-vec3 tintTarget = diffuseColor.rgb * uShaderTintColor;
-diffuseColor.rgb = mix(diffuseColor.rgb, tintTarget, tintMask);
-diffuseColor.rgb += vec3(uShaderTintLift);
-`
-        )
-    }
-
-    const previousCacheKey = material.customProgramCacheKey
-    material.customProgramCacheKey = () => `${previousCacheKey ? previousCacheKey() : ''}|salesboat-shader-tint-v1`
-    material.userData.hasShaderTintHook = true
-    material.needsUpdate = true
-  }
-
-  return material
-}
-
-function clearShaderTintMaterial(material) {
-  if (!material?.userData?.shaderTintUniforms) {
-    return material
-  }
-
-  material.userData.shaderTintUniforms.uShaderTintStrength.value = 0
-  material.userData.shaderTintUniforms.uShaderTintLift.value = 0
-  material.needsUpdate = true
-  return material
-}
-
-function clearShaderTintTree(rootObject) {
-  rootObject?.traverse?.((child) => {
-    if (!child.isMesh || !child.material) {
-      return
-    }
-
-    const materials = Array.isArray(child.material) ? child.material : [child.material]
-    materials.forEach(clearShaderTintMaterial)
-  })
-}
-
-function applyPackedRmaoMaterial(material, packedTexture) {
-  if (!material?.isMaterial || !packedTexture) {
-    return material
-  }
-
-  material.userData.packedRmaoMap = packedTexture
-
-  if (!material.userData.hasPackedRmaoHook) {
-    const previousOnBeforeCompile = material.onBeforeCompile
-    material.onBeforeCompile = (shader, renderer) => {
-      if (typeof previousOnBeforeCompile === 'function') {
-        previousOnBeforeCompile(shader, renderer)
-      }
-
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          'roughnessFactor *= texelRoughness.g;',
-          'roughnessFactor *= texelRoughness.r;'
-        )
-        .replace(
-          'metalnessFactor *= texelMetalness.b;',
-          'metalnessFactor *= texelMetalness.g;'
-        )
-        .replace(
-          'float ambientOcclusion = ( texture2D( aoMap, vAoMapUv ).r - 1.0 ) * aoMapIntensity + 1.0;',
-          'float ambientOcclusion = ( texture2D( aoMap, vAoMapUv ).b - 1.0 ) * aoMapIntensity + 1.0;'
-        )
-    }
-
-    const previousCacheKey = material.customProgramCacheKey
-    material.customProgramCacheKey = () => `${previousCacheKey ? previousCacheKey() : ''}|salesboat-packed-rmao-v1`
-    material.userData.hasPackedRmaoHook = true
-  }
-
-  material.needsUpdate = true
-  return material
-}
-
-function applyDitherFadeMaterial(material, opacity = 0.45) {
-  if (!material?.isMaterial) {
-    return material
-  }
-
-  const ditherUniforms = material.userData.ditherFadeUniforms ?? {
-    uDitherOpacity: { value: opacity }
-  }
-  ditherUniforms.uDitherOpacity.value = THREE.MathUtils.clamp(opacity, 0.02, 1)
-  material.userData.ditherFadeUniforms = ditherUniforms
-
-  if (!material.userData.hasDitherFadeHook) {
-    const previousOnBeforeCompile = material.onBeforeCompile
-    material.onBeforeCompile = (shader, renderer) => {
-      if (typeof previousOnBeforeCompile === 'function') {
-        previousOnBeforeCompile(shader, renderer)
-      }
-
-      shader.uniforms.uDitherOpacity = ditherUniforms.uDitherOpacity
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          `#include <common>
-uniform float uDitherOpacity;
-float salesboatDitherThreshold(vec2 position) {
-  int x = int(mod(position.x, 4.0));
-  int y = int(mod(position.y, 4.0));
-  int index = x + y * 4;
-  float threshold = 0.0;
-  if (index == 0) threshold = 0.0;
-  else if (index == 1) threshold = 8.0;
-  else if (index == 2) threshold = 2.0;
-  else if (index == 3) threshold = 10.0;
-  else if (index == 4) threshold = 12.0;
-  else if (index == 5) threshold = 4.0;
-  else if (index == 6) threshold = 14.0;
-  else if (index == 7) threshold = 6.0;
-  else if (index == 8) threshold = 3.0;
-  else if (index == 9) threshold = 11.0;
-  else if (index == 10) threshold = 1.0;
-  else if (index == 11) threshold = 9.0;
-  else if (index == 12) threshold = 15.0;
-  else if (index == 13) threshold = 7.0;
-  else if (index == 14) threshold = 13.0;
-  else threshold = 5.0;
-  return (threshold + 0.5) / 16.0;
-}
-`
-        )
-        .replace(
-          'vec4 diffuseColor = vec4( diffuse, opacity );',
-          `vec4 diffuseColor = vec4( diffuse, opacity );
-if (salesboatDitherThreshold(gl_FragCoord.xy) > clamp(uDitherOpacity, 0.02, 1.0)) {
-  discard;
-}
-`
-        )
-    }
-
-    const previousCacheKey = material.customProgramCacheKey
-    material.customProgramCacheKey = () => `${previousCacheKey ? previousCacheKey() : ''}|salesboat-dither-fade-v1`
-    material.userData.hasDitherFadeHook = true
-  }
-
-  material.transparent = false
-  material.opacity = 1
-  material.alphaTest = 0
-  material.depthWrite = true
-  material.depthTest = true
-  material.needsUpdate = true
-  return material
-}
-
-function shouldApplyColorway(modelId, partRole) {
-  if (partRole === 'hull') {
-    return true
-  }
-
-  return ['PleasureBoat', 'PleasureBoat1', 'Yacht'].includes(modelId) && partRole === 'full'
-}
 
 export default function ShipScene({
   modelConfig,
@@ -1307,6 +145,8 @@ export default function ShipScene({
     ...getWaterTuning(modelId), // 默认配置,
     ...(waterConfig && typeof waterConfig === 'object' ? waterConfig : {}) // 用户配置
   }
+
+  // 复合部件
   const compositeParts = modelConfig?.parts ?? EMPTY_ARRAY
   const hasCompositeParts = compositeParts.length > 0
   const shouldUseSinglePartCompositeFallback = !modelConfig?.model?.path && compositeParts.length === 1
@@ -1317,14 +157,35 @@ export default function ShipScene({
     ? compositeParts[0]?.uvSets ?? EMPTY_ARRAY
     : modelConfig?.uvSets ?? EMPTY_ARRAY
   const hasRenderableModel = Boolean(effectiveModelConfig?.path || hasCompositeParts)
+  // 模型格式
   const modelFormat = (effectiveModelConfig?.format ?? 'glb').toLowerCase()
   const modelPath = effectiveModelConfig?.path
     ? resolveManifestPath(effectiveModelConfig.path)
     : ''
+  // 是否是双层船
   const isTwoLayerBoat = modelId === 'TwoLayerBoat'
+  // 是否是工作室模式;;默认的室外真实感渲染和工作室风格的预览渲染。
+  // `studioLook` 是一个布尔配置，用于在两种渲染模式之间切换：**默认的室外真实感渲染**和**工作室风格的预览渲染**。
+  // `studioLook` 是一个用于启用“工作室模式”的开关。这个模式旨在提供一个干净、中性的背景和
+  //          优化的灯光，以便更好地展示和预览3D模型，而不是模拟其在真实世界水域中的样子。这
+  //          对于模型审查、材质调整或在产品目录中生成标准化预览图等场景非常有用。
+  // 当 `isStudioLook` 为 `true` 时，会发生以下变化：
+  // *   **隐藏水面**: `shouldShowWaterSurface` 会变为 `false`，水面将不可见。
+  // *   **调整相机**: 内部相机的近裁剪面 (`near`) 会被调整，可能是为了适应不同的模型尺寸或避免在近距离观察时出现裁剪问题。
+  // *   **改变灯光和颜色**:
+  //     *   环境光 (`ambientLight`) 和半球光 (`hemisphereLight`) 的颜色会改变，
+  //                      工作室风格的光照颜色更偏向中性或冷色调（例如，`#dde8f6`）。
+  //     *   主光源 (`keyLight`) 的颜色、强度和位置都会改变，以模拟工作室的布光效果。
+  //     *   补光 (`fillLight`) 的颜色和强度也会调整。
+  // *   **调整色调映射**: `renderer.toneMappingExposure` 的值会改变，这会影响最终画面的亮度和对比度。
+  // *   **UI/DOM 样式变化**:
+  //     *   `canvas-view-toggle` 和 `scene-shell` 的 CSS 类名会添加 `-studio` 后缀，这表明 UI 可能会有不同的外观或布局。
+  //     *   在 `viewToggleClassName` 和 `scene-shell` 的类名中，`isStudioLook` 用于
+  //         动态添加 CSS 类，这表明工作室模式下可能会有不同的 UI 样式。
   const isStudioLook = typeof renderConfig.studioLook === 'boolean'
     ? renderConfig.studioLook
     : isStudioLookModel(modelId)
+  // 外部相机预设
   const baseExteriorCameraPreset = mergeVectorPreset(getExteriorCameraPreset(modelId), renderConfig.exteriorCamera)
   const exteriorCameraPreset = {
     ...baseExteriorCameraPreset,
@@ -1429,6 +290,7 @@ export default function ShipScene({
   const debugTransformModeRef = useRef(debugTransformMode)
   const onDebugTransformChangeRef = useRef(onDebugTransformChange)
   const loadingOverlayTimerRef = useRef(null)
+  // ---- 场景状态管理 ----
   const [activeView, setActiveView] = useState('exterior')
   const [activeFocusTarget, setActiveFocusTarget] = useState(resolvedRequestedFocusTarget)
   const [activeDeck, setActiveDeck] = useState('1')
@@ -1473,8 +335,10 @@ export default function ShipScene({
     if (interiorSkySphere) {
       scene.add(interiorSkySphere.mesh)
     }
-
+    
+    // 外部相机（正交）：用于外部环绕观察，提供无透视失真的产品展示视图，类似于工程蓝图。
     const exteriorCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.005, 5000)
+    // 内部相机（透视）：用于内部第一人称漫游，提供具有深度感的真实沉浸式体验。
     const interiorCamera = new THREE.PerspectiveCamera(56, 1, isStudioLook ? 0.02 : 0.005, 5000)
     exteriorCamera.position.set(...exteriorCameraPreset.position)
     exteriorCamera.zoom = exteriorCameraPreset.zoom
@@ -1727,21 +591,42 @@ export default function ShipScene({
       ])
     )
 
+    /**
+     * 根据当前的相机模式（外部/内部）更新整个场景（presentationRoot）和模型（modelRoot）的垂直偏移。
+     * @param {string} mode - 当前的相机模式，通常是 'exterior' 或 'interior'。
+     */
     const updatePresentationOffset = (mode) => {
+      // 在外部模式下，将整个场景的根节点向上抬升 stageOffsetY 的距离，以获得更好的构图。
       presentationRoot.position.y = mode === 'exterior' ? exteriorCameraPreset.stageOffsetY : 0
-      modelRoot.position.y = mode === 'exterior' && shouldShowWaterSurface ? waterTuning.exteriorModelLiftY : 0
+      // 在外部模式且显示水面的情况下，根据水面调整参数额外抬升模型，以模拟浮在水上的效果。
+      modelRoot.position.y = (mode === 'exterior' && shouldShowWaterSurface) 
+                            ? waterTuning.exteriorModelLiftY 
+                            : 0
     }
 
+    /**
+     * 应用一个外部相机预设，设置正交相机（OrthographicCamera）的位置和轨道控制器（OrbitControls）的目标。
+     * @param {object} preset - 一个相机预设对象，可能包含 target, zoom, rotation, coordinateSpace 等属性。
+     */
     const applyExteriorCameraPreset = (preset) => {
       const safePreset = preset ?? {}
+      // 确定相机的目标点。如果预设中没有提供，则使用默认的 targetY 高度。
       const nextTarget = safePreset.target ?? [0, exteriorCameraPreset.targetY, 0]
+      // 将目标点从可能的模型局部坐标系转换到场景世界坐标系。
       const focusTargetVector = toSceneFocusCoordinate(nextTarget, safePreset.coordinateSpace)
+
+      // 计算相机的观察方向。
+      // 优先使用预设中定义的旋转值（rotation）。
       const baseTargetVector = new THREE.Vector3(0, exteriorCameraPreset.targetY, 0)
       const baseCameraVector = new THREE.Vector3(...exteriorCameraPreset.position)
       const rotationPreset = getPresetRotationValue(safePreset)
+      // 如果没有旋转值，则通过默认的相机位置和目标点来计算方向。
       const viewDirection = rotationPreset
         ? getOrbitViewDirectionFromRotation(rotationPreset)
         : baseCameraVector.sub(baseTargetVector).normalize()
+
+      // 计算相机与目标点之间的距离（nextDistance），优先使用预设的 zoom 值。
+      // 注意：这里的 zoom 属性被用作距离值，而不是正交相机的缩放因子。
       const fallbackDistance = Math.max(
         new THREE.Vector3(...exteriorCameraPreset.position).distanceTo(baseTargetVector),
         0.01
@@ -1749,11 +634,16 @@ export default function ShipScene({
       const nextDistance = Number.isFinite(Number(safePreset.zoom)) && Number(safePreset.zoom) > 0
         ? Number(safePreset.zoom)
         : fallbackDistance
+
+      // 根据目标点、观察方向和距离，计算出最终的相机位置。
       const nextPosition = focusTargetVector.clone().add(viewDirection.multiplyScalar(nextDistance))
 
+      // 将计算出的目标点和相机位置应用到相机和轨道控制器上。
       exteriorCamera.position.copy(nextPosition)
+      // 设置正交相机的缩放级别。这与上面用作距离的 zoom 是不同的概念。
       exteriorCamera.zoom = exteriorCameraPreset.zoom
       controls.target.copy(focusTargetVector)
+      // 更新相机投影矩阵以应用更改。
       exteriorCamera.updateProjectionMatrix()
       controls.update()
     }
@@ -3748,7 +2638,9 @@ export default function ShipScene({
     if (activeView !== 'interior') {
       setActiveView('interior')
     }
-    setViewPresetRef.current('interior', deck, resolvedOrderFocusPresets.interior ?? { cameraMode: CAMERA_MODE_FIRST_PERSON })
+    setViewPresetRef.current('interior', deck, 
+      resolvedOrderFocusPresets.interior ?? { cameraMode: CAMERA_MODE_FIRST_PERSON }
+    )
   }
 
   const viewToggleClassName = `canvas-view-toggle ${isStudioLook ? 'canvas-view-toggle-studio' : ''}`.trim()

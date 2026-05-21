@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { normalizeCompareModelIds } from '../utils/utils_model';
+import { normalizeCompareModelIds } from '../utils/utils_homepage';
 
 /**
  * 一个自定义 Hook，用于封装和管理“详情对比”功能的所有状态和逻辑。

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useViewerScrollProgress } from '../../../hooks/useViewerScrollProgress';
 import { useFocusTarget } from '../../../hooks/useFocusTarget';
-import ShipScene from '../../ShipScene';
+import ShipScene from '../../scene3d/ShipScene';
 
 export default function HomePageViewerScreen({
   selectedModelId,

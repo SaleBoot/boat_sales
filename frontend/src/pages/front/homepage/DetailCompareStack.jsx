@@ -2,7 +2,7 @@ import {
   buildComparisonCardItems,
   getModelDetailImageAssetPath,
   getModelPriceLabel,
-} from '../../../utils/utils_model';
+} from '../../../utils/utils_homepage';
 import DetailCompareCard from './DetailCompareCard';
 import { useDetailCompare } from '../../../hooks/useDetailCompare';
 
