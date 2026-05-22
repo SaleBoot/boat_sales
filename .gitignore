@@ -1,0 +1,13 @@
+backend/tmp*
+backend/boatsales-backend
+frontend/doc01/tmp*
+backups/
+data/
+
+doc01/
+static/
+scripts/
+service/
+temp/
+SalesBoat-code-only-20260514-013133.zip
+salesboat-deploy.zip
