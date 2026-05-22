@@ -43,6 +43,7 @@ export function useFocusTarget(selectedModelId,
       try {
         const url = buildApiUrl(runtimeBasePath, 
             `api/models/${encodeURIComponent(selectedModelId)}/focus-targets`) 
+        console.log(`Fetching focus targets from: ${url}`);
         const response = await fetch( url );
         if (!response.ok) {
           throw new Error(`Failed to load focus targets: ${response.status}`);

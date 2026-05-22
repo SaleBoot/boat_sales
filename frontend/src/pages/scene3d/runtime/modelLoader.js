@@ -98,7 +98,8 @@ export function createModelLoader({
     const engineGroup = new THREE.Group()
     engineGroup.name = `${modelId}ConfiguredEngines`
 
-    for (const [engineIndex, engineConfig] of configuredEngines.entries()) {
+    for (const [engineIndex, engineConfig] of configuredEngines.entries()) 
+    {
       const engineType = `${engineConfig?.type ?? 'outboard-a'}`.trim() || 'outboard-a'
       const engineLibraryEntry = ENGINE_MODEL_LIBRARY[engineType] ?? ENGINE_MODEL_LIBRARY['outboard-a']
       try {

@@ -450,9 +450,9 @@ export  function applyShaderTintMaterial(material, colorPreset, options = {}) {
 
   if (!material.userData.hasShaderTintHook) {
     const previousOnBeforeCompile = material.onBeforeCompile
-    material.onBeforeCompile = (shader, renderer) => {
+    material.onBeforeCompile = function onBeforeCompile(shader, renderer) {
       if (typeof previousOnBeforeCompile === 'function') {
-        previousOnBeforeCompile(shader, renderer)
+        previousOnBeforeCompile.call(this, shader, renderer)
       }
 
       shader.uniforms.uShaderTintColor = shaderTintUniforms.uShaderTintColor
@@ -486,7 +486,9 @@ diffuseColor.rgb += vec3(uShaderTintLift);
     }
 
     const previousCacheKey = material.customProgramCacheKey
-    material.customProgramCacheKey = () => `${previousCacheKey ? previousCacheKey() : ''}|salesboat-shader-tint-v1`
+    material.customProgramCacheKey = function customProgramCacheKey() {
+      return `${previousCacheKey ? previousCacheKey.call(this) : ''}|salesboat-shader-tint-v1`
+    }
     material.userData.hasShaderTintHook = true
     material.needsUpdate = true
   }
@@ -526,9 +528,9 @@ export function applyPackedRmaoMaterial(material, packedTexture) {
 
   if (!material.userData.hasPackedRmaoHook) {
     const previousOnBeforeCompile = material.onBeforeCompile
-    material.onBeforeCompile = (shader, renderer) => {
+    material.onBeforeCompile = function onBeforeCompile(shader, renderer) {
       if (typeof previousOnBeforeCompile === 'function') {
-        previousOnBeforeCompile(shader, renderer)
+        previousOnBeforeCompile.call(this, shader, renderer)
       }
 
       shader.fragmentShader = shader.fragmentShader
@@ -547,7 +549,9 @@ export function applyPackedRmaoMaterial(material, packedTexture) {
     }
 
     const previousCacheKey = material.customProgramCacheKey
-    material.customProgramCacheKey = () => `${previousCacheKey ? previousCacheKey() : ''}|salesboat-packed-rmao-v1`
+    material.customProgramCacheKey = function customProgramCacheKey() {
+      return `${previousCacheKey ? previousCacheKey.call(this) : ''}|salesboat-packed-rmao-v1`
+    }
     material.userData.hasPackedRmaoHook = true
   }
 
@@ -568,9 +572,9 @@ export function applyDitherFadeMaterial(material, opacity = 0.45) {
 
   if (!material.userData.hasDitherFadeHook) {
     const previousOnBeforeCompile = material.onBeforeCompile
-    material.onBeforeCompile = (shader, renderer) => {
+    material.onBeforeCompile = function onBeforeCompile(shader, renderer) {
       if (typeof previousOnBeforeCompile === 'function') {
-        previousOnBeforeCompile(shader, renderer)
+        previousOnBeforeCompile.call(this, shader, renderer)
       }
 
       shader.uniforms.uDitherOpacity = ditherUniforms.uDitherOpacity
@@ -615,7 +619,9 @@ if (salesboatDitherThreshold(gl_FragCoord.xy) > clamp(uDitherOpacity, 0.02, 1.0)
     }
 
     const previousCacheKey = material.customProgramCacheKey
-    material.customProgramCacheKey = () => `${previousCacheKey ? previousCacheKey() : ''}|salesboat-dither-fade-v1`
+    material.customProgramCacheKey = function customProgramCacheKey() {
+      return `${previousCacheKey ? previousCacheKey.call(this) : ''}|salesboat-dither-fade-v1`
+    }
     material.userData.hasDitherFadeHook = true
   }
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-12T12:42:44.441Z",
+  "generatedAt": "2026-05-13T11:55:33.487Z",
   "source": {
     "assetRoot": "../gltf",
     "publicRoot": "public/gltf"
@@ -25,7 +25,7 @@
           "textures": {
             "baseColor": "/gltf/40mijianchuan/cc/ccuv_01 - Default_BaseColor.png",
             "normal": "/gltf/40mijianchuan/cc/ccuv_01 - Default_Normal.png",
-            "orm": "/gltf/40mijianchuan/cc/ccuv_01 - Default_R+M+AO.png"
+            "rmao": "/gltf/40mijianchuan/cc/ccuv_01 - Default_R+M+AO.png"
           },
           "textureOptions": {
             "baseColor": {
@@ -50,7 +50,7 @@
           "textures": {
             "baseColor": "/gltf/40mijianchuan/qt/qtuv_02 - Default_BaseColor.png",
             "normal": "/gltf/40mijianchuan/qt/qtuv_02 - Default_Normal.png",
-            "orm": "/gltf/40mijianchuan/qt/qtuv_02 - Default_R+M+AO.png"
+            "rmao": "/gltf/40mijianchuan/qt/qtuv_02 - Default_R+M+AO.png"
           }
         }
       ],
@@ -143,7 +143,7 @@
           "textures": {
             "baseColor": "/gltf/57sites/cc/ccUV_01 - Default_BaseColor.png",
             "normal": "/gltf/57sites/cc/ccUV_01 - Default_Normal.png",
-            "orm": "/gltf/57sites/cc/ccUV_01 - Default_R+M+AO.png"
+            "rmao": "/gltf/57sites/cc/ccUV_01 - Default_R+M+AO.png"
           }
         },
         {
@@ -155,7 +155,7 @@
           "textures": {
             "baseColor": "/gltf/57sites/mt/mtUV_01 - Default_BaseColor.png",
             "normal": "/gltf/57sites/mt/mtUV_01 - Default_Normal.png",
-            "orm": "/gltf/57sites/mt/mtUV_01 - Default_R+M+AO.png"
+            "rmao": "/gltf/57sites/mt/mtUV_01 - Default_R+M+AO.png"
           },
           "textureOptions": {
             "baseColor": {
@@ -236,278 +236,87 @@
       }
     },
     {
-      "id": "950",
-      "label": "950",
+      "id": "951",
+      "label": "951",
       "model": {
         "format": "fbx",
-        "path": "/gltf/950/950/950.fbx"
+        "path": "/gltf/951/951NS/950ns.fbx"
       },
-      "defaultUvSetId": null,
-      "uvSets": [],
-      "parts": [
+      "defaultUvSetId": "cc",
+      "uvSets": [
         {
-          "id": "950",
-          "label": "950",
-          "model": {
-            "format": "fbx",
-            "path": "/gltf/950/950/950.fbx"
-          },
-          "defaultUvSetId": "cc",
-          "uvSets": [
-            {
-              "id": "cc",
-              "label": "UV cc",
-              "directory": "/gltf/950/950/cc",
-              "materialNameHint": "01 - Default",
-              "materialHintSource": "runtime",
-              "textures": {
-                "baseColor": "/gltf/950/950/cc/ccuv_01 - Default_BaseColor.png",
-                "normal": "/gltf/950/950/cc/ccuv_01 - Default_Normal.png",
-                "orm": "/gltf/950/950/cc/ccuv_01 - Default_R+M+AO.png"
-              }
-            },
-            {
-              "id": "qt",
-              "label": "UV qt",
-              "directory": "/gltf/950/950/qt",
-              "materialNameHint": "02 - Default",
-              "materialHintSource": "runtime",
-              "textures": {
-                "baseColor": "/gltf/950/950/qt/qtuv_02 - Default_BaseColor.png",
-                "normal": "/gltf/950/950/qt/qtuv_02 - Default_Normal.png",
-                "orm": "/gltf/950/950/qt/qtuv_02 - Default_R+M+AO.png"
-              }
-            }
-          ],
-          "runtime": {
-            "materialSlots": [
-              {
-                "name": "01 - Default",
-                "normalizedName": "01default",
-                "meshCount": 25
-              },
-              {
-                "name": "02 - Default",
-                "normalizedName": "02default",
-                "meshCount": 13
-              }
-            ],
-            "meshCount": 38,
-            "meshWithUvCount": 38,
-            "meshWithUv2Count": 0,
-            "uvCoverage": 1,
-            "uv2Coverage": 0,
-            "inspectionError": "",
-            "candidates": [
-              {
-                "fileName": "950.fbx",
-                "format": "fbx",
-                "path": "/gltf/950/950.fbx",
-                "score": 1206,
-                "materialSlots": [
-                  {
-                    "name": "01 - Default",
-                    "normalizedName": "01default",
-                    "meshCount": 25
-                  },
-                  {
-                    "name": "02 - Default",
-                    "normalizedName": "02default",
-                    "meshCount": 13
-                  }
-                ],
-                "meshCount": 38,
-                "meshWithUvCount": 38,
-                "meshWithUv2Count": 0,
-                "uvCoverage": 1,
-                "uv2Coverage": 0,
-                "inspectionError": ""
-              },
-              {
-                "fileName": "950.glb",
-                "format": "glb",
-                "path": "/gltf/950/950.glb",
-                "score": 207,
-                "materialSlots": [
-                  {
-                    "name": "M_01___Default",
-                    "normalizedName": "01default",
-                    "meshCount": 25
-                  },
-                  {
-                    "name": "M_02___Default",
-                    "normalizedName": "02default",
-                    "meshCount": 13
-                  }
-                ],
-                "meshCount": 38,
-                "meshWithUvCount": 0,
-                "meshWithUv2Count": 0,
-                "uvCoverage": 0,
-                "uv2Coverage": 0,
-                "inspectionError": ""
-              }
-            ]
+          "id": "cc",
+          "label": "UV cc",
+          "directory": "/gltf/951/951NS/cc",
+          "materialNameHint": "M_01___Default",
+          "materialHintSource": "inferred",
+          "textures": {
+            "ao": "/gltf/951/951NS/cc/AO.png",
+            "baseColor": "/gltf/951/951NS/cc/ccuv_01 - Default_BaseColor.png",
+            "emissive": "/gltf/951/951NS/cc/ccuv_01 - Default_Emissive.png",
+            "metalness": "/gltf/951/951NS/cc/ccuv_01 - Default_Metallic.png",
+            "normal": "/gltf/951/951NS/cc/ccuv_01 - Default_Normal.png",
+            "rmao": "/gltf/951/951NS/cc/ccuv_01 - Default_R+M+AO.png",
+            "roughness": "/gltf/951/951NS/cc/ccuv_01 - Default_Roughness.png"
           }
         },
         {
-          "id": "950NS",
-          "label": "950NS",
-          "model": {
-            "format": "fbx",
-            "path": "/gltf/950/950NS/950ns.fbx"
-          },
-          "defaultUvSetId": "cc",
-          "uvSets": [
-            {
-              "id": "cc",
-              "label": "UV cc",
-              "directory": "/gltf/950/950NS/cc",
-              "materialNameHint": "01 - Default",
-              "materialHintSource": "runtime",
-              "textures": {
-                "baseColor": "/gltf/950/950NS/cc/ccuv_01 - Default_BaseColor.png",
-                "normal": "/gltf/950/950NS/cc/ccuv_01 - Default_Normal.png",
-                "orm": "/gltf/950/950NS/cc/ccuv_01 - Default_R+M+AO.png"
-              }
-            },
-            {
-              "id": "ns1",
-              "label": "UV ns1",
-              "directory": "/gltf/950/950NS/ns1",
-              "materialNameHint": "02 - Default",
-              "materialHintSource": "runtime",
-              "textures": {
-                "baseColor": "/gltf/950/950NS/ns1/nsuv1_02 - Default_BaseColor.png",
-                "normal": "/gltf/950/950NS/ns1/nsuv1_02 - Default_Normal.png",
-                "orm": "/gltf/950/950NS/ns1/nsuv1_02 - Default_R+M+AO.png"
-              }
-            },
-            {
-              "id": "ns2",
-              "label": "UV ns2",
-              "directory": "/gltf/950/950NS/ns2",
-              "materialNameHint": "03 - Default",
-              "materialHintSource": "runtime",
-              "textures": {
-                "baseColor": "/gltf/950/950NS/ns2/nsuv2_03 - Default_BaseColor.png",
-                "normal": "/gltf/950/950NS/ns2/nsuv2_03 - Default_Normal.png",
-                "orm": "/gltf/950/950NS/ns2/nsuv2_03 - Default_R+M+AO.png"
-              }
-            }
-          ],
-          "runtime": {
-            "materialSlots": [
-              {
-                "name": "01 - Default",
-                "normalizedName": "01default",
-                "meshCount": 39
-              },
-              {
-                "name": "02 - Default",
-                "normalizedName": "02default",
-                "meshCount": 47
-              },
-              {
-                "name": "03 - Default",
-                "normalizedName": "03default",
-                "meshCount": 27
-              }
-            ],
-            "meshCount": 113,
-            "meshWithUvCount": 113,
-            "meshWithUv2Count": 27,
-            "uvCoverage": 1,
-            "uv2Coverage": 0.23893805309734514,
-            "inspectionError": "",
-            "candidates": [
-              {
-                "fileName": "950ns.fbx",
-                "format": "fbx",
-                "path": "/gltf/950/950ns.fbx",
-                "score": 1306.027,
-                "materialSlots": [
-                  {
-                    "name": "01 - Default",
-                    "normalizedName": "01default",
-                    "meshCount": 39
-                  },
-                  {
-                    "name": "02 - Default",
-                    "normalizedName": "02default",
-                    "meshCount": 47
-                  },
-                  {
-                    "name": "03 - Default",
-                    "normalizedName": "03default",
-                    "meshCount": 27
-                  }
-                ],
-                "meshCount": 113,
-                "meshWithUvCount": 113,
-                "meshWithUv2Count": 27,
-                "uvCoverage": 1,
-                "uv2Coverage": 0.23893805309734514,
-                "inspectionError": ""
-              },
-              {
-                "fileName": "950ns.glb",
-                "format": "glb",
-                "path": "/gltf/950/950ns.glb",
-                "score": 307,
-                "materialSlots": [
-                  {
-                    "name": "M_01___Default",
-                    "normalizedName": "01default",
-                    "meshCount": 39
-                  },
-                  {
-                    "name": "M_02___Default",
-                    "normalizedName": "02default",
-                    "meshCount": 47
-                  },
-                  {
-                    "name": "M_03___Default",
-                    "normalizedName": "03default",
-                    "meshCount": 27
-                  }
-                ],
-                "meshCount": 113,
-                "meshWithUvCount": 0,
-                "meshWithUv2Count": 0,
-                "uvCoverage": 0,
-                "uv2Coverage": 0,
-                "inspectionError": ""
-              }
-            ]
+          "id": "ns1",
+          "label": "UV ns1",
+          "directory": "/gltf/951/951NS/ns1",
+          "materialNameHint": "M_02___Default",
+          "materialHintSource": "inferred",
+          "textures": {
+            "ao": "/gltf/951/951NS/ns1/AO.png",
+            "baseColor": "/gltf/951/951NS/ns1/nsuv1_02 - Default_BaseColor.png",
+            "emissive": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Emissive.png",
+            "metalness": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Metallic.png",
+            "normal": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Normal.png",
+            "rmao": "/gltf/951/951NS/ns1/nsuv1_02 - Default_R+M+AO.png",
+            "roughness": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Roughness.png"
+          }
+        },
+        {
+          "id": "ns2",
+          "label": "UV ns2",
+          "directory": "/gltf/951/951NS/ns2",
+          "materialNameHint": "M_03___Default",
+          "materialHintSource": "inferred",
+          "textures": {
+            "ao": "/gltf/951/951NS/ns2/AO.png",
+            "baseColor": "/gltf/951/951NS/ns2/nsuv2_03 - Default_BaseColor.png",
+            "emissive": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Emissive.png",
+            "metalness": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Metallic.png",
+            "normal": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Normal.png",
+            "rmao": "/gltf/951/951NS/ns2/nsuv2_03 - Default_R+M+AO.png",
+            "roughness": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Roughness.png"
           }
         }
       ],
       "runtime": {
         "materialSlots": [
           {
-            "name": "01 - Default",
+            "name": "M_01___Default",
             "normalizedName": "01default",
-            "meshCount": 64
+            "meshCount": 39
           },
           {
-            "name": "02 - Default",
+            "name": "M_02___Default",
             "normalizedName": "02default",
-            "meshCount": 60
+            "meshCount": 47
           },
           {
-            "name": "03 - Default",
+            "name": "M_03___Default",
             "normalizedName": "03default",
             "meshCount": 27
           }
         ],
-        "meshCount": 151,
-        "meshWithUvCount": 151,
-        "meshWithUv2Count": 27,
-        "uvCoverage": 1,
-        "uv2Coverage": 0.17880794701986755,
-        "inspectionError": "",
-        "candidates": []
+        "meshCount": 113,
+        "meshWithUvCount": 0,
+        "meshWithUv2Count": 0,
+        "uvCoverage": 0,
+        "uv2Coverage": 0,
+        "inspectionError": ""
       }
     },
     {
@@ -619,7 +428,7 @@
           "textures": {
             "baseColor": "/gltf/Dabao/Texture/diandong_19 - Default_BaseColor.png",
             "normal": "/gltf/Dabao/Texture/diandong_19 - Default_Normal.png",
-            "orm": "/gltf/Dabao/Texture/diandong_19 - Default_R+M+AO.png"
+            "rmao": "/gltf/Dabao/Texture/diandong_19 - Default_R+M+AO.png"
           }
         }
       ],
@@ -628,11 +437,11 @@
           {
             "name": "19 - Default",
             "normalizedName": "19default",
-            "meshCount": 3
+            "meshCount": 1
           }
         ],
-        "meshCount": 3,
-        "meshWithUvCount": 3,
+        "meshCount": 1,
+        "meshWithUvCount": 1,
         "meshWithUv2Count": 0,
         "uvCoverage": 1,
         "uv2Coverage": 0,
@@ -647,11 +456,11 @@
               {
                 "name": "19 - Default",
                 "normalizedName": "19default",
-                "meshCount": 3
+                "meshCount": 1
               }
             ],
-            "meshCount": 3,
-            "meshWithUvCount": 3,
+            "meshCount": 1,
+            "meshWithUvCount": 1,
             "meshWithUv2Count": 0,
             "uvCoverage": 1,
             "uv2Coverage": 0,
@@ -666,10 +475,10 @@
               {
                 "name": "M_19___Default",
                 "normalizedName": "19default",
-                "meshCount": 3
+                "meshCount": 1
               }
             ],
-            "meshCount": 3,
+            "meshCount": 1,
             "meshWithUvCount": 0,
             "meshWithUv2Count": 0,
             "uvCoverage": 0,
@@ -819,6 +628,143 @@
               }
             ],
             "meshCount": 3,
+            "meshWithUvCount": 0,
+            "meshWithUv2Count": 0,
+            "uvCoverage": 0,
+            "uv2Coverage": 0,
+            "inspectionError": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "JS13",
+      "label": "JS13",
+      "model": {
+        "format": "fbx",
+        "path": "/gltf/JS13/13.fbx"
+      },
+      "defaultUvSetId": "cc",
+      "uvSets": [
+        {
+          "id": "cc",
+          "label": "UV cc",
+          "directory": "/gltf/JS13/cc",
+          "materialNameHint": "01 - Default",
+          "materialHintSource": "runtime",
+          "textures": {
+            "baseColor": "/gltf/JS13/cc/ccuv_01 - Default_BaseColor.png",
+            "normal": "/gltf/JS13/cc/ccuv_01 - Default_Normal.png",
+            "rmao": "/gltf/JS13/cc/ccuv_01 - Default_R+M+AO.png"
+          }
+        },
+        {
+          "id": "ns",
+          "label": "UV ns",
+          "directory": "/gltf/JS13/ns",
+          "materialNameHint": "03 - Default",
+          "materialHintSource": "runtime",
+          "textures": {
+            "baseColor": "/gltf/JS13/ns/nsuv_03 - Default_BaseColor.png",
+            "normal": "/gltf/JS13/ns/nsuv_03 - Default_Normal.png",
+            "rmao": "/gltf/JS13/ns/nsuv_03 - Default_R+M+AO.png"
+          }
+        },
+        {
+          "id": "qt",
+          "label": "UV qt",
+          "directory": "/gltf/JS13/qt",
+          "materialNameHint": "02 - Default",
+          "materialHintSource": "runtime",
+          "textures": {
+            "baseColor": "/gltf/JS13/qt/Untitled_02 - Default_BaseColor.png",
+            "normal": "/gltf/JS13/qt/Untitled_02 - Default_Normal.png",
+            "rmao": "/gltf/JS13/qt/Untitled_02 - Default_R+M+AO.png"
+          }
+        }
+      ],
+      "runtime": {
+        "materialSlots": [
+          {
+            "name": "01 - Default",
+            "normalizedName": "01default",
+            "meshCount": 12
+          },
+          {
+            "name": "02 - Default",
+            "normalizedName": "02default",
+            "meshCount": 11
+          },
+          {
+            "name": "03 - Default",
+            "normalizedName": "03default",
+            "meshCount": 67
+          }
+        ],
+        "meshCount": 90,
+        "meshWithUvCount": 90,
+        "meshWithUv2Count": 67,
+        "uvCoverage": 1,
+        "uv2Coverage": 0.7444444444444445,
+        "inspectionError": "",
+        "candidates": [
+          {
+            "fileName": "13.fbx",
+            "format": "fbx",
+            "path": "/gltf/JS13/13.fbx",
+            "score": 1300.067,
+            "materialSlots": [
+              {
+                "name": "01 - Default",
+                "normalizedName": "01default",
+                "meshCount": 12
+              },
+              {
+                "name": "02 - Default",
+                "normalizedName": "02default",
+                "meshCount": 11
+              },
+              {
+                "name": "03 - Default",
+                "normalizedName": "03default",
+                "meshCount": 67
+              }
+            ],
+            "meshCount": 90,
+            "meshWithUvCount": 90,
+            "meshWithUv2Count": 67,
+            "uvCoverage": 1,
+            "uv2Coverage": 0.7444444444444445,
+            "inspectionError": ""
+          },
+          {
+            "fileName": "13.glb",
+            "format": "glb",
+            "path": "/gltf/JS13/13.glb",
+            "score": 300,
+            "materialSlots": [
+              {
+                "name": "M_01___Default",
+                "normalizedName": "01default",
+                "meshCount": 11
+              },
+              {
+                "name": "M_01___Default_1",
+                "normalizedName": "01default1",
+                "meshCount": 1
+              },
+              {
+                "name": "M_02___Default",
+                "normalizedName": "02default",
+                "meshCount": 11
+              },
+              {
+                "name": "M_03___Default",
+                "normalizedName": "03default",
+                "meshCount": 67
+              }
+            ],
+            "meshCount": 90,
             "meshWithUvCount": 0,
             "meshWithUv2Count": 0,
             "uvCoverage": 0,
@@ -1599,21 +1545,30 @@
         "format": "fbx",
         "path": "/gltf/Yacht/950.fbx"
       },
-      "defaultUvSetId": "tt",
+      "defaultUvSetId": "cc",
       "uvSets": [
         {
-          "id": "tt",
-          "label": "UV tt",
-          "directory": "/gltf/Yacht/tt",
+          "id": "cc",
+          "label": "UV cc",
+          "directory": "/gltf/Yacht/cc",
           "materialNameHint": "01 - Default",
-          "materialHintSource": "runtime",
+          "materialHintSource": "manual",
           "textures": {
-            "baseColor": "/gltf/Yacht/tt/950_01 - Default_BaseColor.png",
-            "emissive": "/gltf/Yacht/tt/950_01 - Default_Emissive.png",
-            "metalness": "/gltf/Yacht/tt/950_01 - Default_Metallic.png",
-            "normal": "/gltf/Yacht/tt/950_01 - Default_Normal.png",
-            "roughness": "/gltf/Yacht/tt/950_01 - Default_Roughness.png",
-            "ao": "/gltf/Yacht/tt/AO.png"
+            "baseColor": "/gltf/Yacht/cc/ccuv_01 - Default_BaseColor.png",
+            "normal": "/gltf/Yacht/cc/ccuv_01 - Default_Normal.png",
+            "rmao": "/gltf/Yacht/cc/ccuv_01 - Default_R+M+AO.png"
+          }
+        },
+        {
+          "id": "qt",
+          "label": "UV qt",
+          "directory": "/gltf/Yacht/qt",
+          "materialNameHint": "02 - Default",
+          "materialHintSource": "manual",
+          "textures": {
+            "baseColor": "/gltf/Yacht/qt/qtuv_02 - Default_BaseColor.png",
+            "normal": "/gltf/Yacht/qt/qtuv_02 - Default_Normal.png",
+            "rmao": "/gltf/Yacht/qt/qtuv_02 - Default_R+M+AO.png"
           }
         }
       ],
@@ -1622,11 +1577,16 @@
           {
             "name": "01 - Default",
             "normalizedName": "01default",
-            "meshCount": 8
+            "meshCount": 25
+          },
+          {
+            "name": "02 - Default",
+            "normalizedName": "02default",
+            "meshCount": 13
           }
         ],
-        "meshCount": 8,
-        "meshWithUvCount": 8,
+        "meshCount": 38,
+        "meshWithUvCount": 38,
         "meshWithUv2Count": 0,
         "uvCoverage": 1,
         "uv2Coverage": 0,
@@ -1636,16 +1596,21 @@
             "fileName": "950.fbx",
             "format": "fbx",
             "path": "/gltf/Yacht/950.fbx",
-            "score": 1106,
+            "score": 1206,
             "materialSlots": [
               {
                 "name": "01 - Default",
                 "normalizedName": "01default",
-                "meshCount": 8
+                "meshCount": 25
+              },
+              {
+                "name": "02 - Default",
+                "normalizedName": "02default",
+                "meshCount": 13
               }
             ],
-            "meshCount": 8,
-            "meshWithUvCount": 8,
+            "meshCount": 38,
+            "meshWithUvCount": 38,
             "meshWithUv2Count": 0,
             "uvCoverage": 1,
             "uv2Coverage": 0,
@@ -1655,15 +1620,20 @@
             "fileName": "950.glb",
             "format": "glb",
             "path": "/gltf/Yacht/950.glb",
-            "score": 105,
+            "score": 205,
             "materialSlots": [
               {
                 "name": "M_01___Default",
                 "normalizedName": "01default",
-                "meshCount": 8
+                "meshCount": 25
+              },
+              {
+                "name": "M_02___Default",
+                "normalizedName": "02default",
+                "meshCount": 13
               }
             ],
-            "meshCount": 8,
+            "meshCount": 38,
             "meshWithUvCount": 0,
             "meshWithUv2Count": 0,
             "uvCoverage": 0,

@@ -95,7 +95,7 @@ function setupOrbitControls(camera, canvas, targetY) {
 
 
 
-export function createReflectionEnvironmentScene() {
+function createReflectionEnvironmentScene() {
   const environmentScene = new THREE.Scene()
   const disposables = []
 
@@ -244,7 +244,7 @@ function createWaterSurface() {
 }
 
 
-export function createInteriorSkySphere() {
+function createInteriorSkySphere() {
   const canvas = document.createElement('canvas')
   canvas.width = 2048
   canvas.height = 1024

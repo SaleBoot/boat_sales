@@ -38,7 +38,10 @@ export function useFirstPersonControls(threeContext, canvasRef, modeRef) { // <-
   }, [interiorCamera]);
 
   const updateFirstPersonMovement = useCallback((deltaSeconds) => {
-    if (modeRef.current !== 'interior' || interiorPoseRef.current.cameraMode !== CAMERA_MODE_FIRST_PERSON || interiorPoseRef.current.keys.size === 0) {
+    if (modeRef.current !== 'interior' || 
+        interiorPoseRef.current.cameraMode !== CAMERA_MODE_FIRST_PERSON || 
+        interiorPoseRef.current.keys.size === 0) 
+    {
       return;
     }
     const interiorPose = interiorPoseRef.current;
@@ -63,7 +66,8 @@ export function useFirstPersonControls(threeContext, canvasRef, modeRef) { // <-
 
   useEffect(() => {
     const canvas = canvasRef.current; // <-- Get canvas element inside useEffect
-    if (!threeContext || !canvas) return;
+    if (!threeContext || !canvas) 
+      return;
 
     const interiorPose = interiorPoseRef.current;
 
