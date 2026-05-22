@@ -12,6 +12,7 @@ import ShipScene            from './pages/scene3d/ShipScene'
 import { useShowcaseData }                    from './hooks/useShowcaseData'
 import { usePointerGlow,useGlobalMenuClose }  from './hooks/useUIEvents'
 import {  
+  MODEL_STORAGE_KEY,
   vesselCategoryMenus
 } from './constants/constants_front_homepage'
 

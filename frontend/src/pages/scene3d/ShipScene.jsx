@@ -6,9 +6,7 @@ import { FBXLoader }     from 'three/examples/jsm/loaders/FBXLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 
-import { 
-  updateOrthographicFrustum,
-  createWaterSurface,
+import {  
   focusVectorToArray, 
   normalizeDebugTransform,  
   getExteriorCameraDistance,
@@ -16,9 +14,7 @@ import {
   getInteriorDeckPresets,
   getWaterTuning,
   mergeVectorPreset,
-  mergeInteriorDeckPresets, 
-  createReflectionEnvironmentScene,
-  createInteriorSkySphere,
+  mergeInteriorDeckPresets,   
   getOrderFocusPresets,
   objectTransformToDebugPayload,
   applyDebugTransformToObject,
@@ -57,11 +53,8 @@ import {
 } from '../../utils/utils_ship_scene.js';
 
 import {
-  WATER_SURFACE_ENABLED,
-  EXTERIOR_STAGE_Y_OFFSET,
-  EXTERIOR_TARGET_Y,
-  EMPTY_ARRAY,
-  DEFAULT_WATER_TUNING,
+  WATER_SURFACE_ENABLED, 
+  EMPTY_ARRAY, 
   UV_SET_ALPHA_MODE_OPAQUE,
   UV_SET_ALPHA_MODE_CUTOUT,
   UV_SET_ALPHA_MODE_BLEND,
@@ -76,112 +69,13 @@ import {
   CAMERA_MODE_ORBIT,
   CAMERA_MODE_FIRST_PERSON,
   FOCUS_COORDINATE_SPACE_SCENE,
-  FOCUS_COORDINATE_SPACE_MODEL_LOCAL,
-  DEFAULT_CAMERA_ROTATION_DEGREES,
-  TWO_LAYER_TRACKED_TEXTURE_PATHS,
-  MODEL_WATER_TUNING,
-  DEFAULT_EXTERIOR_CAMERA_PRESET,
-  STUDIO_EXTERIOR_CAMERA_PRESET,
-  DEFAULT_INTERIOR_DECK_PRESETS,
-  ENGINE_MODEL_LIBRARY,
-  TEST_HIGH_INTERIOR_DECK_PRESETS
+  FOCUS_COORDINATE_SPACE_MODEL_LOCAL, 
+  TWO_LAYER_TRACKED_TEXTURE_PATHS, 
+  ENGINE_MODEL_LIBRARY 
 } from '../../constants/constants_ship_scene.js';
+import { useThree } from '../../hooks/useThree.js';
+import { useFirstPersonControls } from '../../hooks/useFirstPersonControls.js';
 
-
-function setupLights(scene, modelRoot, isStudioLook) {
-  const ambientLight = new THREE.HemisphereLight(
-    new THREE.Color(isStudioLook ? '#dde8f6' : '#bfd9f2'),
-    new THREE.Color(isStudioLook ? '#32251c' : '#52606c'),
-    isStudioLook ? 0.62 : 1.02
-  )
-
-  const keyLight = new THREE.DirectionalLight(
-    new THREE.Color(isStudioLook ? '#fff1de' : '#ffd7ab'),
-    isStudioLook ? 2.05 : 1.18
-  )
-  keyLight.position.set(...(isStudioLook ? [5.4, 3.5, 4.8] : [6.8, 4.6, 2.2]))
-  keyLight.target = modelRoot
-  keyLight.castShadow = true
-  keyLight.shadow.mapSize.set(2048, 2048)
-  keyLight.shadow.bias = -0.0002
-  keyLight.shadow.normalBias = 0.03
-  keyLight.shadow.camera.near = 0.5
-  keyLight.shadow.camera.far = 24
-  keyLight.shadow.camera.left = -8
-  keyLight.shadow.camera.right = 8
-  keyLight.shadow.camera.top = 8
-  keyLight.shadow.camera.bottom = -8
-
-  const underGlowLight = new THREE.PointLight(
-    new THREE.Color(isStudioLook ? '#72f6ff' : '#ffffff'),
-    isStudioLook ? 0 : 0,
-    10,
-    2
-  )
-  underGlowLight.position.set(0.2, -0.55, 1.1)
-
-  scene.add(ambientLight, keyLight, underGlowLight)
-
-  return {
-    ambientLight,
-    keyLight,
-    underGlowLight
-  }
-}
-
-function setupCameras(scene, exteriorCameraPreset, interiorDeckPresetConfig, isStudioLook) {
-  // 外部相机（正交）：用于外部环绕观察，提供无透视失真的产品展示视图，类似于工程蓝图。
-  const exteriorCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.005, 5000)
-  // 内部相机（透视）：用于内部第一人称漫游，提供具有深度感的真实沉浸式体验。
-  const interiorCamera = new THREE.PerspectiveCamera(56, 1, isStudioLook ? 0.02 : 0.005, 5000)
-  
-  exteriorCamera.position.set(...exteriorCameraPreset.position)
-  exteriorCamera.zoom = exteriorCameraPreset.zoom
-  interiorCamera.position.set(...(interiorDeckPresetConfig['1']?.position ?? [0, 0.68, -0.82]))
-  
-  scene.add(exteriorCamera, interiorCamera)
-
-  return {
-    exteriorCamera,
-    interiorCamera
-  }
-}
-
-function setupRenderer(canvas, isStudioLook) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setClearColor('#010203', 1)
-  renderer.outputColorSpace = THREE.SRGBColorSpace
-  renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = isStudioLook ? 0.92 : 0.94
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
-  return renderer
-}
-
-function setupOrbitControls(camera, canvas, targetY) {
-  const controls = new OrbitControls(camera, canvas)
-  controls.enableDamping = true
-  controls.enablePan = false
-  controls.enableZoom = false
-  controls.target.set(0, targetY, 0)
-  controls.update()
-  return controls
-}
-
-function setupEnvironment(renderer, scene) {
-  const pmremGenerator = new THREE.PMREMGenerator(renderer)
-  const reflectionEnvironment = createReflectionEnvironmentScene()
-  const environmentTexture = pmremGenerator.fromScene(reflectionEnvironment.scene, 0.02).texture
-  scene.environment = environmentTexture
-  
-  // 返回创建的资源，以便在清理阶段可以释放它们
-  return {
-    pmremGenerator,
-    reflectionEnvironment,
-    environmentTexture
-  }
-}
 
 function setupTransformControls(scene, 
     camera, 
@@ -212,31 +106,6 @@ function setupTransformControls(scene,
   
   scene.add(transformControls)
   return transformControls
-}
-
-function setupScene(shouldShowWaterSurface) {
-  const scene = new THREE.Scene()
-  const presentationRoot = new THREE.Group()
-  const modelRoot = new THREE.Group()
-  const waterRoot = new THREE.Group()
-  const stageRoot = new THREE.Group()
-  const waterSurface = shouldShowWaterSurface ? createWaterSurface() : null
-  const interiorSkySphere = createInteriorSkySphere()
-  scene.add(presentationRoot)
-  presentationRoot.add(stageRoot, waterRoot, modelRoot)
-  if (interiorSkySphere) {
-    scene.add(interiorSkySphere.mesh)
-  }
-
-  return {
-    scene,
-    presentationRoot,
-    modelRoot,
-    waterRoot,
-    stageRoot,
-    waterSurface,
-    interiorSkySphere
-  }
 }
 
 // --------------------------------------------------------------
@@ -337,13 +206,18 @@ export default function ShipScene({
     ? renderConfig.studioLook
     : isStudioLookModel(modelId)
   // 外部相机预设
-  const baseExteriorCameraPreset = mergeVectorPreset(getExteriorCameraPreset(modelId), renderConfig.exteriorCamera)
-  const exteriorCameraPreset = {
-    ...baseExteriorCameraPreset,
-    zoom: baseExteriorCameraPreset.zoom * overviewZoomScale
-  }
-  const interiorDeckPresetConfig = mergeInteriorDeckPresets(getInteriorDeckPresets(modelId), 
-                                                            renderConfig.interiorDecks)
+  const exteriorCameraPreset = useMemo(() => {
+    const base = mergeVectorPreset(getExteriorCameraPreset(modelId), renderConfig.exteriorCamera);
+    return {
+        ...base,
+        zoom: base.zoom * overviewZoomScale
+    };
+  }, [modelId, renderConfig.exteriorCamera, overviewZoomScale]);
+
+  const interiorDeckPresetConfig = useMemo(() => 
+    mergeInteriorDeckPresets(getInteriorDeckPresets(modelId), renderConfig.interiorDecks),
+    [modelId, renderConfig.interiorDecks]
+  );
   const directConsolePreset = useMemo(() => {
     const rawPreset = focusTargetPresets?.console
     if (!rawPreset || typeof rawPreset !== 'object') {
@@ -449,12 +323,45 @@ export default function ShipScene({
   const [loadingState, setLoadingState] = useState(() => createInitialLoadingState(hasRenderableModel))
   const [isLoadingHudVisible, setIsLoadingHudVisible] = useState(true)
   const [sceneError, setSceneError] = useState('')
+  // 初始化threejs 场景
+  const threeContext = useThree(canvasRef, {
+    isStudioLook,
+    shouldShowWaterSurface,
+    exteriorCameraPreset,
+    interiorDeckPresetConfig,
+  });
+  // 初始化第一人称控制
+  const {
+    updateFirstPersonMovement,
+    interiorPoseRef,
+    updateInteriorOrientation,
+  } = useFirstPersonControls(threeContext, canvasRef, modeRef);
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) {
+    if (!canvas || !threeContext) {
       return undefined
     }
+    
+    const {
+      renderer,
+      scene,
+      presentationRoot,
+      modelRoot,
+      waterRoot,
+      stageRoot,
+      waterSurface,
+      interiorSkySphere,
+      exteriorCamera,
+      interiorCamera,
+      controls,
+      pmremGenerator,
+      reflectionEnvironment,
+      environmentTexture
+    } = threeContext;
+
+    // Restore the initial position from the original logic
+    interiorPoseRef.current.position.set(...(interiorDeckPresetConfig['1']?.position ?? [0, 0.68, -0.82]));
 
     if (!hasRenderableModel) {
       setIsSceneLoading(true)
@@ -474,43 +381,9 @@ export default function ShipScene({
     setIsLoadingHudVisible(true)
     const abortController = new AbortController()
 
-    
-    const {
-      scene,
-      presentationRoot,
-      modelRoot,
-      waterRoot,
-      stageRoot,
-      waterSurface,
-      interiorSkySphere
-    } = setupScene(shouldShowWaterSurface) 
-    
-
-    const { 
-      exteriorCamera, 
-      interiorCamera 
-    } = setupCameras(scene, exteriorCameraPreset, interiorDeckPresetConfig, isStudioLook)
-
-
     let activeCamera = exteriorCamera
     cameraRef.current = activeCamera
 
-    const { ambientLight, keyLight, underGlowLight } 
-    = setupLights(scene, modelRoot, isStudioLook)
-
-    
-    if (waterSurface) {
-      waterRoot.add(waterSurface.mesh)
-    }
-
-    const renderer = setupRenderer(canvas, isStudioLook)
-
-    const { pmremGenerator, reflectionEnvironment, 
-      environmentTexture 
-    }  = setupEnvironment(renderer, scene)
-
-
-    const controls = setupOrbitControls(exteriorCamera, canvas, exteriorCameraPreset.targetY)
     controlsRef.current = controls
 
     let transformControls = null
@@ -540,38 +413,13 @@ export default function ShipScene({
       transformControlsRef.current = transformControls
     }
 
-    const interiorPose = {
-      position: new THREE.Vector3(...(interiorDeckPresetConfig['1']?.position ?? [0, 0.68, -0.82])),
-      yaw: 0,
-      pitch: 0,
-      dragging: false,
-      lastX: 0,
-      lastY: 0,
-      keys: new Set(),
-      cameraMode: CAMERA_MODE_FIRST_PERSON
-    }
-
-    const interiorLookDirection = new THREE.Vector3()
-    const interiorLookTarget = new THREE.Vector3()
-
-    const updateInteriorOrientation = () => {
-      interiorLookDirection.set(
-        Math.sin(interiorPose.yaw) * Math.cos(interiorPose.pitch),
-        Math.sin(interiorPose.pitch),
-        Math.cos(interiorPose.yaw) * Math.cos(interiorPose.pitch)
-      )
-      interiorLookTarget.copy(interiorPose.position).add(interiorLookDirection)
-      interiorCamera.position.copy(interiorPose.position)
-      interiorCamera.lookAt(interiorLookTarget)
-      interiorCamera.updateProjectionMatrix()
-    }
-
     const applyFirstPersonRotation = (rotationValue) => {
       interiorCamera.rotation.copy(degreesVectorToEuler(rotationValue))
       const lookAngles = getYawPitchFromCamera(interiorCamera)
+      const interiorPose = interiorPoseRef.current;
       interiorPose.yaw = lookAngles.yaw
       interiorPose.pitch = lookAngles.pitch
-      interiorCamera.updateProjectionMatrix()
+      updateInteriorOrientation()
     }
 
     const toSceneFocusCoordinate = (value, coordinateSpace = FOCUS_COORDINATE_SPACE_SCENE) => {
@@ -595,6 +443,7 @@ export default function ShipScene({
         preset?.coordinateSpace
       )
       const rotationPreset = getPresetRotationValue(preset)
+      const interiorPose = interiorPoseRef.current;
       interiorPose.position.copy(cameraPosition)
       interiorCamera.position.copy(cameraPosition)
       if (rotationPreset) {
@@ -607,78 +456,7 @@ export default function ShipScene({
       }
     }
 
-    const updateFirstPersonMovement = (deltaSeconds) => {
-      if (modeRef.current !== 'interior' || interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON || interiorPose.keys.size === 0) {
-        return
-      }
 
-      const forward = new THREE.Vector3(Math.sin(interiorPose.yaw), 0, Math.cos(interiorPose.yaw)).normalize()
-      const movement = new THREE.Vector3()
-      if (interiorPose.keys.has('KeyW') || interiorPose.keys.has('ArrowUp')) {
-        movement.add(forward)
-      }
-      if (interiorPose.keys.has('KeyS') || interiorPose.keys.has('ArrowDown')) {
-        movement.sub(forward)
-      }
-      if (movement.lengthSq() <= 0) {
-        return
-      }
-
-      movement.normalize().multiplyScalar(deltaSeconds * 1.8)
-      interiorPose.position.add(movement)
-      updateInteriorOrientation()
-    }
-
-    const onPointerDown = (event) => {
-      if (modeRef.current !== 'interior' || interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON) {
-        return
-      }
-
-      interiorPose.dragging = true
-      interiorPose.lastX = event.clientX
-      interiorPose.lastY = event.clientY
-    }
-
-    const onPointerMove = (event) => {
-      if (modeRef.current !== 'interior' || interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON || !interiorPose.dragging) {
-        return
-      }
-
-      const deltaX = event.clientX - interiorPose.lastX
-      const deltaY = event.clientY - interiorPose.lastY
-      interiorPose.lastX = event.clientX
-      interiorPose.lastY = event.clientY
-
-      interiorPose.yaw -= deltaX * 0.004
-      interiorPose.pitch -= deltaY * 0.003
-      interiorPose.pitch = THREE.MathUtils.clamp(interiorPose.pitch, -1.25, 1.25)
-      updateInteriorOrientation()
-    }
-
-    const onPointerUp = () => {
-      interiorPose.dragging = false
-    }
-
-    const onKeyDown = (event) => {
-      if (modeRef.current !== 'interior' || interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON) {
-        return
-      }
-      if (['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown'].includes(event.code)) {
-        interiorPose.keys.add(event.code)
-        event.preventDefault()
-      }
-    }
-
-    const onKeyUp = (event) => {
-      interiorPose.keys.delete(event.code)
-    }
-
-    canvas.addEventListener('pointerdown', onPointerDown)
-    canvas.addEventListener('pointermove', onPointerMove)
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
-    window.addEventListener('pointerup', onPointerUp)
-    window.addEventListener('pointercancel', onPointerUp)
 
     const interiorDeckPresets = Object.fromEntries(
       Object.entries(interiorDeckPresetConfig).map(([deck, preset]) => [
@@ -770,24 +548,28 @@ export default function ShipScene({
         activeCamera = interiorCamera
         cameraRef.current = interiorCamera
         controls.enabled = false
-        interiorPose.cameraMode = CAMERA_MODE_FIRST_PERSON
+        interiorPoseRef.current.cameraMode = CAMERA_MODE_FIRST_PERSON
 
         const deckPreset = interiorDeckPresets[effectiveDeck] ?? interiorDeckPresets['1']
-        if (preset?.target || preset?.position || Number.isFinite(Number(preset?.zoom)) || getPresetRotationValue(preset)) {
+        if (preset?.target || 
+            preset?.position || 
+            Number.isFinite(Number(preset?.zoom)) || 
+            getPresetRotationValue(preset)) 
+        {
           applyFirstPersonCameraPreset(preset, deckPreset)
         } else {
           const lookAngles = getFirstPersonLookAnglesFromPreset(preset, deckPreset.yaw, deckPreset.pitch)
-          interiorPose.position.copy(deckPreset.position)
-          interiorPose.yaw = preset?.yaw ?? lookAngles.yaw
-          interiorPose.pitch = preset?.pitch ?? lookAngles.pitch
+          interiorPoseRef.current.position.copy(deckPreset.position)
+          interiorPoseRef.current.yaw = preset?.yaw ?? lookAngles.yaw
+          interiorPoseRef.current.pitch = preset?.pitch ?? lookAngles.pitch
           updateInteriorOrientation()
         }
       } else {
         activeCamera = exteriorCamera
         cameraRef.current = exteriorCamera
         controls.enabled = true
-        interiorPose.cameraMode = CAMERA_MODE_ORBIT
-        interiorPose.keys.clear()
+        interiorPoseRef.current.cameraMode = CAMERA_MODE_ORBIT
+        interiorPoseRef.current.keys.clear()
         applyExteriorCameraPreset(preset)
       }
       syncTransformControls()
@@ -2515,21 +2297,7 @@ export default function ShipScene({
         setIsLoadingHudVisible(true)
         setIsSceneLoading(false)
       })
-
-    const resize = () => {
-      const width = canvas.clientWidth || 1
-      const height = canvas.clientHeight || 1
-
-      updateOrthographicFrustum(exteriorCamera, width / height, 7.6)
-      exteriorCamera.updateProjectionMatrix()
-      interiorCamera.aspect = width / height
-      interiorCamera.updateProjectionMatrix()
-      renderer.setSize(width, height, false)
-    }
-
-    const resizeObserver = new ResizeObserver(resize)
-    resizeObserver.observe(canvas)
-    resize()
+ 
 
     let frameId = 0
     let lastFrameTime = performance.now()
@@ -2564,19 +2332,14 @@ export default function ShipScene({
         window.cancelAnimationFrame(progressFrameId)
       }
       window.cancelAnimationFrame(frameId)
-      resizeObserver.disconnect()
+       
       controls.dispose()
       if (transformControls) {
         transformControls.dispose()
         scene.remove(transformControls)
         transformControlsRef.current = null
       }
-      canvas.removeEventListener('pointerdown', onPointerDown)
-      canvas.removeEventListener('pointermove', onPointerMove)
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-      window.removeEventListener('pointerup', onPointerUp)
-      window.removeEventListener('pointercancel', onPointerUp)
+
 
       if (loadedRoot) {
         if (transformControls?.object === loadedRoot) {
