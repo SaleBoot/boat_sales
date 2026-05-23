@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import AdminPage from './pages/admin/AdminPage'
 import OrderPage        from './pages/front/OrderPage'
 import OrderSuccessPage from './pages/front/OrderSuccessPage'
+import HomePage from './pages/front/HomePage'
 import HomepageHeader       from './pages/front/homepage/HomepageHeader'
 import HomePageHeroScreen   from './pages/front/homepage/HomePageHeroScreen'
 import HomePageViewerScreen from './pages/front/homepage/HomePageViewerScreen'
@@ -190,73 +191,33 @@ export default function App() {
     return <OrderSuccessPage />
   }
 
-  if (captureMode) {
-    return (
-      <main className="capture-screen">
-        <div className="capture-scene-shell">
-          <ShipScene modelConfig={primaryModel} />
-        </div>
-      </main>
-    )
-  }
-
   return (
-    <div className="page">
-      <HomepageHeader
-        modelsByCategory={modelsByCategory}
-        activeCategoryId={activeCategoryId}
-        openCategoryId={openCategoryId}
-        setOpenCategoryId={setOpenCategoryId}
-        handleModelSelect={handleModelSelect}
-        scrollToExperience={scrollToExperience}
-        selectedModelId={selectedModelId}
-        brochurePath={brochurePath}
-      />
-
-      <main className="page-main" id="top">
-        <HomePageHeroScreen 
-          heroImagePath={heroImagePath}
-          heroContent={heroContent}
-          scrollToExperience={scrollToExperience}
-        />
-
-        <HomePageViewerScreen
-          selectedModelId={selectedModelId}
-          primaryModel={primaryModel}
-          runtimeBasePath={runtimeBasePath}
-          selectedModelLabel={selectedModelLabel}
-          selectedModelPriceLabel={selectedModelPriceLabel}
-          viewerSpecItems={viewerSpecItems}
-        />
-
-        <section className="detail-screen" id="details">
-          <div className="detail-screen-inner">
-            <DetailSpecShowcase
-              specImagePath={specImagePath}
-              selectedModelLabel={selectedModelLabel}
-              selectedModelPriceLabel={selectedModelPriceLabel}
-              primaryDetailSpecCards={primaryDetailSpecCards}
-            />
-
-            <DetailCompareStack
-              models={models} 
-              selectedModelId={selectedModelId}
-              maxCompareModelCount={maxCompareModelCount}
-              openCompareSelectId={openCompareSelectId}
-              setOpenCompareSelectId={setOpenCompareSelectId}
-              handleCompareSelectToggle={handleCompareSelectToggle}
-              handleModelSelect={handleModelSelect}
-              resolveStaticPath={resolveStaticPath}
-            />
-
-            <VideoShowcase videos={videos} />
-          </div>
-        </section>
-      </main>
-
-      <div className="mobile-cta">
-        <a className="btn primary" href="#experience">查看 3D 船型</a>
-      </div>
-    </div>
+    <HomePage
+      captureMode={captureMode}
+      modelsByCategory={modelsByCategory}
+      activeCategoryId={activeCategoryId}
+      openCategoryId={openCategoryId}
+      setOpenCategoryId={setOpenCategoryId}
+      handleModelSelect={handleModelSelect}
+      scrollToExperience={scrollToExperience}
+      selectedModelId={selectedModelId}
+      brochurePath={brochurePath}
+      heroImagePath={heroImagePath}
+      heroContent={heroContent}
+      primaryModel={primaryModel}
+      runtimeBasePath={runtimeBasePath}
+      selectedModelLabel={selectedModelLabel}
+      selectedModelPriceLabel={selectedModelPriceLabel}
+      viewerSpecItems={viewerSpecItems}
+      specImagePath={specImagePath}
+      primaryDetailSpecCards={primaryDetailSpecCards}
+      models={models}
+      maxCompareModelCount={maxCompareModelCount}
+      openCompareSelectId={openCompareSelectId}
+      setOpenCompareSelectId={setOpenCompareSelectId}
+      handleCompareSelectToggle={handleCompareSelectToggle}
+      resolveStaticPath={resolveStaticPath}
+      videos={videos}
+    />
   )
 }
