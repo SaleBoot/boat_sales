@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getModelDisplayLabel } from '../../../utils/utils_homepage';
 
 export default function HomepageHeader({
@@ -108,7 +109,7 @@ export default function HomepageHeader({
             <a href="#poster">首页</a>
             <a href="#experience">3D 看船</a>
             <a href="#details">参数对比</a>
-            <a href="#/admin">后台管理</a>
+            <Link to="/admin">后台管理</Link>
           </nav>
           <a className="mini-btn" href={brochurePath} download>下载资料</a>
         </div>

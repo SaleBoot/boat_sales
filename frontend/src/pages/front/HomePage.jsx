@@ -1,43 +1,45 @@
-import HomepageHeader       from './homepage/HomepageHeader'
-import HomePageHeroScreen   from './homepage/HomePageHeroScreen'
+import { useOutletContext } from 'react-router-dom';
+import HomepageHeader from './homepage/HomepageHeader'
+import HomePageHeroScreen from './homepage/HomePageHeroScreen'
 import HomePageViewerScreen from './homepage/HomePageViewerScreen'
-import DetailSpecShowcase   from './homepage/DetailSpecShowcase'
-import DetailCompareStack   from './homepage/DetailCompareStack'
-import VideoShowcase        from './homepage/VideoShowcase'
-import ShipScene            from '../scene3d/ShipScene'
+import DetailSpecShowcase from './homepage/DetailSpecShowcase'
+import DetailCompareStack from './homepage/DetailCompareStack'
+import VideoShowcase from './homepage/VideoShowcase'
+import ShipScene from '../scene3d/ShipScene'
 
-export default function HomePage({
-  // Data props
-  modelsByCategory,
-  activeCategoryId,
-  selectedModelId,
-  brochurePath,
-  heroImagePath,
-  heroContent,
-  primaryModel,
-  runtimeBasePath,
-  selectedModelLabel,
-  selectedModelPriceLabel,
-  viewerSpecItems,
-  specImagePath,
-  primaryDetailSpecCards,
-  models,
-  maxCompareModelCount,
-  videos,
-  captureMode,
+export default function HomePage() {
+  const {
+    // Data props
+    modelsByCategory,
+    activeCategoryId,
+    selectedModelId,
+    brochurePath,
+    heroImagePath,
+    heroContent,
+    primaryModel,
+    runtimeBasePath,
+    selectedModelLabel,
+    selectedModelPriceLabel,
+    viewerSpecItems,
+    specImagePath,
+    primaryDetailSpecCards,
+    models,
+    maxCompareModelCount,
+    videos,
+    captureMode,
 
-  // State props
-  openCategoryId,
-  openCompareSelectId,
+    // State props
+    openCategoryId,
+    openCompareSelectId,
 
-  // Handler props
-  setOpenCategoryId,
-  handleModelSelect,
-  scrollToExperience,
-  setOpenCompareSelectId,
-  handleCompareSelectToggle,
-  resolveStaticPath,
-}) {
+    // Handler props
+    setOpenCategoryId,
+    handleModelSelect,
+    scrollToExperience,
+    setOpenCompareSelectId,
+    handleCompareSelectToggle,
+    resolveStaticPath,
+  } = useOutletContext();
 
   if (captureMode) {
     return (
@@ -63,7 +65,7 @@ export default function HomePage({
       />
 
       <main className="page-main" id="top">
-        <HomePageHeroScreen 
+        <HomePageHeroScreen
           heroImagePath={heroImagePath}
           heroContent={heroContent}
           scrollToExperience={scrollToExperience}
@@ -88,7 +90,7 @@ export default function HomePage({
             />
 
             <DetailCompareStack
-              models={models} 
+              models={models}
               selectedModelId={selectedModelId}
               maxCompareModelCount={maxCompareModelCount}
               openCompareSelectId={openCompareSelectId}
@@ -104,7 +106,9 @@ export default function HomePage({
       </main>
 
       <div className="mobile-cta">
-        <a className="btn primary" href="#experience">查看 3D 船型</a>
+        <a className="btn primary" href="#experience">
+          查看 3D 船型
+        </a>
       </div>
     </div>
   )

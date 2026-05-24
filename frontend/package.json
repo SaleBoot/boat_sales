@@ -6,21 +6,32 @@
   "scripts": {
     "sync:gltf": "node scripts/sync-gltf.mjs && node scripts/validate-material-bindings.mjs && node scripts/fix-shared-permissions.mjs",
     "merge:detail-images": "node scripts/merge-site-content-detail-images.mjs",
-    "predev": "echo 'Info: Skipping GLTF sync. Run \"npm run sync:gltf\" manually if assets are missing.'", 
+    "predev": "echo 'Info: Skipping GLTF sync. Run \"npm run sync:gltf\" manually if assets are missing.'",
     "prebuild": "echo 'Info: Skipping GLTF sync. Run \"npm run sync:gltf\" manually if assets are missing.'",
     "dev": "vite",
     "build": "vite build && node scripts/fix-shared-permissions.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/papaparse": "^5.5.2",
     "@vitejs/plugin-react": "^5.0.2",
     "sharp": "^0.34.5",
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "antd": "^6.4.3",
+    "axios": "^1.16.1",
+    "echarts": "^6.1.0",
+    "echarts-for-react": "^3.0.6",
+    "file-saver": "^2.0.5",
     "gsap": "^3.14.2",
+    "lodash-es": "^4.18.1",
+    "papaparse": "^5.5.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "three": "^0.183.1"
+    "react-router-dom": "^7.15.1",
+    "three": "^0.183.1",
+    "tslib": "^2.8.1"
   }
 }

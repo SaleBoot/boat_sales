@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useOutletContext } from 'react-router-dom';
 import ShipScene from '../scene3d/ShipScene'
 
 const productCategories = ['新能源船', '应急救援船', '公务执法艇', '游艇']
@@ -204,13 +205,15 @@ function getMaterialOverridesForOptionalSelection(options, selectedIds) {
     .flatMap((option) => Array.isArray(option.materialOverrides) ? option.materialOverrides : [])
 }
 
-export default function OrderPage({
-  models,
-  primaryModel,
-  selectedModelId,
-  onSelectModel,
-  apiBasePath = '/'
-}) {
+export default function OrderPage() {
+  const {
+    models,
+    primaryModel,
+    selectedModelId,
+    onSelectModel,
+    apiBasePath = '/'
+  } = useOutletContext();
+
   const currentModel = primaryModel
     ?? models.find((model) => model.id === selectedModelId)
     ?? models[0]
