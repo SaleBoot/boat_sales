@@ -9,6 +9,7 @@ const DashboardView = lazy(() => import('../pages/admin/views/DashboardView'));
 const UserManagerView = lazy(() => import('../pages/admin/views/UserManagerView'));
 const BoatsView = lazy(() => import('../pages/admin/views/BoatsView'));
 const BoatModelsView = lazy(() => import('../pages/admin/views/BoatModelsView')); // 新增
+const BoatCategoriesView = lazy(() => import('../pages/admin/views/BoatCategoriesView'));
 const UserSetting = lazy(() => import('../pages/admin/views/UserSetting.jsx'));
 const BoatOrdersView = lazy(() => import('../pages/admin/views/BoatOrdersView.jsx'));
 const VideoManagerView = lazy(() => import('../pages/admin/views/VideoManagerView.jsx'));
@@ -40,6 +41,10 @@ const adminRoutes = [
         element: <UserManagerView />,
       },
       {
+        path: 'boat-categories',
+        element: <BoatCategoriesView />,
+      },      
+      {
         path: 'boats',
         element: <BoatsView />,
       },
@@ -47,6 +52,7 @@ const adminRoutes = [
         path: 'models',
         element: <BoatModelsView />,
       },
+
       {
         path: 'settings',
         element: <UserSetting />,

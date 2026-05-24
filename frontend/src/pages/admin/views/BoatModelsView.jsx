@@ -11,6 +11,7 @@ import {
   Image,
   Carousel,
   Empty,
+  Descriptions,
 } from 'antd';
 import {
   PlusOutlined,
@@ -20,8 +21,7 @@ import {
   UploadOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';
-import { useAdminBoatScene } from '../../../hooks/useAdminBoatScene';
-import { Spin } from 'antd';
+import ShipScene from '../../scene3d/ShipScene.jsx';
 
 // --- Mock Data and API ---
 const mockModels = Array.from({ length: 3 }, (_, i) => ({
@@ -31,13 +31,17 @@ const mockModels = Array.from({ length: 3 }, (_, i) => ({
   modelSize: `${(Math.random() * 100 + 20).toFixed(2)} MB`,
   fileCount: Math.floor(Math.random() * 50 + 10),
   storagePath: `/gltf/57sites/57.glb`,
-  images: [
-    `https://picsum.photos/seed/${i + 1}/400/300`,
-    `https://picsum.photos/seed/${i + 2}/400/300`,
-    `https://picsum.photos/seed/${i + 3}/400/300`,
-  ],
+  fbxFileName: `model_${i + 1}.fbx`,
+  glbFileName: `model_${i + 1}.glb`,
+  materialSlots: ['hull', 'deck', 'interior'],
+  promoImage1: `https://picsum.photos/seed/${i + 1}/400/300`,
+  promoImage2: `https://picsum.photos/seed/${i + 2}/400/300`,
+  promoImage3: `https://picsum.photos/seed/${i + 3}/400/300`,
+  uvDir1: '/uv/model_1/',
+  uvDir2: '/uv/model_2/',
+  uvDir3: '/uv/model_3/',
   // 假设这是3D模型的路径
-  modelUrl: '/gltf/Yacht/950.glb',
+  modelUrl: '/gltf-1/factory0417_0206.glb',
 }));
 
 const getBoatModels = async () => {
@@ -61,11 +65,6 @@ export default function BoatModelsView() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState(null);
-
-  // 3D Scene Hook
-  const { containerRef, loading: sceneLoading } = useAdminBoatScene({ 
-    modelPath: currentModel ? currentModel.modelUrl : null 
-  });
 
   // 获取列表数据
   const fetchModels = async () => {
@@ -119,8 +118,6 @@ export default function BoatModelsView() {
   const columns = [
     { title: '船舶名称(英文)', dataIndex: 'boatName', key: 'boatName', width: 180 },
     { title: '船舶类型', dataIndex: 'boatType', key: 'boatType', width: 120 },
-    { title: '模型大小', dataIndex: 'modelSize', key: 'modelSize', width: 120 },
-    { title: '文件总数', dataIndex: 'fileCount', key: 'fileCount', width: 100 },
     { title: '存放路径', dataIndex: 'storagePath', key: 'storagePath' },
   ];
 
@@ -128,8 +125,8 @@ export default function BoatModelsView() {
     <div style={{ padding: '20px' }}>
       <Row gutter={16}>
         {/* 左侧列表 */}
-        <Col span={14}>
-          <Card>
+        <Col span={7}>
+          <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }} bodyStyle={{ flex: 1, overflow: 'hidden' }}>
             <div style={{ marginBottom: 16 }}>
               <Space>
                 <Button icon={<RedoOutlined />} onClick={fetchModels}>刷新</Button>
@@ -140,7 +137,7 @@ export default function BoatModelsView() {
               <Input.Search
                 placeholder="按名称或类型查询..."
                 onSearch={() => message.info('查询功能待实现')}
-                style={{ width: 250, float: 'right' }}
+                style={{ width: '100%', marginTop: '10px' }}
               />
             </div>
             <Table
@@ -157,33 +154,47 @@ export default function BoatModelsView() {
           </Card>
         </Col>
 
-        {/* 右侧预览 */}
+        {/* 中间预览 */}
         <Col span={10}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <Card title="模型预览">
-              <div style={{ position: 'relative', height: '300px' }}>
-                {sceneLoading && sceneLoading.isLoading && (
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 1 }}>
-                    <Spin size="large" description="模型加载中..." />
-                  </div>
-                )}
-                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-              </div>
-            </Card>
-            <Card title="船型宣传图片预览">
-              {currentModel && currentModel.images.length > 0 ? (
-                <Carousel autoplay>
-                  {currentModel.images.map((img, index) => (
-                    <div key={index}>
-                      <Image width="100%" src={img} />
-                    </div>
-                  ))}
-                </Carousel>
+          <Card title="模型预览" style={{ height: '100%', display: 'flex', flexDirection: 'column' }} bodyStyle={{ flex: 1, padding: 0, overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: '100%' }}>
+              {currentModel ? (
+                <ShipScene 
+                  modelConfig={{
+                    id: currentModel.id,
+                    model: { path: currentModel.modelUrl }
+                  }} 
+                />
               ) : (
-                <Empty description="暂无宣传图片" />
+                <Empty description="请在左侧选择一个模型进行预览" />
               )}
-            </Card>
-          </div>
+            </div>
+          </Card>
+        </Col>
+
+        {/* 右侧参数 */}
+        <Col span={7}>
+          <Card 
+            title="模型参数配置"
+            style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+            bodyStyle={{ flex: 1, overflowY: 'auto' }}
+          >
+            {currentModel ? (
+              <Descriptions column={1} bordered size="small">
+                <Descriptions.Item label="FBX 文件名">{currentModel.fbxFileName}</Descriptions.Item>
+                <Descriptions.Item label="GLB 文件名">{currentModel.glbFileName}</Descriptions.Item>
+                <Descriptions.Item label="材质槽数组">{currentModel.materialSlots.join(', ')}</Descriptions.Item>
+                <Descriptions.Item label="宣传图片1"><Image width={100} src={currentModel.promoImage1} /></Descriptions.Item>
+                <Descriptions.Item label="宣传图片2"><Image width={100} src={currentModel.promoImage2} /></Descriptions.Item>
+                <Descriptions.Item label="宣传图片3"><Image width={100} src={currentModel.promoImage3} /></Descriptions.Item>
+                <Descriptions.Item label="UV 目录">{currentModel.uvDir1}</Descriptions.Item>
+                <Descriptions.Item label="UV 目录 2">{currentModel.uvDir2}</Descriptions.Item>
+                <Descriptions.Item label="UV 目录 3">{currentModel.uvDir3}</Descriptions.Item>
+              </Descriptions>
+            ) : (
+              <Empty description="请在左侧选择一个模型以查看其参数" />
+            )}
+          </Card>
         </Col>
       </Row>
     </div>

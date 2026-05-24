@@ -96,3 +96,42 @@ export const deleteBoats = (boatIds) => {
 };
 
 // -------------------------------------------------------
+// 船舶类型管理 (Boat Categories)
+// -------------------------------------------------------
+
+/**
+ * 获取船舶类型列表
+ * @param {object} params - 查询参数
+ * @returns {Promise<any>}
+ */
+export const getBoatCategories = (params) => {
+  return api.get('/admin/boat-categories', { params });
+};
+
+/**
+ * 添加新船舶类型
+ * @param {object} categoryData - 船舶类型数据
+ * @returns {Promise<any>}
+ */
+export const addBoatCategory = (categoryData) => {
+  return api.post('/admin/boat-categories', categoryData);
+};
+
+/**
+ * 更新船舶类型
+ * @param {number} id - 船舶类型ID
+ * @param {object} categoryData - 更新的船舶类型数据
+ * @returns {Promise<any>}
+ */
+export const updateBoatCategory = (id, categoryData) => {
+  return api.put(`/admin/boat-categories/${id}`, categoryData);
+};
+
+/**
+ * 删除船舶类型
+ * @param {Array<number>} ids - 船舶类型ID列表
+ * @returns {Promise<any>}
+ */
+export const deleteBoatCategories = (ids) => {
+  return api.delete('/admin/boat-categories', { data: { ids } });
+};
