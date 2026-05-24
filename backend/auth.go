@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -18,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -286,17 +287,17 @@ func derivePBKDF2SHA256(password []byte, salt []byte, iterations int, keyLength 
 	return derivedKey[:keyLength]
 }
 
-func (a *app) handleAdminAuthStatus(w http.ResponseWriter, r *http.Request) {
-	session, err := a.getAdminSessionFromRequest(r)
+func (a *app) handleAdminAuthStatus(c *gin.Context) {
+	session, err := a.getAdminSessionFromRequest(c.Request)
 	if err != nil {
-		a.clearAdminSessionCookie(w, r)
-		writeJSON(w, http.StatusOK, adminAuthStatusResponse{
+		a.clearAdminSessionCookie(c.Writer, c.Request)
+		c.JSON(http.StatusOK, adminAuthStatusResponse{
 			Authenticated: false,
 		})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminAuthStatusResponse{
+	c.JSON(http.StatusOK, adminAuthStatusResponse{
 		Authenticated: true,
 		User: &adminAuthUserSummary{
 			Email: session.Email,
@@ -305,19 +306,17 @@ func (a *app) handleAdminAuthStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 // 处理登录的函数：将用户提交的明文凭证与服务器存储的加密哈希进行对比，并在成功后建立会话。
-func (a *app) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminLogin(c *gin.Context) {
 	// 1. 输入解析与严格校验 (Input Sanitization)
 	var input adminLoginInput
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields() //如果前端传了多余的字段（可能是攻击者在探测参数），后端会直接报错拒绝。
-	if err := decoder.Decode(&input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("decode login request: %w", err))
+	if err := c.ShouldBindJSON(&input); err != nil {
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode login request: %w", err))
 		return
 	}
 
 	email := normalizeAdminEmail(input.Email)
 	if email == "" || strings.TrimSpace(input.Password) == "" {
-		writeAPIError(w, http.StatusBadRequest, errors.New("email and password are required"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("email and password are required"))
 		return
 	}
 
@@ -329,7 +328,7 @@ func (a *app) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	config, err := a.readAdminAuthConfig()
 	a.mu.Unlock()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -344,21 +343,21 @@ func (a *app) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 
 	// 4. 核心安全核验 (Security Verification)
 	if matchedUser == nil || !verifyAdminPassword(matchedUser.PasswordHash, input.Password) {
-		writeAPIError(w, http.StatusUnauthorized, errors.New("invalid email or password"))
+		writeAPIError(c, http.StatusUnauthorized, errors.New("invalid email or password"))
 		return
 	}
 	// 5. 创建会话与持久化 (Session Creation & Persistence)
 	// createAdminSession：在服务器内存（Map）里生成一个新的 Token，并记录当前管理员的信息及过期时间。
 	session, err := a.createAdminSession(matchedUser.Email)
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	// setAdminSessionCookie ：将生成的 Token 通过 HTTP Header 写入浏览器的 Cookie。
-	a.setAdminSessionCookie(w, r, session)
+	a.setAdminSessionCookie(c.Writer, c.Request, session)
 	// 返回成功：向前端发送成功的 JSON 响应，包含用户简要信息。
-	writeJSON(w, http.StatusOK, adminAuthActionResponse{
+	c.JSON(http.StatusOK, adminAuthActionResponse{
 		Message: "Logged in successfully",
 		User: &adminAuthUserSummary{
 			Email: matchedUser.Email,
@@ -376,48 +375,46 @@ func (a *app) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 // 浏览器端：调用 a.clearAdminSessionCookie，通知浏览器将 Cookie 的有效期设置为过期，从而物理删除 Cookie。
 // ----------
 // 用户体验：无论服务器删除是否成功，都会执行清除 Cookie 并返回成功 JSON，确保用户在界面上能正常退出。
-func (a *app) handleAdminLogout(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminLogout(c *gin.Context) {
 	// 获取当前会话。如果存在，调用 a.deleteAdminSession 从内存
 	// Map 中删除该 Token。这样即使黑客拿到了旧 Token，服务器也不再识别。
-	session, ok := adminSessionFromContext(r)
+	session, ok := getAdminSessionFromContext(c)
 	if ok {
 		a.deleteAdminSession(session.Token)
 	}
 
 	// 通知浏览器将 Cookie 的有效期设置为过期，从而物理删除 Cookie。
-	a.clearAdminSessionCookie(w, r)
-	writeJSON(w, http.StatusOK, adminAuthActionResponse{
+	a.clearAdminSessionCookie(c.Writer, c.Request)
+	c.JSON(http.StatusOK, adminAuthActionResponse{
 		Message: "Logged out successfully",
 	})
 }
 
 // 处理管理员的修改密码（Change Password） 逻辑
-func (a *app) handleAdminChangePassword(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminChangePassword(c *gin.Context) {
 	// 1.身份核验：通过 adminSessionFromContext 确保当前操作者必须是已登录的管理员。
-	session, ok := adminSessionFromContext(r)
+	session, ok := getAdminSessionFromContext(c)
 	if !ok {
-		writeAPIError(w, http.StatusUnauthorized, errors.New("please log in again"))
+		writeAPIError(c, http.StatusUnauthorized, errors.New("please log in again"))
 		return
 	}
 
 	// 2.输入解析与校验：
 	// 使用 decoder.DisallowUnknownFields() 禁止传入多余字段（防止参数污染攻击）。
 	var input adminChangePasswordInput
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("decode password request: %w", err))
+	if err := c.ShouldBindJSON(&input); err != nil {
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode password request: %w", err))
 		return
 	}
 
 	if strings.TrimSpace(input.CurrentPassword) == "" {
-		writeAPIError(w, http.StatusBadRequest, errors.New("current password is required"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("current password is required"))
 		return
 	}
 
 	// 校验新密码是否符合复杂度要求（validateAdminPassword）。
 	if err := validateAdminPassword(input.NewPassword); err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -428,7 +425,7 @@ func (a *app) handleAdminChangePassword(w http.ResponseWriter, r *http.Request) 
 	// 4.查找用户：在配置文件中根据 Session 里的 Email 找到对应的用户记录。
 	config, err := a.readAdminAuthConfig()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -441,14 +438,14 @@ func (a *app) handleAdminChangePassword(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if userIndex == -1 {
-		writeAPIError(w, http.StatusUnauthorized, errors.New("admin account no longer exists"))
+		writeAPIError(c, http.StatusUnauthorized, errors.New("admin account no longer exists"))
 		return
 	}
 
 	// 5.旧密码二次验证：这是最关键的安全步骤。即使已经登录，修改密码也必须输入旧密码。
 	// 程序通过 verifyAdminPassword（通常是 bcrypt 校验）对比数据库/文件中的哈希值。
 	if !verifyAdminPassword(config.Users[userIndex].PasswordHash, input.CurrentPassword) {
-		writeAPIError(w, http.StatusUnauthorized, errors.New("current password is incorrect"))
+		writeAPIError(c, http.StatusUnauthorized, errors.New("current password is incorrect"))
 		return
 	}
 
@@ -457,7 +454,7 @@ func (a *app) handleAdminChangePassword(w http.ResponseWriter, r *http.Request) 
 	// 更新 UpdatedAt 时间，并将整个配置写回文件（ writeAdminAuthConfig ）。
 	passwordHash, err := hashAdminPassword(input.NewPassword)
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -465,11 +462,11 @@ func (a *app) handleAdminChangePassword(w http.ResponseWriter, r *http.Request) 
 	config.Users[userIndex].UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 
 	if err := a.writeAdminAuthConfig(config); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminAuthActionResponse{
+	c.JSON(http.StatusOK, adminAuthActionResponse{
 		Message: "Password updated successfully",
 		User: &adminAuthUserSummary{
 			Email: config.Users[userIndex].Email,
@@ -479,35 +476,52 @@ func (a *app) handleAdminChangePassword(w http.ResponseWriter, r *http.Request) 
 
 // 这个函数 requireAdminSession 在原生 Go 开发中被用作 路由中间件。
 // 它的核心作用是：在请求进入真正的业务逻辑（next）之前，强制检查用户是否拥有合法的管理员身份。
-func (a *app) requireAdminSession(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// 第一步：身份检查 (The Check)
-		// getAdminSessionFromRequest 会去读取 Cookie、查内存 Map、看是否过期。
-		//   如果其中任何一个环出错（比如 Token 伪造或已过期），err 就不为空。
-		session, err := a.getAdminSessionFromRequest(r)
-		// 第二步：拦截与清理 (The Rejection)
+// AdminAuthMiddleware 创建一个 Gin 中间件，用于验证管理员会话。
+func (a *app) AdminAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 第一步：身份检查
+		// 注意：这里需要将原有的 r *http.Request 替换为 c.Request
+		session, err := a.getAdminSessionFromRequest(c.Request)
+		// 第二步：拦截与清理
 		if err != nil {
-			a.clearAdminSessionCookie(w, r) // 顺手清理掉浏览器里残留的无效 Cookie
-			writeAPIError(w, http.StatusUnauthorized, errors.New("please log in to access the admin console"))
-			return // 【关键】直接返回，不再执行后续的 next(w, r)
-		}
+			// 如果会话无效或过期，清理 cookie 并中断请求
+			a.clearAdminSessionCookie(c.Writer, c.Request)
 
+			// 使用 Gin 的方式返回错误并拦截
+			// AbortWithStatusJSON 会直接设置状态码、返回 JSON 并确保后续的业务 Handler 不被执行
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "please log in to access the admin console",
+			})
+
+			return
+		}
 		// 第三步：注入上下文 (The Injection)
-		// 如果检查通过，它会将查到的 session 对象塞进请求的“口袋”（Context）里。
-		contextWithSession := context.WithValue(r.Context(), adminSessionContextKey{}, session)
+		// // 将会话信息注入到请求的上下文中，供后续处理程序使用
+		// ctx := context.WithValue(c.Request.Context(), adminSessionContextKey{}, session)
+		// c.Request = c.Request.WithContext(ctx)
+		//
+		// 在 Gin 中，不需要像原生那样通过 r.WithContext 产生新的请求对象。
+		// 直接使用 c.Set() 将数据存入 Gin 的上下文中，这是最推荐的做法。
+		c.Set("adminSession", session)
 
 		// 第四步：放行 (The Pass)
-		// 它调用 next 函数（即真正的业务逻辑），并将带有 Session 的新 Context 传下去。
-		// 这样，后续的业务函数（比如修改密码、上传文件）就能直接从 Context 里拿到当前是谁在操作。
-		next(w, r.WithContext(contextWithSession))
+		// 调用 Next() 执行后续的中间件或业务逻辑 Handler
+		c.Next()
 	}
 }
 
 // 上下文数据提取：这是一个辅助函数，用于从 Go 的 r.Context() 中提取 Session 信息
 // 原理：在之前的中间件（Middleware）阶段，程序已经校验了 Cookie 并将解析出的 adminSession 结构体存入了请求的上下文中（Context）。
 // 好处：业务逻辑函数（Handler）不需要再关心 Cookie 怎么解析、Token 怎么验证，直接从上下文取“现成”的已通过验证的用户信息即可。
-func adminSessionFromContext(r *http.Request) (adminSession, bool) {
-	session, ok := r.Context().Value(adminSessionContextKey{}).(adminSession)
+// 从 Gin 的上下文中安全地提取管理员会话
+func getAdminSessionFromContext(c *gin.Context) (adminSession, bool) {
+	// c.Get() 返回的是 interface{}，需要类型断言
+	sessionVal, exists := c.Get("adminSession")
+	if !exists {
+		return adminSession{}, false
+	}
+
+	session, ok := sessionVal.(adminSession)
 	return session, ok
 }
 

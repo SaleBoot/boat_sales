@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -137,33 +139,33 @@ func remapLegacyPackedTextureType(textureType string, sourceRelativePath string)
 	return textureType
 }
 
-func (a *app) handleAdminUpdateTextureType(w http.ResponseWriter, r *http.Request) {
-	input, err := decodeTextureTypeUpdateInput(r)
+func (a *app) handleAdminUpdateTextureType(c *gin.Context) {
+	input, err := decodeTextureTypeUpdateInput(c.Request)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	modelIDCandidate := strings.TrimSpace(r.PathValue("modelID"))
+	modelIDCandidate := strings.TrimSpace(c.Param("modelID"))
 	if modelIDCandidate == "" {
 		modelIDCandidate = input.ModelID
 	}
 
 	modelID, err := sanitizeModelID(modelIDCandidate)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	relativePath, err := sanitizeRelativeFilePath(input.Path)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	normalizedAssignment, err := normalizeTextureAssignmentRecord(input.TextureType, input.UseAlphaAsOpacity)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -174,29 +176,29 @@ func (a *app) handleAdminUpdateTextureType(w http.ResponseWriter, r *http.Reques
 	defer a.mu.Unlock()
 
 	if !isWithinBaseDirectory(modelDir, targetPath) {
-		writeAPIError(w, http.StatusBadRequest, errors.New("file path escapes the model directory"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("file path escapes the model directory"))
 		return
 	}
 
 	fileInfo, err := os.Stat(targetPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			writeAPIError(w, http.StatusNotFound, fmt.Errorf("file does not exist: %s", relativePath))
+			writeAPIError(c, http.StatusNotFound, fmt.Errorf("file does not exist: %s", relativePath))
 			return
 		}
 
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if fileInfo.IsDir() {
-		writeAPIError(w, http.StatusBadRequest, errors.New("only files can be classified from this endpoint"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("only files can be classified from this endpoint"))
 		return
 	}
 
 	assignments, err := a.readTextureAssignments()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -208,50 +210,50 @@ func (a *app) handleAdminUpdateTextureType(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := a.writeTextureAssignments(assignments); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if _, err := a.syncAssetsLocked(); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	message := fmt.Sprintf("已更新 %s 的贴图标记。", relativePath)
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: message,
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminUpdateUVSetMaterialHint(w http.ResponseWriter, r *http.Request) {
-	input, err := decodeUVSetMaterialHintUpdateInput(r)
+func (a *app) handleAdminUpdateUVSetMaterialHint(c *gin.Context) {
+	input, err := decodeUVSetMaterialHintUpdateInput(c.Request)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	modelID, err := sanitizeModelID(input.ModelID)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	relativePath, err := sanitizeRelativeSubdirectory(input.Path)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	normalizedAssignment, err := normalizeUVSetAssignmentRecord(input.MaterialNameHint, input.RenderProfile)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 	modelDir := resolveModelSourceDir(a.sourceDir, modelID)
@@ -264,29 +266,29 @@ func (a *app) handleAdminUpdateUVSetMaterialHint(w http.ResponseWriter, r *http.
 	defer a.mu.Unlock()
 
 	if !isWithinBaseDirectory(modelDir, targetDir) {
-		writeAPIError(w, http.StatusBadRequest, errors.New("uv set path escapes the model directory"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("uv set path escapes the model directory"))
 		return
 	}
 
 	fileInfo, err := os.Stat(targetDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			writeAPIError(w, http.StatusNotFound, fmt.Errorf("uv set directory does not exist: %s", relativePath))
+			writeAPIError(c, http.StatusNotFound, fmt.Errorf("uv set directory does not exist: %s", relativePath))
 			return
 		}
 
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if !fileInfo.IsDir() {
-		writeAPIError(w, http.StatusBadRequest, errors.New("uv set path must point to a directory"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("uv set path must point to a directory"))
 		return
 	}
 
 	assignments, err := a.readTextureAssignments()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -298,23 +300,23 @@ func (a *app) handleAdminUpdateUVSetMaterialHint(w http.ResponseWriter, r *http.
 	}
 
 	if err := a.writeTextureAssignments(assignments); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if _, err := a.syncAssetsLocked(); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	message := fmt.Sprintf("已更新 %s 的材质槽绑定。", sourceRelativePath)
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: message,
 		State:   dashboard,
 	})

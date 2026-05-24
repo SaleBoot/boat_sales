@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
 
@@ -131,23 +132,29 @@ func (list *stringList) Scan(value any) error {
 	return nil
 }
 
-func (a *app) registerOrderRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/orders", a.handleCreateSalesOrder)
-	mux.HandleFunc("GET /api/admin/orders", a.requireAdminSession(a.handleAdminSalesOrders))
-	mux.HandleFunc("GET /api/admin/orders/export", a.requireAdminSession(a.handleAdminExportSalesOrders))
-	mux.HandleFunc("PUT /api/admin/orders/{orderID}/status", a.requireAdminSession(a.handleAdminUpdateSalesOrderStatus))
+func (a *app) RegisterOrderRoutes(r *gin.RouterGroup) {
+	// 前台下单
+	r.POST("/orders", a.handleCreateSalesOrder)
+
+	// 后台订单管理（加入到管理组或单独加中间件）
+	adminOrder := r.Group("/admin/orders", a.AdminAuthMiddleware())
+	{
+		adminOrder.GET("/", a.handleAdminSalesOrders)
+		adminOrder.GET("/export", a.handleAdminExportSalesOrders)
+		adminOrder.PUT("/:orderID/status", a.handleAdminUpdateSalesOrderStatus)
+	}
 }
 
-func (a *app) handleCreateSalesOrder(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleCreateSalesOrder(c *gin.Context) {
 	var input salesOrderCreateInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("decode sales order input: %w", err))
+	if err := json.NewDecoder(c.Request.Body).Decode(&input); err != nil {
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode sales order input: %w", err))
 		return
 	}
 
 	order, err := buildSalesOrder(input)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -155,43 +162,43 @@ func (a *app) handleCreateSalesOrder(w http.ResponseWriter, r *http.Request) {
 	defer a.mu.Unlock()
 
 	if err := a.createSalesOrder(order); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, salesOrderActionResponse{
+	c.JSON(http.StatusCreated, salesOrderActionResponse{
 		Message: "Sales order created",
 		Order:   order,
 	})
 }
 
-func (a *app) handleAdminSalesOrders(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminSalesOrders(c *gin.Context) {
 	state, err := a.buildAdminSalesState()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, state)
+	c.JSON(http.StatusOK, state)
 }
 
-func (a *app) handleAdminExportSalesOrders(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminExportSalesOrders(c *gin.Context) {
 	state, err := a.buildAdminSalesState()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	data, err := exportSalesOrdersCSV(state.Orders)
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, fmt.Errorf("export sales orders csv: %w", err))
+		writeAPIError(c, http.StatusInternalServerError, fmt.Errorf("export sales orders csv: %w", err))
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="sales-orders.csv"`)
-	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
-	_, _ = w.Write(data)
+	c.Header("Content-Type", "text/csv; charset=utf-8")
+	c.Header("Content-Disposition", `attachment; filename="sales-orders.csv"`)
+	c.Header("Content-Length", fmt.Sprintf("%d", len(data)))
+	_, _ = c.Writer.Write(data)
 }
 
 func exportSalesOrdersCSV(orders []salesOrder) ([]byte, error) {
@@ -210,7 +217,9 @@ func exportSalesOrdersCSV(orders []salesOrder) ([]byte, error) {
 }
 
 func writeSalesOrdersCSVRows(writer *csv.Writer, orders []salesOrder) {
-	_ = writer.Write([]string{"订单号", "创建时间", "状态", "船型ID", "船只名称", "客户称呼", "联系方式", "分类", "外观", "颜色", "内饰", "动力", "选装", "总价", "来源"})
+	_ = writer.Write([]string{"订单号", "创建时间", "状态", "船型ID", "船只名称",
+		"客户称呼", "联系方式", "分类", "外观",
+		"颜色", "内饰", "动力", "选装", "总价", "来源"})
 	for _, order := range orders {
 		_ = writer.Write([]string{
 			order.ID,
@@ -232,22 +241,22 @@ func writeSalesOrdersCSVRows(writer *csv.Writer, orders []salesOrder) {
 	}
 }
 
-func (a *app) handleAdminUpdateSalesOrderStatus(w http.ResponseWriter, r *http.Request) {
-	orderID := strings.TrimSpace(r.PathValue("orderID"))
+func (a *app) handleAdminUpdateSalesOrderStatus(c *gin.Context) {
+	orderID := strings.TrimSpace(c.Param("orderID"))
 	if orderID == "" {
-		writeAPIError(w, http.StatusBadRequest, errors.New("orderID is required"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("orderID is required"))
 		return
 	}
 
 	var input salesOrderStatusInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("decode sales order status input: %w", err))
+	if err := json.NewDecoder(c.Request.Body).Decode(&input); err != nil {
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode sales order status input: %w", err))
 		return
 	}
 
 	nextStatus, err := normalizeSalesOrderStatus(input.Status)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -257,15 +266,15 @@ func (a *app) handleAdminUpdateSalesOrderStatus(w http.ResponseWriter, r *http.R
 	order, err := a.updateSalesOrderStatus(orderID, nextStatus)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			writeAPIError(w, http.StatusNotFound, fmt.Errorf("sales order %s does not exist", orderID))
+			writeAPIError(c, http.StatusNotFound, fmt.Errorf("sales order %s does not exist", orderID))
 			return
 		}
 
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, salesOrderActionResponse{
+	c.JSON(http.StatusOK, salesOrderActionResponse{
 		Message: fmt.Sprintf("Updated sales order %s", orderID),
 		Order:   order,
 	})
@@ -325,7 +334,9 @@ func generateSalesOrderID() (string, error) {
 		return "", fmt.Errorf("generate sales order id: %w", err)
 	}
 
-	return fmt.Sprintf("SO-%s-%s", time.Now().UTC().Format("20060102-150405"), strings.ToUpper(hex.EncodeToString(randomBytes))), nil
+	return fmt.Sprintf("SO-%s-%s",
+		time.Now().UTC().Format("20060102-150405"),
+		strings.ToUpper(hex.EncodeToString(randomBytes))), nil
 }
 
 func normalizeSalesOrderSource(source string) string {

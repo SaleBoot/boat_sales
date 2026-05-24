@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
+
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,9 +17,9 @@ import (
 )
 
 type siteFocusTargetsFile struct {
-	ModelID      string                              `json:"modelId"`
-	UpdatedAt    string                              `json:"updatedAt"`
-	FocusTargets map[string]siteOrderFocusPreset     `json:"focusTargets"`
+	ModelID      string                          `json:"modelId"`
+	UpdatedAt    string                          `json:"updatedAt"`
+	FocusTargets map[string]siteOrderFocusPreset `json:"focusTargets"`
 }
 
 var (
@@ -91,8 +93,8 @@ type siteOrderOption struct {
 }
 
 type siteOrderMaterialOverride struct {
-	MaterialSlots      []string `json:"materialSlots,omitempty"`
-	BaseColorPath      string   `json:"baseColorPath,omitempty"`
+	MaterialSlots []string `json:"materialSlots,omitempty"`
+	BaseColorPath string   `json:"baseColorPath,omitempty"`
 }
 
 type siteOrderColorOption struct {
@@ -213,63 +215,63 @@ const maxSiteEngineMountCount = 4
 const maxSiteHeroProofPointCount = 3
 const defaultSiteCompareLimit = 4
 
-func (a *app) registerContentRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/site-content", a.handleSiteContent)
-	mux.HandleFunc("GET /api/models/{modelID}/focus-targets", a.handleModelFocusTargets)
+func (a *app) RegisterContentRoutes(r *gin.RouterGroup) {
+	r.GET("/site-content", a.handleSiteContent)
+	r.GET("/models/:modelID/focus-targets", a.handleModelFocusTargets)
 }
 
-func (a *app) handleSiteContent(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleSiteContent(c *gin.Context) {
 	content, err := a.readSiteContent()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, content)
+	c.JSON(http.StatusOK, content)
 }
 
-func (a *app) handleModelFocusTargets(w http.ResponseWriter, r *http.Request) {
-	modelID, err := sanitizeModelID(r.PathValue("modelID"))
+func (a *app) handleModelFocusTargets(c *gin.Context) {
+	modelID, err := sanitizeModelID(c.Param("modelID"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	content, err := a.readSiteContent()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	modelContent := content.Models[modelID]
 	focusTargets := a.resolveSiteModelFocusTargets(modelID, modelContent.OrderConfig.FocusTargets)
-	writeJSON(w, http.StatusOK, map[string]any{
-		"modelId": modelID,
+	c.JSON(http.StatusOK, map[string]any{
+		"modelId":      modelID,
 		"focusTargets": focusTargets,
 	})
 }
 
-func (a *app) handleAdminUpdateModelContent(w http.ResponseWriter, r *http.Request) {
-	modelID, err := sanitizeModelID(r.PathValue("modelID"))
+func (a *app) handleAdminUpdateModelContent(c *gin.Context) {
+	modelID, err := sanitizeModelID(c.Param("modelID"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	input, err := decodeSiteModelContentInput(r)
+	input, err := decodeSiteModelContentInput(c.Request)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	modelDir := resolveModelSourceDir(a.sourceDir, modelID)
 	if _, err := os.Stat(modelDir); err != nil {
 		if os.IsNotExist(err) {
-			writeAPIError(w, http.StatusNotFound, fmt.Errorf("model %s does not exist", modelID))
+			writeAPIError(c, http.StatusNotFound, fmt.Errorf("model %s does not exist", modelID))
 			return
 		}
 
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -278,7 +280,7 @@ func (a *app) handleAdminUpdateModelContent(w http.ResponseWriter, r *http.Reque
 
 	content, err := a.readSiteContent()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -296,21 +298,21 @@ func (a *app) handleAdminUpdateModelContent(w http.ResponseWriter, r *http.Reque
 
 	price, err := normalizeSiteModelPrice(input.Price)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 	nextContent.Price = price
 
 	selectedModelPath, err := normalizeSiteModelSelectedModelPath(a.sourceDir, modelID, input.SelectedModelPath)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 	nextContent.SelectedModelPath = selectedModelPath
 
 	detailImagePath, err := normalizeSiteModelDetailImagePath(a.sourceDir, modelID, input.DetailImagePath)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 	nextContent.DetailImagePath = detailImagePath
@@ -322,102 +324,102 @@ func (a *app) handleAdminUpdateModelContent(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := a.writeSiteContent(content); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: fmt.Sprintf("Updated content for model %s", modelID),
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminUpdateModelEngines(w http.ResponseWriter, r *http.Request) {
-	modelID, err := sanitizeModelID(r.PathValue("modelID"))
+func (a *app) handleAdminUpdateModelEngines(c *gin.Context) {
+	modelID, err := sanitizeModelID(c.Param("modelID"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var input siteModelEnginesInput
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(c.Request.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("decode request body: %w", err))
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode request body: %w", err))
 		return
 	}
 
 	modelDir := resolveModelSourceDir(a.sourceDir, modelID)
 	if _, err := os.Stat(modelDir); err != nil {
 		if os.IsNotExist(err) {
-			writeAPIError(w, http.StatusNotFound, fmt.Errorf("model %s does not exist", modelID))
+			writeAPIError(c, http.StatusNotFound, fmt.Errorf("model %s does not exist", modelID))
 			return
 		}
 
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := a.updateSiteModelEngines(modelID, input.Engines); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: fmt.Sprintf("Updated engine mounts for model %s", modelID),
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminUpdateHeroContent(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminUpdateHeroContent(c *gin.Context) {
 	var input siteHeroContentInput
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(c.Request.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("decode request body: %w", err))
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode request body: %w", err))
 		return
 	}
 
 	if err := a.updateSiteHeroContent(input); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: "Updated hero content",
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminUpdateSiteSettings(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminUpdateSiteSettings(c *gin.Context) {
 	var input siteSettingsInput
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(c.Request.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("decode request body: %w", err))
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode request body: %w", err))
 		return
 	}
 
 	if err := a.updateSiteSettings(input); err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -425,17 +427,17 @@ func (a *app) handleAdminUpdateSiteSettings(w http.ResponseWriter, r *http.Reque
 	_, syncErr := a.syncAssetsLocked()
 	a.mu.Unlock()
 	if syncErr != nil {
-		writeAPIError(w, http.StatusInternalServerError, syncErr)
+		writeAPIError(c, http.StatusInternalServerError, syncErr)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: "Updated site settings",
 		State:   dashboard,
 	})
@@ -507,16 +509,16 @@ func (a *app) updateSiteHeroContent(input siteHeroContentInput) error {
 	return a.writeSiteContent(content)
 }
 
-func (a *app) handleAdminCreateVideo(w http.ResponseWriter, r *http.Request) {
-	input, err := decodeSiteVideoInput(r)
+func (a *app) handleAdminCreateVideo(c *gin.Context) {
+	input, err := decodeSiteVideoInput(c.Request)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	video, err := buildSiteVideo("", input)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -525,38 +527,38 @@ func (a *app) handleAdminCreateVideo(w http.ResponseWriter, r *http.Request) {
 
 	content, err := a.readSiteContent()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	content.Videos = append(content.Videos, video)
 	if err := a.writeSiteContent(content); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, adminActionResponse{
+	c.JSON(http.StatusCreated, adminActionResponse{
 		Message: fmt.Sprintf("Added %s video \"%s\"", displayPlatformName(video.Platform), video.Title),
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminUpdateVideo(w http.ResponseWriter, r *http.Request) {
-	videoID := strings.TrimSpace(r.PathValue("videoID"))
+func (a *app) handleAdminUpdateVideo(c *gin.Context) {
+	videoID := strings.TrimSpace(c.Param("videoID"))
 	if videoID == "" {
-		writeAPIError(w, http.StatusBadRequest, errors.New("videoID is required"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("videoID is required"))
 		return
 	}
 
-	input, err := decodeSiteVideoInput(r)
+	input, err := decodeSiteVideoInput(c.Request)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -565,44 +567,44 @@ func (a *app) handleAdminUpdateVideo(w http.ResponseWriter, r *http.Request) {
 
 	content, err := a.readSiteContent()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	index := findSiteVideoIndex(content.Videos, videoID)
 	if index == -1 {
-		writeAPIError(w, http.StatusNotFound, fmt.Errorf("video %s does not exist", videoID))
+		writeAPIError(c, http.StatusNotFound, fmt.Errorf("video %s does not exist", videoID))
 		return
 	}
 
 	video, err := buildSiteVideo(videoID, input)
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	content.Videos[index] = video
 	if err := a.writeSiteContent(content); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: fmt.Sprintf("Updated %s video \"%s\"", displayPlatformName(video.Platform), video.Title),
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminDeleteVideo(w http.ResponseWriter, r *http.Request) {
-	videoID := strings.TrimSpace(r.PathValue("videoID"))
+func (a *app) handleAdminDeleteVideo(c *gin.Context) {
+	videoID := strings.TrimSpace(c.Param("videoID"))
 	if videoID == "" {
-		writeAPIError(w, http.StatusBadRequest, errors.New("videoID is required"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("videoID is required"))
 		return
 	}
 
@@ -611,30 +613,30 @@ func (a *app) handleAdminDeleteVideo(w http.ResponseWriter, r *http.Request) {
 
 	content, err := a.readSiteContent()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	index := findSiteVideoIndex(content.Videos, videoID)
 	if index == -1 {
-		writeAPIError(w, http.StatusNotFound, fmt.Errorf("video %s does not exist", videoID))
+		writeAPIError(c, http.StatusNotFound, fmt.Errorf("video %s does not exist", videoID))
 		return
 	}
 
 	deletedVideo := content.Videos[index]
 	content.Videos = append(content.Videos[:index], content.Videos[index+1:]...)
 	if err := a.writeSiteContent(content); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: fmt.Sprintf("Deleted video \"%s\"", deletedVideo.Title),
 		State:   dashboard,
 	})
@@ -731,7 +733,8 @@ func (a *app) writeSiteContent(content siteContent) error {
 	return nil
 }
 
-func (a *app) resolveSiteModelFocusTargets(modelID string, inlineFocusTargets map[string]siteOrderFocusPreset) map[string]siteOrderFocusPreset {
+func (a *app) resolveSiteModelFocusTargets(modelID string,
+	inlineFocusTargets map[string]siteOrderFocusPreset) map[string]siteOrderFocusPreset {
 	fileFocusTargets, err := a.readSiteModelFocusTargets(modelID)
 	if err == nil && len(fileFocusTargets) > 0 {
 		return normalizeSiteOrderFocusTargets(fileFocusTargets)

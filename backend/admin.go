@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/gin-gonic/gin"
 )
 
 const maxUploadRequestSize = 512 << 20
@@ -53,7 +55,7 @@ type adminActionResponse struct {
 	State   adminDashboard `json:"state"`
 }
 
-func newApp() (*app, error) {
+func NewApp() (*app, error) {
 	paths, err := discoverProjectPaths()
 	if err != nil {
 		return nil, err
@@ -137,63 +139,125 @@ func isDirectory(path string) bool {
 	return info.IsDir()
 }
 
-func (a *app) registerAdminRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/admin/auth/status", a.handleAdminAuthStatus)
-	mux.HandleFunc("POST /api/admin/auth/login", a.handleAdminLogin)
-	mux.HandleFunc("POST /api/admin/auth/logout", a.requireAdminSession(a.handleAdminLogout))
-	mux.HandleFunc("POST /api/admin/auth/change-password", a.requireAdminSession(a.handleAdminChangePassword))
+func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
+	// 创建管理后台路由组
+	admin := r.Group("/admin")
 
-	mux.HandleFunc("GET /api/admin/models", a.requireAdminSession(a.handleAdminDashboard))
-	mux.HandleFunc("POST /api/admin/models/upload", a.requireAdminSession(a.handleAdminUpload))
-	mux.HandleFunc("PUT /api/admin/models/{modelID}/content", a.requireAdminSession(a.handleAdminUpdateModelContent))
-	mux.HandleFunc("PUT /api/admin/models/{modelID}/engines", a.requireAdminSession(a.handleAdminUpdateModelEngines))
-	mux.HandleFunc("PUT /api/admin/hero", a.requireAdminSession(a.handleAdminUpdateHeroContent))
-	mux.HandleFunc("PUT /api/admin/settings", a.requireAdminSession(a.handleAdminUpdateSiteSettings))
-	mux.HandleFunc("DELETE /api/admin/models/{modelID}", a.requireAdminSession(a.handleAdminDeleteModel))
-	mux.HandleFunc("DELETE /api/admin/models/{modelID}/files", a.requireAdminSession(a.handleAdminDeleteFile))
-	mux.HandleFunc("PUT /api/admin/models/{modelID}/files/texture-type", a.requireAdminSession(a.handleAdminUpdateTextureType))
-	mux.HandleFunc("POST /api/admin/file-texture-type", a.requireAdminSession(a.handleAdminUpdateTextureType))
-	mux.HandleFunc("POST /api/admin/uv-set-material-hint", a.requireAdminSession(a.handleAdminUpdateUVSetMaterialHint))
-	mux.HandleFunc("POST /api/admin/sync", a.requireAdminSession(a.handleAdminSync))
-	mux.HandleFunc("POST /api/admin/videos", a.requireAdminSession(a.handleAdminCreateVideo))
-	mux.HandleFunc("PUT /api/admin/videos/{videoID}", a.requireAdminSession(a.handleAdminUpdateVideo))
-	mux.HandleFunc("DELETE /api/admin/videos/{videoID}", a.requireAdminSession(a.handleAdminDeleteVideo))
+	// 登录和状态检查不需要 Session 中间件
+	admin.GET("/auth/status", a.handleAdminAuthStatus)
+	admin.POST("/auth/login", a.handleAdminLogin)
+
+	// videos管理 (路径自动拼接为 /api/admin/videos)
+	videos := admin.Group("/videos")
+	{
+		// mux.HandleFunc("PUT /api/admin/videos/{videoID}", a.handleAdminUpdateVideo)
+		videos.PUT("/:videoID", a.handleAdminUpdateVideo)
+		// mux.HandleFunc("DELETE /api/admin/videos/{videoID}", a.handleAdminDeleteVideo)
+		videos.DELETE("/:videoID", a.handleAdminDeleteVideo)
+	}
+
+	// 接下来的路由全部需要管理员权限
+	// 自动应用中间件，不再需要手动包裹每个 handler
+	admin.Use(a.AdminAuthMiddleware())
+	{
+		admin.POST("/auth/logout", a.handleAdminLogout)
+		admin.POST("/auth/change-password", a.handleAdminChangePassword)
+
+		// mux.HandleFunc("POST /api/admin/videos",
+		//                a.requireAdminSession(a.handleAdminCreateVideo))
+		videos.POST("/", a.handleAdminCreateVideo)
+
+		// 模型管理 (路径自动拼接为 /api/admin/models)
+		models := admin.Group("/models")
+		{
+			models.GET("/overview", a.handleModelsOverview)
+			models.GET("/", a.handleAdminDashboard)
+			models.POST("/upload", a.handleAdminUpload)
+			/*
+				原生路由通常用花括号：/assets/{modelID}，Gin 使用冒号：/assets/:modelID；
+				如果在 Gin 里还写 {modelID}，c.Param 是拿不到值的。
+				c.Param: 针对 /user/:id 路径里的变量。URL链接类似于 http://localhost:8080/user/1024
+				c.Query: 针对 /user?id=123 问号后面的变量。URL链接类似于 http://localhost:8080/user?id=1024
+			*/
+			// mux.HandleFunc("PUT /api/admin/models/{modelID}/content",
+			//                a.requireAdminSession(a.handleAdminUpdateModelContent))
+			models.PUT("/:modelID/content", a.handleAdminUpdateModelContent)
+			// mux.HandleFunc("PUT /api/admin/models/{modelID}/engines",
+			//                a.requireAdminSession(a.handleAdminUpdateModelEngines))
+			models.PUT("/:modelID/engines", a.handleAdminUpdateModelEngines)
+			// mux.HandleFunc("DELETE /api/admin/models/{modelID}",
+			//                a.requireAdminSession(a.handleAdminDeleteModel))
+			models.DELETE("/:modelID", a.handleAdminDeleteModel)
+			// mux.HandleFunc("DELETE /api/admin/models/{modelID}/files",
+			//               a.requireAdminSession(a.handleAdminDeleteFile))
+			models.DELETE("/:modelID/files", a.handleAdminDeleteFile)
+			// mux.HandleFunc("PUT /api/admin/models/{modelID}/files/texture-type",
+			// 				 a.requireAdminSession(a.handleAdminUpdateTextureType))
+			models.PUT("/:modelID/files/texture-type", a.handleAdminUpdateTextureType)
+		}
+
+		// mux.HandleFunc("PUT /api/admin/hero", a.requireAdminSession(a.handleAdminUpdateHeroContent))
+		admin.PUT("/hero", a.handleAdminUpdateHeroContent)
+		// mux.HandleFunc("PUT /api/admin/settings", a.requireAdminSession(a.handleAdminUpdateSiteSettings))
+		admin.PUT("/settings", a.handleAdminUpdateSiteSettings)
+		// mux.HandleFunc("POST /api/admin/file-texture-type", a.requireAdminSession(a.handleAdminUpdateTextureType))
+		admin.POST("/file-texture-type", a.handleAdminUpdateTextureType)
+		// mux.HandleFunc("POST /api/admin/uv-set-material-hint", a.requireAdminSession(a.handleAdminUpdateUVSetMaterialHint))
+		admin.POST("/uv-set-material-hint", a.handleAdminUpdateUVSetMaterialHint)
+		// mux.HandleFunc("POST /api/admin/sync", a.requireAdminSession(a.handleAdminSync))
+		admin.POST("/sync", a.handleAdminSync)
+
+	}
+
 }
 
-func (a *app) handleAdminDashboard(w http.ResponseWriter, r *http.Request) {
+type ModelsOverview struct {
+	ModelCount    int     `json:"modelCount"`
+	FileCount     int     `json:"fileCount"`
+	TotalSizeInMB float64 `json:"totalSizeInMB"`
+}
+
+func (a *app) handleModelsOverview(c *gin.Context) {
+	overview := ModelsOverview{ModelCount: 12, FileCount: 157, TotalSizeInMB: 447.5} // 这里应该是动态计算的统计数据，暂时写死了
+
+	c.JSON(http.StatusOK, overview)
+}
+
+func (a *app) handleAdminDashboard(c *gin.Context) {
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, dashboard)
+	c.JSON(http.StatusOK, dashboard)
 }
 
-func (a *app) handleAdminUpload(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadRequestSize)
+func (a *app) handleAdminUpload(c *gin.Context) {
+	r := c.Request
+	r.Body = http.MaxBytesReader(c.Writer, r.Body, maxUploadRequestSize)
 	if err := r.ParseMultipartForm(maxUploadRequestSize); err != nil {
-		writeAPIError(w, http.StatusBadRequest, fmt.Errorf("parse upload form: %w", err))
+		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("parse upload form: %w", err))
 		return
 	}
 	defer r.MultipartForm.RemoveAll()
 
 	modelID, err := sanitizeModelID(r.FormValue("modelId"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	subdirectory, err := sanitizeRelativeSubdirectory(r.FormValue("subdir"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	replaceExisting := parseReplaceFlag(r.FormValue("replace"))
 	files := r.MultipartForm.File["files"]
 	if len(files) == 0 {
-		writeAPIError(w, http.StatusBadRequest, errors.New("at least one file must be selected"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("at least one file must be selected"))
 		return
 	}
 
@@ -206,7 +270,7 @@ func (a *app) handleAdminUpload(w http.ResponseWriter, r *http.Request) {
 	defer a.mu.Unlock()
 
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, fmt.Errorf("create upload directory: %w", err))
+		writeAPIError(c, http.StatusInternalServerError, fmt.Errorf("create upload directory: %w", err))
 		return
 	}
 
@@ -214,26 +278,26 @@ func (a *app) handleAdminUpload(w http.ResponseWriter, r *http.Request) {
 	for _, header := range files {
 		fileName := filepath.Base(header.Filename)
 		if fileName == "." || fileName == "" {
-			writeAPIError(w, http.StatusBadRequest, errors.New("invalid upload file name"))
+			writeAPIError(c, http.StatusBadRequest, errors.New("invalid upload file name"))
 			return
 		}
 
 		extension := strings.ToLower(filepath.Ext(fileName))
 		if !isAllowedAssetExtension(extension) {
-			writeAPIError(w, http.StatusBadRequest, fmt.Errorf("unsupported file type for %s", fileName))
+			writeAPIError(c, http.StatusBadRequest, fmt.Errorf("unsupported file type for %s", fileName))
 			return
 		}
 
 		targetPath := filepath.Join(targetDir, fileName)
 		if !replaceExisting {
 			if _, err := os.Stat(targetPath); err == nil {
-				writeAPIError(w, http.StatusConflict, fmt.Errorf("file already exists: %s", fileName))
+				writeAPIError(c, http.StatusConflict, fmt.Errorf("file already exists: %s", fileName))
 				return
 			}
 		}
 
 		if err := saveUploadedFile(header, targetPath); err != nil {
-			writeAPIError(w, http.StatusInternalServerError, err)
+			writeAPIError(c, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -243,23 +307,23 @@ func (a *app) handleAdminUpload(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(a.focusTargetsFilePath(modelID)); err != nil {
 		if os.IsNotExist(err) {
 			if err := a.writeSiteModelFocusTargets(modelID, map[string]siteOrderFocusPreset{}); err != nil {
-				writeAPIError(w, http.StatusInternalServerError, err)
+				writeAPIError(c, http.StatusInternalServerError, err)
 				return
 			}
 		} else {
-			writeAPIError(w, http.StatusInternalServerError, fmt.Errorf("inspect focus targets for %s: %w", modelID, err))
+			writeAPIError(c, http.StatusInternalServerError, fmt.Errorf("inspect focus targets for %s: %w", modelID, err))
 			return
 		}
 	}
 
 	if _, err := a.syncAssetsLocked(); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -268,16 +332,16 @@ func (a *app) handleAdminUpload(w http.ResponseWriter, r *http.Request) {
 		message = fmt.Sprintf("%s/%s", message, subdirectory)
 	}
 
-	writeJSON(w, http.StatusCreated, adminActionResponse{
+	c.JSON(http.StatusCreated, adminActionResponse{
 		Message: message,
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminDeleteModel(w http.ResponseWriter, r *http.Request) {
-	modelID, err := sanitizeModelID(r.PathValue("modelID"))
+func (a *app) handleAdminDeleteModel(c *gin.Context) {
+	modelID, err := sanitizeModelID(c.Param("modelID"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -288,66 +352,66 @@ func (a *app) handleAdminDeleteModel(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := os.Stat(modelDir); err != nil {
 		if os.IsNotExist(err) {
-			writeAPIError(w, http.StatusNotFound, fmt.Errorf("model %s does not exist", modelID))
+			writeAPIError(c, http.StatusNotFound, fmt.Errorf("model %s does not exist", modelID))
 			return
 		}
 
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := os.RemoveAll(modelDir); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, fmt.Errorf("delete model %s: %w", modelID, err))
+		writeAPIError(c, http.StatusInternalServerError, fmt.Errorf("delete model %s: %w", modelID, err))
 		return
 	}
 
 	content, err := a.readSiteContent()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if _, exists := content.Models[modelID]; exists {
 		delete(content.Models, modelID)
 		if err := a.writeSiteContent(content); err != nil {
-			writeAPIError(w, http.StatusInternalServerError, err)
+			writeAPIError(c, http.StatusInternalServerError, err)
 			return
 		}
 	}
 
 	focusTargetsPath := a.focusTargetsFilePath(modelID)
 	if err := os.Remove(focusTargetsPath); err != nil && !os.IsNotExist(err) {
-		writeAPIError(w, http.StatusInternalServerError, fmt.Errorf("delete focus targets for %s: %w", modelID, err))
+		writeAPIError(c, http.StatusInternalServerError, fmt.Errorf("delete focus targets for %s: %w", modelID, err))
 		return
 	}
 
 	if _, err := a.syncAssetsLocked(); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: fmt.Sprintf("Deleted model %s", modelID),
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminDeleteFile(w http.ResponseWriter, r *http.Request) {
-	modelID, err := sanitizeModelID(r.PathValue("modelID"))
+func (a *app) handleAdminDeleteFile(c *gin.Context) {
+	modelID, err := sanitizeModelID(c.Param("modelID"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	relativePath, err := sanitizeRelativeFilePath(r.URL.Query().Get("path"))
+	relativePath, err := sanitizeRelativeFilePath(c.Query("path"))
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, err)
+		writeAPIError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -358,66 +422,66 @@ func (a *app) handleAdminDeleteFile(w http.ResponseWriter, r *http.Request) {
 	defer a.mu.Unlock()
 
 	if !isWithinBaseDirectory(modelDir, targetPath) {
-		writeAPIError(w, http.StatusBadRequest, errors.New("file path escapes the model directory"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("file path escapes the model directory"))
 		return
 	}
 
 	fileInfo, err := os.Stat(targetPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			writeAPIError(w, http.StatusNotFound, fmt.Errorf("file does not exist: %s", relativePath))
+			writeAPIError(c, http.StatusNotFound, fmt.Errorf("file does not exist: %s", relativePath))
 			return
 		}
 
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if fileInfo.IsDir() {
-		writeAPIError(w, http.StatusBadRequest, errors.New("only files can be deleted from this endpoint"))
+		writeAPIError(c, http.StatusBadRequest, errors.New("only files can be deleted from this endpoint"))
 		return
 	}
 
 	if err := os.Remove(targetPath); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, fmt.Errorf("delete file %s: %w", relativePath, err))
+		writeAPIError(c, http.StatusInternalServerError, fmt.Errorf("delete file %s: %w", relativePath, err))
 		return
 	}
 
 	pruneEmptyDirectories(filepath.Dir(targetPath), modelDir)
 
 	if _, err := a.syncAssetsLocked(); err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: fmt.Sprintf("Deleted file %s from %s", relativePath, modelID),
 		State:   dashboard,
 	})
 }
 
-func (a *app) handleAdminSync(w http.ResponseWriter, r *http.Request) {
+func (a *app) handleAdminSync(c *gin.Context) {
 	a.mu.Lock()
 	_, err := a.syncAssetsLocked()
 	a.mu.Unlock()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	dashboard, err := a.buildDashboard()
 	if err != nil {
-		writeAPIError(w, http.StatusInternalServerError, err)
+		writeAPIError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, adminActionResponse{
+	c.JSON(http.StatusOK, adminActionResponse{
 		Message: "Synced source models into frontend/public/gltf",
 		State:   dashboard,
 	})
@@ -573,10 +637,4 @@ func pruneEmptyDirectories(currentDir string, stopDir string) {
 		_ = os.Remove(currentDir)
 		currentDir = filepath.Dir(currentDir)
 	}
-}
-
-func writeAPIError(w http.ResponseWriter, status int, err error) {
-	writeJSON(w, status, map[string]string{
-		"error": err.Error(),
-	})
 }
