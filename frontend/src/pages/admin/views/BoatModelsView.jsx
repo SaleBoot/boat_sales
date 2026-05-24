@@ -12,6 +12,7 @@ import {
   Carousel,
   Empty,
   Descriptions,
+  Select,
 } from 'antd';
 import {
   PlusOutlined,
@@ -22,32 +23,41 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import ShipScene from '../../scene3d/ShipScene.jsx';
+import { getBoatCategories } from '../../../apis/adminApi';
 
 // --- Mock Data and API ---
-const mockModels = Array.from({ length: 3 }, (_, i) => ({
-  id: `model-${i + 1}`,
-  boatName: `SuperYacht-X${i + 1}`,
-  boatType: 'Yacht',
-  modelSize: `${(Math.random() * 100 + 20).toFixed(2)} MB`,
-  fileCount: Math.floor(Math.random() * 50 + 10),
-  storagePath: `/gltf/57sites/57.glb`,
-  fbxFileName: `model_${i + 1}.fbx`,
-  glbFileName: `model_${i + 1}.glb`,
-  materialSlots: ['hull', 'deck', 'interior'],
-  promoImage1: `https://picsum.photos/seed/${i + 1}/400/300`,
-  promoImage2: `https://picsum.photos/seed/${i + 2}/400/300`,
-  promoImage3: `https://picsum.photos/seed/${i + 3}/400/300`,
-  uvDir1: '/uv/model_1/',
-  uvDir2: '/uv/model_2/',
-  uvDir3: '/uv/model_3/',
-  // 假设这是3D模型的路径
-  modelUrl: '/gltf-1/factory0417_0206.glb',
-}));
+const mockModels = Array.from({ length: 12 }, (_, i) => {
+  const types = ['Yacht', 'New Energy Ship', 'Emergency Rescue Ship', 'Official Law Enforcement Boat'];
+  return {
+    id: `model-${i + 1}`,
+    boatName: `SuperYacht-X${i + 1}`,
+    boatType: types[i % types.length],
+    storagePath: `/gltf/57sites/57.glb`,
+    fbxFileName: `model_${i + 1}.fbx`,
+    glbFileName: `model_${i + 1}.glb`,
+    materialSlots: ['hull', 'deck', 'interior'],
+    promoImage1: `https://picsum.photos/seed/${i + 1}/400/300`,
+    promoImage2: `https://picsum.photos/seed/${i + 2}/400/300`,
+    promoImage3: `https://picsum.photos/seed/${i + 3}/400/300`,
+    uvDir1: '/uv/model_1/',
+    uvDir2: '/uv/model_2/',
+    uvDir3: '/uv/model_3/',
+    // 假设这是3D模型的路径
+    modelUrl: '/gltf/951/951NS/950ns.glb',
+  };
+});
 
-const getBoatModels = async () => {
-  console.log('模拟获取船模列表');
+const getBoatModels = async (params) => {
+  console.log('模拟获取船模列表, 参数:', params);
   return new Promise((resolve) => {
-    setTimeout(() => resolve({ data: mockModels }), 500);
+    setTimeout(() => {
+      if (params?.boatType) {
+        const filteredData = mockModels.filter(m => m.boatType === params.boatType);
+        resolve({ data: filteredData });
+      } else {
+        resolve({ data: mockModels });
+      }
+    }, 300);
   });
 };
 
@@ -62,20 +72,30 @@ const deleteBoatModels = async (ids) => {
  */
 export default function BoatModelsView() {
   const [models, setModels] = useState([]);
+  const [boatCategories, setBoatCategories] = useState([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentModel, setCurrentModel] = useState(null);
 
   // 获取列表数据
-  const fetchModels = async () => {
+  const fetchModels = async (filterParams = {}) => {
     setLoading(true);
     try {
-      const response = await getBoatModels();
+      const response = await getBoatModels(filterParams);
       setModels(response.data);
+      // 当筛选时，不清空当前预览的模型，除非筛选结果为空
       if (response.data.length > 0) {
-        setCurrentModel(response.data[0]); // 默认选中第一个
+        if (!currentModel || !response.data.find(m => m.id === currentModel.id)) {
+          setCurrentModel(response.data[0]);
+        }
+      } else {
+        setCurrentModel(null);
       }
-      message.success('模型列表已刷新');
+      if(Object.keys(filterParams).length === 0) {
+         message.success('模型列表已刷新');
+      } else {
+         message.success('筛选成功');
+      }
     } catch (error) {
       message.error('获取模型列表失败');
     } finally {
@@ -83,8 +103,33 @@ export default function BoatModelsView() {
     }
   };
 
+  const fetchInitialData = async () => {
+    setLoading(true);
+    try {
+      const [modelsResponse, categoriesResponse] = await Promise.all([
+        getBoatModels(),
+        getBoatCategories(),
+      ]);
+
+      setModels(modelsResponse.data);
+      if (modelsResponse.data.length > 0) {
+        setCurrentModel(modelsResponse.data[0]);
+      }
+      
+      // 假设API返回的数据结构是 { data: [...] }
+      setBoatCategories(categoriesResponse.data || []);
+      
+    } catch (error) {
+      message.error('初始化数据失败');
+      // 在真实场景中，这里可能需要更详细的错误处理
+      console.error("Failed to fetch initial data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchModels();
+    fetchInitialData();
   }, []);
 
   // 处理删除
@@ -96,7 +141,7 @@ export default function BoatModelsView() {
     await deleteBoatModels(selectedRowKeys);
     message.success('删除成功');
     setSelectedRowKeys([]);
-    fetchModels();
+    fetchModels(); // 重新获取列表
   };
 
   // 处理行选择
@@ -125,20 +170,28 @@ export default function BoatModelsView() {
     <div style={{ padding: '20px' }}>
       <Row gutter={16}>
         {/* 左侧列表 */}
-        <Col span={7}>
+        <Col span={8}>
           <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }} bodyStyle={{ flex: 1, overflow: 'hidden' }}>
             <div style={{ marginBottom: 16 }}>
               <Space>
-                <Button icon={<RedoOutlined />} onClick={fetchModels}>刷新</Button>
+                <Button icon={<RedoOutlined />} onClick={() => fetchModels()}>刷新</Button>
                 <Button icon={<UploadOutlined />} onClick={() => message.info('上传功能待实现')}>上传</Button>
                 <Button icon={<DownloadOutlined />} disabled={!currentModel} onClick={() => message.info('下载功能待实现')}>下载</Button>
                 <Button icon={<DeleteOutlined />} disabled={selectedRowKeys.length === 0} onClick={handleDelete} danger>删除</Button>
               </Space>
-              <Input.Search
-                placeholder="按名称或类型查询..."
-                onSearch={() => message.info('查询功能待实现')}
+              <Select
+                placeholder="按船舶类型查询..."
                 style={{ width: '100%', marginTop: '10px' }}
-              />
+                onChange={(value) => fetchModels({ boatType: value })}
+                onClear={() => fetchModels()}
+                allowClear
+              >
+                {boatCategories.map(cat => (
+                  <Select.Option key={cat.id} value={cat.englishName}>
+                    {cat.chineseName}
+                  </Select.Option>
+                ))}
+              </Select>
             </div>
             <Table
               rowSelection={rowSelection}
@@ -154,10 +207,24 @@ export default function BoatModelsView() {
           </Card>
         </Col>
 
-        {/* 中间预览 */}
-        <Col span={10}>
-          <Card title="模型预览" style={{ height: '100%', display: 'flex', flexDirection: 'column' }} bodyStyle={{ flex: 1, padding: 0, overflow: 'hidden' }}>
-            <div style={{ position: 'relative', height: '100%' }}>
+        {/* 中间预览 - 使用原生div替代Card以解决事件穿透问题 */}
+        <Col span={8} style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ 
+            border: '1px solid #f0f0f0', 
+            borderRadius: '8px', 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column',
+            backgroundColor: '#ffffff'
+          }}>
+            <div style={{ 
+              padding: '16px 24px', 
+              borderBottom: '1px solid #f0f0f0',
+              fontWeight: 'bold'
+            }}>
+              模型预览
+            </div>
+            <div style={{ flex: 1, position: 'relative' }}>
               {currentModel ? (
                 <ShipScene 
                   modelConfig={{
@@ -169,11 +236,11 @@ export default function BoatModelsView() {
                 <Empty description="请在左侧选择一个模型进行预览" />
               )}
             </div>
-          </Card>
+          </div>
         </Col>
 
         {/* 右侧参数 */}
-        <Col span={7}>
+        <Col span={8}>
           <Card 
             title="模型参数配置"
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
