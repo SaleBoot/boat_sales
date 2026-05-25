@@ -18,7 +18,13 @@ const AddUserModal = ({ open, onCancel, onFinish, loading }) => {
     form
       .validateFields()
       .then(values => {
-        onFinish(values);
+        // 将 role 字段重命名为 roleId 以匹配后端
+        const postData = {
+          ...values,
+          roleId: values.role,
+        };
+        delete postData.role;
+        onFinish(postData);
       })
       .catch(info => {
         console.log('Validate Failed:', info);
@@ -38,7 +44,7 @@ const AddUserModal = ({ open, onCancel, onFinish, loading }) => {
         form={form}
         layout="vertical"
         name="addUserForm"
-        initialValues={{ role: 'Customer' }} // 默认角色
+        initialValues={{ role: 0 }} // 默认角色为普通用户
       >
         <Form.Item
           name="username"
@@ -67,9 +73,8 @@ const AddUserModal = ({ open, onCancel, onFinish, loading }) => {
           rules={[{ required: true, message: '请选择一个角色！' }]}
         >
           <Select>
-            <Option value="Administrator">Administrator</Option>
-            <Option value="Sales Manager">Sales Manager</Option>
-            <Option value="Customer">Customer</Option>
+            <Option value={1}>管理员用户</Option>
+            <Option value={0}>普通用户</Option>
           </Select>
         </Form.Item>
       </Form>

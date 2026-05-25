@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
     try {
       // 调用封装好的 API 函数
       const responseData = await loginApi({ email, password });
-
+      console.log('Login Response:', responseData);
       // 检查拦截器处理后的数据结构，提取真正的用户对象
       // 后端可能返回 { user: {...}, token: '...' }
       const userObject = responseData.user || responseData;

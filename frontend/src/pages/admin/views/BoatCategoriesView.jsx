@@ -29,7 +29,7 @@ const BoatCategoriesView = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 2, // 设置一个较小的页面大小以便观察分页器
+    pageSize: 8, // 设置一个较小的页面大小以便观察分页器
     total: 0,
   });
 
@@ -41,8 +41,11 @@ const BoatCategoriesView = () => {
         pageSize: params.pageSize || pagination.pageSize,
         ...params,
       });
-      setData(response.data);
-      setPagination(prev => ({ ...prev, total: response.total || response.data.length })); // 假设后端返回总数
+      // response 本身就是数据数组
+      setData(response); 
+      // 假设后端返回的数据就是当前页的全部数据，用其长度作为 total
+      // 注意：如果后端支持返回总数，这里的逻辑需要调整
+      setPagination(prev => ({ ...prev, total: response.length }));
       message.success('列表刷新成功！');
     } catch (error) {
       console.error('Failed to fetch boat categories:', error);
@@ -93,7 +96,7 @@ const BoatCategoriesView = () => {
       setLoading(true);
       if (editingItem) {
         // 更新
-        await updateBoatCategory(editingItem.id, values);
+        await updateBoatCategory(editingItem.ID, values);
         message.success('修改成功！');
       } else {
         // 新增
@@ -165,6 +168,10 @@ const BoatCategoriesView = () => {
   return (
     <Card>
       <Space style={{ marginBottom: 16 }}>
+        <Button icon={<RedoOutlined />} onClick={fetchBoatCategories}>
+          刷新列表
+        </Button>      
+
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
           增加
         </Button>
@@ -177,9 +184,7 @@ const BoatCategoriesView = () => {
             删除
           </Button>
         </Popconfirm>
-        <Button icon={<RedoOutlined />} onClick={fetchBoatCategories}>
-          刷新列表
-        </Button>
+        
         <Button onClick={handleSearch}>
           查询
         </Button>
@@ -189,7 +194,7 @@ const BoatCategoriesView = () => {
         columns={columns}
         dataSource={data}
         loading={loading}
-        rowKey="id"
+        rowKey="ID"
         pagination={{
           current: pagination.current,
           pageSize: pagination.pageSize,

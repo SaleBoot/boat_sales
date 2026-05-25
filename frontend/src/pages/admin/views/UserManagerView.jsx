@@ -22,7 +22,8 @@ export default function UserManagerView() {
     setLoading(true);
     try {
       const response = await getUsers();
-      setUsers(response.data);
+      console.log("获取到的用户列表数据:", response);
+      setUsers(response);
     } catch (error) {
       message.error('获取用户列表失败');
       console.error("Failed to fetch users:", error);
@@ -109,8 +110,9 @@ export default function UserManagerView() {
     },
     {
       title: '角色',
-      dataIndex: 'role',
+      dataIndex: 'roleId',
       key: 'role',
+      render: (roleId) => (roleId === 1 ? '管理员用户' : '普通用户'),
     },
   ];
 
@@ -120,7 +122,7 @@ export default function UserManagerView() {
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
           <Button icon={<RedoOutlined />} onClick={handleGetUserList}>
-            获取用户列表
+            刷新列表
           </Button>
           <Button icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
             增加
@@ -147,7 +149,7 @@ export default function UserManagerView() {
         rowSelection={rowSelection}
         columns={columns}
         dataSource={filteredUsers}
-        rowKey="id"
+        rowKey="ID"
         pagination={{ pageSize: 10 }}
         loading={loading}
       />

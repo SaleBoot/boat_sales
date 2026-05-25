@@ -35,7 +35,8 @@ export default function BoatsView() {
     try {
       // 真实的API调用
       const response = await getBoats({ q: searchText });
-      const boatsData = response.data || [];
+      // requestApi.js 的拦截器已经处理了外层的 data，所以 response 本身就是船舶数据数组
+      const boatsData = response || [];
       setBoats(boatsData);
       if (boatsData.length > 0) {
         setCurrentBoat(boatsData[0]); // 默认显示第一条详情
@@ -48,7 +49,9 @@ export default function BoatsView() {
         id: i + 1,
         chineseName: `泰坦尼克号 ${i + 1}`,
         englishName: `Titanic ${i + 1}`,
-        type: '豪华邮轮',
+        category: '豪华邮轮',
+        price: `¥${(100 + i * 50).toLocaleString()}万`,
+        description: `这是 ${i + 1} 号船的详细简介，介绍了它的历史、性能和独特之处。`,
         overallLength: '269.1m',
         waterlineLength: '260m',
         beam: '28m',
@@ -64,6 +67,7 @@ export default function BoatsView() {
         images: [
           `https://picsum.photos/seed/boat-a-${i}/400/300`,
           `https://picsum.photos/seed/boat-b-${i}/400/300`,
+          `https://picsum.photos/seed/boat-c-${i}/400/300`,
         ],
       }));
       setBoats(mockBoats);
@@ -132,7 +136,9 @@ export default function BoatsView() {
   const columns = [
     { title: '船舶中文名称', dataIndex: 'chineseName', key: 'chineseName', width: 150 },
     { title: '船舶英文名称', dataIndex: 'englishName', key: 'englishName', width: 150 },
-    { title: '船舶类型', dataIndex: 'type', key: 'type', width: 120 },
+    { title: '价格', dataIndex: 'price', key: 'price', width: 120 },
+    { title: '简介', dataIndex: 'description', key: 'description', width: 200, ellipsis: true },
+    { title: '船舶类型', dataIndex: 'category', key: 'category', width: 120 },
     { title: '总长', dataIndex: 'overallLength', key: 'overallLength', width: 100 },
     { title: '水线长', dataIndex: 'waterlineLength', key: 'waterlineLength', width: 100 },
     { title: '船宽', dataIndex: 'beam', key: 'beam', width: 100 },
@@ -173,7 +179,7 @@ export default function BoatsView() {
               rowKey="id"
               loading={loading}
               scroll={{ x: 1800 }}
-              pagination={{ pageSize: 10 }}
+              pagination={{ pageSize: 8 }}
               onRow={(record) => ({
                 onClick: () => setCurrentBoat(record),
               })}
@@ -201,7 +207,9 @@ export default function BoatsView() {
                 <Descriptions bordered column={1} size="small">
                   <Descriptions.Item label="中文名称">{currentBoat.chineseName}</Descriptions.Item>
                   <Descriptions.Item label="英文名称">{currentBoat.englishName}</Descriptions.Item>
-                  <Descriptions.Item label="船舶类型">{currentBoat.type}</Descriptions.Item>
+                  <Descriptions.Item label="价格">{currentBoat.price}</Descriptions.Item>
+                  <Descriptions.Item label="简介">{currentBoat.description}</Descriptions.Item>
+                  <Descriptions.Item label="船舶类型">{currentBoat.category}</Descriptions.Item>
                   <Descriptions.Item label="总长">{currentBoat.overallLength}</Descriptions.Item>
                   <Descriptions.Item label="水线长">{currentBoat.waterlineLength}</Descriptions.Item>
                   <Descriptions.Item label="船宽">{currentBoat.beam}</Descriptions.Item>

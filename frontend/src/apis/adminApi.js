@@ -55,6 +55,7 @@ export const getUsers = () => {
  * @returns {Promise<any>}
  */
 export const addUser = (userData) => {
+  console.log("即将发送到后端的用户数据:", userData);
   return api.post('/admin/users', userData);
 };
 
@@ -64,7 +65,28 @@ export const addUser = (userData) => {
  * @returns {Promise<any>}
  */
 export const deleteUsers = (userIds) => {
-  return api.delete('/admin/users', { data: { userIds } });
+  // 使用 POST 方法来处理批量删除
+  return api.post('/admin/users/delete', { userIds });
+};
+
+// ------------------------------------------------
+/**
+ * 根据 Email 获取用户信息
+ * @param {string} email - 用户邮箱
+ * @returns {Promise<any>}
+ */
+export const getUserByEmail = (email) => {
+  return api.get(`/admin/users/${email}`);
+};
+
+/**
+ * 根据 Email 更新用户信息
+ * @param {string} email - 用户邮箱
+ * @param {object} profileData - 用户信息
+ * @returns {Promise<any>}
+ */
+export const updateUserByEmail = (email, profileData) => {
+  return api.post(`/admin/users/${email}`, profileData);
 };
 
 // ------------------------------------------------
@@ -92,7 +114,7 @@ export const addBoat = (boatData) => {
  * @returns {Promise<any>}
  */
 export const deleteBoats = (boatIds) => {
-  return api.delete('/admin/boats', { data: { boatIds } });
+  return api.post('/admin/boats/delete', { boatIds });
 };
 
 // -------------------------------------------------------
@@ -124,7 +146,7 @@ export const addBoatCategory = (categoryData) => {
  * @returns {Promise<any>}
  */
 export const updateBoatCategory = (id, categoryData) => {
-  return api.put(`/admin/boat-categories/${id}`, categoryData);
+  return api.post(`/admin/boat-categories/${id}`, categoryData);
 };
 
 /**
@@ -132,6 +154,6 @@ export const updateBoatCategory = (id, categoryData) => {
  * @param {Array<number>} ids - 船舶类型ID列表
  * @returns {Promise<any>}
  */
-export const deleteBoatCategories = (ids) => {
-  return api.delete('/admin/boat-categories', { data: { ids } });
+export const deleteBoatCategories = (ids) => { 
+  return api.post('/admin/boat-categories/delete', { ids });
 };

@@ -1,29 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Form, Input, Select, Button, Card, message, Col, Row } from 'antd';
 import { useAuth } from '../context/AuthContext';
+import { getUserByEmail, updateUserByEmail } from '../../../apis/adminApi';
 
 const { Option } = Select;
 
 // 模拟从API获取当前用户信息的函数
-const fetchCurrentUser = async (user) => {
-  // 在实际应用中，这里会是一个API调用
-  // 'user' from AuthContext might not have all details, so we might fetch more here.
-  console.log('Fetching user details for:', user.email);
-  return Promise.resolve({
-    username: user.username || 'Admin User',
-    email: user.email,
-    role: user.role || 'admin', // 默认角色
-  });
-};
+// const fetchCurrentUser = async (user) => {
+//   // 在实际应用中，这里会是一个API调用
+//   // 'user' from AuthContext might not have all details, so we might fetch more here.
+//   console.log('Fetching user details for:', user.email);
+//   return Promise.resolve({
+//     username: user.Username || user.username || 'Admin User',
+//     email: user.email,
+//     role: user.role || 'admin', // 默认角色
+//   });
+// };
 
 // 模拟更新用户信息的API函数
-const updateUserSettings = async (values) => {
-  // 在实际应用中，这将向后端发送一个PATCH或PUT请求
-  console.log('Updating user settings with:', values);
-  return new Promise(resolve => setTimeout(() => {
-    resolve({ success: true });
-  }, 1000));
-};
+// const updateUserSettings = async (values) => {
+//   // 在实际应用中，这将向后端发送一个PATCH或PUT请求
+//   console.log('Updating user settings with:', values);
+//   return new Promise(resolve => setTimeout(() => {
+//     resolve({ success: true });
+//   }, 1000));
+// };
 
 
 export default function UserSetting() {
@@ -38,25 +39,32 @@ export default function UserSetting() {
   ];
 
   useEffect(() => {
-    if (user) {
+    const loadUserProfile = async () => {
+      if (!user || !user.email) return;
+
       setLoading(true);
-      fetchCurrentUser(user)
-        .then(data => {
-          form.setFieldsValue({
-            username: data.username,
-            email: data.email,
-            role: data.role,
-          });
-          setLoading(false);
-        })
-        .catch(() => {
-          message.error('无法加载用户信息');
-          setLoading(false);
+      try {
+        const data = await getUserByEmail(user.email);
+        form.setFieldsValue({
+          username: data.Username || data.username,
+          email: data.email,
+          role: data.roleId === 1 ? 'admin' : 'regularUser',
         });
-    }
+      } catch (error) {
+        message.error('无法加载用户信息');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUserProfile();
   }, [user, form]);
 
   const onFinish = async (values) => {
+    if (!user || !user.email) {
+      message.error('无法获取当前用户信息，请重新登录。');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const updateData = {
@@ -66,15 +74,11 @@ export default function UserSetting() {
       if (values.password) {
         updateData.password = values.password;
       }
-
-      const result = await updateUserSettings(updateData);
-      if (result.success) {
-        message.success('个人信息更新成功！');
-        // 清空密码字段
-        form.resetFields(['password', 'confirmPassword']);
-      } else {
-        throw new Error('更新失败');
-      }
+      console.log("updateUserByEmail个人信息更新",updateData);
+      await updateUserByEmail(user.email, updateData);
+      message.success('个人信息更新成功！');
+      // 清空密码字段
+      form.resetFields(['password', 'confirmPassword']);
     } catch (error) {
       message.error(error.message || '更新个人信息时发生错误。');
     } finally {
@@ -125,8 +129,8 @@ export default function UserSetting() {
                 label="新密码 (如不修改请留空)"
                 rules={[
                   {
-                    min: 6,
-                    message: '密码长度不能少于6个字符',
+                    min: 12,
+                    message: '密码长度不能少于12个字符',
                   },
                 ]}
               >

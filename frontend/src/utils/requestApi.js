@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { message } from 'antd';
 
 // 创建一个 axios 实例
 const instance = axios.create({
@@ -37,9 +38,9 @@ instance.interceptors.response.use(
       return res;
     }
 
-    // 如果 code 是 200 或 0，代表业务成功
+    // 如果 code 是 200, 201 或 0，代表业务成功
     // 直接返回 'data' 字段的内容，简化组件中的使用
-    if (res.code === 200 || res.code === 0) {
+    if (res.code === 200 || res.code === 201 || res.code === 0) {
       return res.data;
     }
 
@@ -53,13 +54,20 @@ instance.interceptors.response.use(
     if (error.response) {
       // 请求已发出，但服务器响应的状态码不在 2xx 范围内
       const status = error.response.status;
-      console.error(`[Axios HTTP Error ${status}]`, error.response.data);
+      const { method, url } = error.config;
+      console.error(`[Axios HTTP Error ${status}]`, `[${method.toUpperCase()}] ${url}`, error.response.data);
 
       if (status === 401) {
-        // 对于 401 未授权错误，可以进行特殊处理
-        // 例如，触发一个全局的登出事件，或直接跳转到登录页
-        // 注意：在这里直接跳转路由不是最佳实践，最好是通知 AuthContext 来处理
-        console.error('Unauthorized access - 401. Redirecting to login might be needed.');
+        // 对于 401 未授权错误，进行全局处理
+        message.error('登录已过期，请重新登录。');
+        // 延迟一小段时间后跳转，让用户能看到提示信息
+        setTimeout(() => {
+          // 清理可能存在的本地状态（如果未来有的话）
+          // localStorage.removeItem('some-key');
+          window.location.href = '/login';
+        }, 1500);
+      } else if (status === 404) {
+        console.error(`The requested URL was not found: ${url}`);
       }
     } else if (error.request) {
       // 请求已发出，但没有收到响应
