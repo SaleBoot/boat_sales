@@ -1,7 +1,7 @@
 package models
 
 type SysUser struct {
-	// UserId   int    `gorm:"primaryKey;autoIncrement;comment:编码"  json:"userId"`
+	UserId       int    `gorm:"primaryKey;autoIncrement;comment:编码"  json:"userId"`
 	Username     string `json:"username" gorm:"type:varchar(64);comment:用户名"`
 	Email        string `json:"email" gorm:"type:varchar(128);comment:邮箱"`
 	PasswordHash string `json:"-" gorm:"type:varchar(128);comment:密码Hash"`
