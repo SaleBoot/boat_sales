@@ -1,24 +1,23 @@
 package v1
 
 import (
+	"boatsales-backend/internal/types"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 const (
@@ -29,18 +28,6 @@ const (
 	defaultPBKDF2Iterations      = 210000
 	defaultPBKDF2DerivedKeyBytes = 32
 )
-
-type adminAuthConfig struct {
-	UpdatedAt string          `json:"updatedAt"`
-	Users     []adminAuthUser `json:"users"`
-}
-
-type adminAuthUser struct {
-	Email        string `json:"email"`
-	PasswordHash string `json:"passwordHash"`
-	CreatedAt    string `json:"createdAt"`
-	UpdatedAt    string `json:"updatedAt"`
-}
 
 type adminSession struct {
 	Token     string
@@ -73,90 +60,6 @@ type adminChangePasswordInput struct {
 }
 
 type adminSessionContextKey struct{}
-
-func (a *app) ensureAdminAuthFile() error {
-	if _, err := os.Stat(a.authPath); err == nil {
-		return nil
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("read admin auth config: %w", err)
-	}
-
-	config := defaultAdminAuthConfig()
-	if err := a.writeAdminAuthConfig(config); err != nil {
-		return err
-	}
-
-	log.Printf("initialized admin auth config at %s for %s", a.authPath, defaultAdminEmail)
-	return nil
-}
-
-func defaultAdminAuthConfig() adminAuthConfig {
-	now := time.Now().UTC().Format(time.RFC3339)
-	return adminAuthConfig{
-		UpdatedAt: now,
-		Users: []adminAuthUser{
-			{
-				Email:        defaultAdminEmail,
-				PasswordHash: defaultAdminPasswordHash,
-				CreatedAt:    now,
-				UpdatedAt:    now,
-			},
-		},
-	}
-}
-
-// 读取鉴权配置
-func (a *app) readAdminAuthConfig() (adminAuthConfig, error) {
-	data, err := os.ReadFile(a.authPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			config := defaultAdminAuthConfig()
-			if err := a.writeAdminAuthConfig(config); err != nil {
-				return adminAuthConfig{}, err
-			}
-			return config, nil
-		}
-
-		return adminAuthConfig{}, fmt.Errorf("read admin auth config: %w", err)
-	}
-
-	var config adminAuthConfig
-	if err := json.Unmarshal(data, &config); err != nil {
-		return adminAuthConfig{}, fmt.Errorf("parse admin auth config: %w", err)
-	}
-
-	if len(config.Users) == 0 {
-		config = defaultAdminAuthConfig()
-		if err := a.writeAdminAuthConfig(config); err != nil {
-			return adminAuthConfig{}, err
-		}
-	}
-
-	return config, nil
-}
-
-// 把鉴权配置信息转成json写入文件
-func (a *app) writeAdminAuthConfig(config adminAuthConfig) error {
-	if len(config.Users) == 0 {
-		return errors.New("admin auth config must contain at least one user")
-	}
-
-	config.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
-	if err := os.MkdirAll(filepath.Dir(a.authPath), 0o755); err != nil {
-		return fmt.Errorf("create admin auth directory: %w", err)
-	}
-
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal admin auth config: %w", err)
-	}
-
-	if err := os.WriteFile(a.authPath, append(data, '\n'), 0o600); err != nil {
-		return fmt.Errorf("write admin auth config: %w", err)
-	}
-
-	return nil
-}
 
 // 把email 转成小写字符串
 func normalizeAdminEmail(value string) string {
@@ -310,47 +213,50 @@ func (a *app) handleAdminLogin(c *gin.Context) {
 	// 1. 输入解析与严格校验 (Input Sanitization)
 	var input adminLoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode login request: %w", err))
+		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest,
+			Message: fmt.Sprintf("decode login request: %s", err.Error()),
+		})
 		return
 	}
+	log.Printf("login input: %v", input)
 
 	email := normalizeAdminEmail(input.Email)
 	if email == "" || strings.TrimSpace(input.Password) == "" {
-		writeAPIError(c, http.StatusBadRequest, errors.New("email and password are required"))
+		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest,
+			Message: "email and password are required"})
+		log.Printf("handleAdminLogin 1")
 		return
 	}
 
-	// 2. 读取配置与锁定 (Configuration Access)
-	//
-	// 并发安全：由于管理员账户信息可能存储在一个 JSON 配置文件中，代码使用互斥锁 (mu)
-	// 确保在读取文件时，没有其他线程正在修改它，避免读取到损坏的数据。
-	a.mu.Lock()
-	config, err := a.readAdminAuthConfig()
-	a.mu.Unlock()
+	// 2. 从数据库获取用户
+	matchedUser, err := a.userDao.GetUserByEmail(email)
 	if err != nil {
-		writeAPIError(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	// 3. 匹配用户 (User Lookup)
-	var matchedUser *adminAuthUser
-	for index := range config.Users {
-		if normalizeAdminEmail(config.Users[index].Email) == email {
-			matchedUser = &config.Users[index]
-			break
+		log.Printf("handleAdminLogin 2")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 为了安全，即使用户不存在，也返回模糊的“无效”错误
+			c.JSON(http.StatusUnauthorized, types.ApiResponse{Code: http.StatusUnauthorized,
+				Message: "invalid email or password"})
+		} else {
+			// 其他数据库错误，记录日志并返回服务器错误
+			log.Printf("database error during login: %v", err)
+			c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError,
+				Message: "A server error occurred."})
 		}
+		return
 	}
 
 	// 4. 核心安全核验 (Security Verification)
-	if matchedUser == nil || !verifyAdminPassword(matchedUser.PasswordHash, input.Password) {
-		writeAPIError(c, http.StatusUnauthorized, errors.New("invalid email or password"))
+	if !verifyAdminPassword(matchedUser.PasswordHash, input.Password) {
+		log.Printf("handleAdminLogin 3")
+		c.JSON(http.StatusUnauthorized, types.ApiResponse{Code: http.StatusUnauthorized, Message: "invalid email or password"})
 		return
 	}
+
 	// 5. 创建会话与持久化 (Session Creation & Persistence)
-	// createAdminSession：在服务器内存（Map）里生成一个新的 Token，并记录当前管理员的信息及过期时间。
 	session, err := a.createAdminSession(matchedUser.Email)
 	if err != nil {
-		writeAPIError(c, http.StatusInternalServerError, err)
+		log.Printf("create admin session error: %v", err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError, Message: "Failed to create session."})
 		return
 	}
 
@@ -395,81 +301,64 @@ func (a *app) handleAdminChangePassword(c *gin.Context) {
 	// 1.身份核验：通过 adminSessionFromContext 确保当前操作者必须是已登录的管理员。
 	session, ok := getAdminSessionFromContext(c)
 	if !ok {
-		writeAPIError(c, http.StatusUnauthorized, errors.New("please log in again"))
+		c.JSON(http.StatusUnauthorized, types.ApiResponse{Code: http.StatusUnauthorized, Message: "please log in again"})
 		return
 	}
 
 	// 2.输入解析与校验：
-	// 使用 decoder.DisallowUnknownFields() 禁止传入多余字段（防止参数污染攻击）。
 	var input adminChangePasswordInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		writeAPIError(c, http.StatusBadRequest, fmt.Errorf("decode password request: %w", err))
+		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest, Message: fmt.Sprintf("decode password request: %s", err.Error())})
 		return
 	}
 
 	if strings.TrimSpace(input.CurrentPassword) == "" {
-		writeAPIError(c, http.StatusBadRequest, errors.New("current password is required"))
+		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest, Message: "current password is required"})
 		return
 	}
 
 	// 校验新密码是否符合复杂度要求（validateAdminPassword）。
 	if err := validateAdminPassword(input.NewPassword); err != nil {
-		writeAPIError(c, http.StatusBadRequest, err)
+		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()})
 		return
 	}
 
-	// 3.加锁保护：a.mu.Lock() 确保在读取和修改配置文件（如 admin.json）时，不会发生并发冲突。
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	// 4.查找用户：在配置文件中根据 Session 里的 Email 找到对应的用户记录。
-	config, err := a.readAdminAuthConfig()
+	// 3. 获取当前用户并验证旧密码
+	user, err := a.userDao.GetUserByEmail(session.Email)
 	if err != nil {
-		writeAPIError(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	userIndex := -1
-	for index := range config.Users {
-		if normalizeAdminEmail(config.Users[index].Email) == normalizeAdminEmail(session.Email) {
-			userIndex = index
-			break
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusUnauthorized, types.ApiResponse{Code: http.StatusUnauthorized, Message: "admin account no longer exists"})
+		} else {
+			log.Printf("database error on password change: %v", err)
+			c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError, Message: "A server error occurred."})
 		}
-	}
-
-	if userIndex == -1 {
-		writeAPIError(c, http.StatusUnauthorized, errors.New("admin account no longer exists"))
 		return
 	}
 
-	// 5.旧密码二次验证：这是最关键的安全步骤。即使已经登录，修改密码也必须输入旧密码。
-	// 程序通过 verifyAdminPassword（通常是 bcrypt 校验）对比数据库/文件中的哈希值。
-	if !verifyAdminPassword(config.Users[userIndex].PasswordHash, input.CurrentPassword) {
-		writeAPIError(c, http.StatusUnauthorized, errors.New("current password is incorrect"))
+	if !verifyAdminPassword(user.PasswordHash, input.CurrentPassword) {
+		c.JSON(http.StatusUnauthorized, types.ApiResponse{Code: http.StatusUnauthorized, Message: "current password is incorrect"})
 		return
 	}
 
-	// 6.持久化更新：
-	// 生成新密码的哈希值（ hashAdminPassword ），绝不存储明文。
-	// 更新 UpdatedAt 时间，并将整个配置写回文件（ writeAdminAuthConfig ）。
-	passwordHash, err := hashAdminPassword(input.NewPassword)
+	// 4. 哈希新密码并更新数据库
+	newPasswordHash, err := hashAdminPassword(input.NewPassword)
 	if err != nil {
-		writeAPIError(c, http.StatusInternalServerError, err)
+		log.Printf("hash new password error: %v", err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError, Message: "Failed to process new password."})
 		return
 	}
 
-	config.Users[userIndex].PasswordHash = passwordHash
-	config.Users[userIndex].UpdatedAt = time.Now().UTC().Format(time.RFC3339)
-
-	if err := a.writeAdminAuthConfig(config); err != nil {
-		writeAPIError(c, http.StatusInternalServerError, err)
+	if err := a.userDao.UpdateUserPassword(user.Email, newPasswordHash); err != nil {
+		log.Printf("update password in database error: %v", err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError, Message: "Failed to update password."})
 		return
 	}
 
-	c.JSON(http.StatusOK, adminAuthActionResponse{
+	c.JSON(http.StatusOK, types.ApiResponse{
+		Code:    http.StatusOK,
 		Message: "Password updated successfully",
-		User: &adminAuthUserSummary{
-			Email: config.Users[userIndex].Email,
+		Data: &adminAuthUserSummary{
+			Email: user.Email,
 		},
 	})
 }

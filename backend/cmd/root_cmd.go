@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"boatsales-backend/pkg/utils"
 	"errors"
 	"fmt"
-	"go0base/utils"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -14,12 +14,12 @@ const (
 	Version = "0.1.0"
 )
 
-type App struct {
+type AppLv0 struct {
 	rootCmd *cobra.Command
 }
 
-func NewApp() *App {
-	app := &App{
+func NewApp() *AppLv0 {
+	app := &AppLv0{
 		rootCmd: &cobra.Command{
 			Use:          "boatsales-backend",
 			Short:        "boatsales-backend",
@@ -40,23 +40,21 @@ func NewApp() *App {
 	}
 
 	// 添加子命令
-	var ginCmd = newGinCommand()
+	var ginCmd = newPrjV1Command()
 	app.rootCmd.AddCommand(ginCmd.cmd)
 
-	var prj05 = newPrj05Command()
-	app.rootCmd.AddCommand(prj05.cmd)
+	var dbMigrateCmd = newDbMigrateCommand()
+	app.rootCmd.AddCommand(dbMigrateCmd.cmd)
 
 	return app
 }
 
 func tip() {
-	usageStr := `欢迎使用 ` + utils.Green(`go0base `+Version) + ` 可以使用 ` + utils.Red(`-h`) + ` 查看命令`
-	usageStr1 := `也可以参考 https://doc.xxxxxxx.dev/guide/ksks 的相关内容`
+	usageStr := `欢迎使用 ` + utils.Green(`boatsales-backend `+Version) + ` 可以使用 ` + utils.Red(`-h`) + ` 查看命令`
 	fmt.Printf("%s\n", usageStr)
-	fmt.Printf("%s\n", usageStr1)
 }
 
-func (a *App) Execute() {
+func (a *AppLv0) Execute() {
 	if err := a.rootCmd.Execute(); err != nil {
 		os.Exit(-1)
 	}

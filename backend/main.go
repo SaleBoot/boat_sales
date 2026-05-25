@@ -1,7 +1,7 @@
 package main
 
 import (
-	v1 "boatsales-backend/v1"
+	"boatsales-backend/cmd"
 	"math/rand"
 	"time"
 )
@@ -13,5 +13,6 @@ func main() {
 	// (注：在较新的 Go 版本中这行可以省略，但在旧版本或为了兼容性，这行很常见)。
 	rand.Seed(time.Now().UnixNano())
 
-	v1.Main_v1()
+	app := cmd.NewApp()
+	app.Execute()
 }

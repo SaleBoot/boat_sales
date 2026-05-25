@@ -1,10 +1,14 @@
 package v1
 
 import (
+	"boatsales-backend/internal/dao"
+	"boatsales-backend/internal/db"
+	"boatsales-backend/internal/models"
 	"database/sql"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -14,6 +18,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 const maxUploadRequestSize = 512 << 20
@@ -25,7 +30,6 @@ type app struct {
 	publicDir              string
 	manifestPath           string
 	textureAssignmentsPath string
-	authPath               string
 	ordersPath             string
 	orderDB                *sql.DB
 	distDir                string
@@ -34,6 +38,9 @@ type app struct {
 	mu                     sync.Mutex
 	sessionMu              sync.Mutex
 	sessions               map[string]adminSession
+	userDao                *dao.SysUserDao
+	boatCategoryDao        *dao.SysBoatCategoryDao
+	boatDao                *dao.SysBoatDao
 }
 
 type projectPaths struct {
@@ -68,7 +75,6 @@ func NewApp() (*app, error) {
 		publicDir:              paths.publicDir,
 		manifestPath:           paths.manifestPath,
 		textureAssignmentsPath: paths.textureAssignmentsPath,
-		authPath:               paths.authPath,
 		ordersPath:             paths.ordersPath,
 		distDir:                paths.distDir,
 		contentPath:            paths.contentPath,
@@ -76,14 +82,64 @@ func NewApp() (*app, error) {
 		sessions:               make(map[string]adminSession),
 	}
 
-	if err := application.ensureAdminAuthFile(); err != nil {
-		return nil, err
+	// Initialize the database connection.
+	database, err := db.InitSqlite3DB()
+	if err != nil {
+		log.Fatalf("Failed to initialize sqlite3 database: %v", err)
 	}
+
+	// Initialize DAO instances.
+	application.userDao = dao.NewSysUserDao(database)
+	application.boatCategoryDao = dao.NewSysBoatCategoryDao(database)
+	application.boatDao = dao.NewSysBoatDao(database)
+
+	application.boatCategoryDao = dao.NewSysBoatCategoryDao(database)
+
+	// Ensure the default user exists for preview purposes.
+	if err := application.ensureDefaultUserExists(); err != nil {
+		log.Fatalf("Failed to ensure default user exists: %v", err)
+	}
+
 	if err := application.initializeSalesOrderDatabase(); err != nil {
 		return nil, err
 	}
 
 	return application, nil
+}
+
+func (a *app) ensureDefaultUserExists() error {
+	defaultEmail := "display@preview.com"
+	defaultPassword := "cqjscb2026"
+
+	_, err := a.userDao.GetUserByEmail(defaultEmail)
+	if err == nil {
+		// User already exists, nothing to do.
+		return nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		// An unexpected database error occurred.
+		return fmt.Errorf("failed to check for default user: %w", err)
+	}
+
+	// User does not exist, so create them.
+	passwordHash, err := hashAdminPassword(defaultPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash default password: %w", err)
+	}
+
+	defaultUser := &models.SysUser{
+		Username:     "Display",
+		Email:        defaultEmail,
+		PasswordHash: passwordHash,
+	}
+
+	if err := a.userDao.CreateUser(defaultUser); err != nil {
+		return fmt.Errorf("failed to create default user: %w", err)
+	}
+
+	log.Printf("Default user '%s' created successfully.", defaultEmail)
+	return nil
 }
 
 func discoverProjectPaths() (projectPaths, error) {
@@ -207,6 +263,28 @@ func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
 		// mux.HandleFunc("POST /api/admin/sync", a.requireAdminSession(a.handleAdminSync))
 		admin.POST("/sync", a.handleAdminSync)
 
+		admin.GET("/users", a.handleGetAllUsers)
+		admin.POST("/users", a.handleCreateUser)
+		admin.POST("/users/delete", a.handleDeleteUsers)
+		admin.GET("/users/:email", a.handleGetUserByEmail)
+		admin.POST("/users/:email", a.handleUpdateUserByEmail)
+
+		// Boat Category routes
+		boatCategories := admin.Group("/boat-categories")
+		{
+			boatCategories.GET("", a.handleGetBoatCategories)
+			boatCategories.POST("", a.handleAddBoatCategory)
+			boatCategories.PUT("/:id", a.handleUpdateBoatCategory)
+			boatCategories.POST("/delete", a.handleDeleteBoatCategories)
+		}
+
+		// Boat routes
+		boats := admin.Group("/boats")
+		{
+			boats.GET("", a.handleGetBoats)
+			boats.POST("", a.handleAddBoat)
+			boats.POST("/delete", a.handleDeleteBoats)
+		}
 	}
 
 }
