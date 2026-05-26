@@ -117,6 +117,16 @@ export const deleteBoats = (boatIds) => {
   return api.post('/admin/boats/delete', { boatIds });
 };
 
+/**
+ * 更新船舶信息
+ * @param {number} id - 船舶ID
+ * @param {object} boatData - 船舶数据
+ * @returns {Promise<any>}
+ */
+export const updateBoat = (id, boatData) => {
+  return api.post(`/admin/boats/${id}`, boatData);
+};
+
 // -------------------------------------------------------
 // 船舶类型管理 (Boat Categories)
 // -------------------------------------------------------

@@ -14,7 +14,7 @@ import {
   Empty,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, SearchOutlined, RedoOutlined } from '@ant-design/icons';
-import { getBoats, addBoat, deleteBoats } from '../../../apis/adminApi';
+import { getBoats, addBoat, deleteBoats } from '../../../apis/adminApi.js';
 import AddBoatModal from './BoatAddModal.jsx';
 
 /**
@@ -36,7 +36,10 @@ export default function BoatsView() {
       // 真实的API调用
       const response = await getBoats({ q: searchText });
       // requestApi.js 的拦截器已经处理了外层的 data，所以 response 本身就是船舶数据数组
-      const boatsData = response || [];
+      const boatsData = (response || []).map(({ id, Id, iD, ID, ...rest }) => ({
+        ID: id ?? Id ?? iD ?? ID,
+        ...rest
+      }));
       setBoats(boatsData);
       if (boatsData.length > 0) {
         setCurrentBoat(boatsData[0]); // 默认显示第一条详情
@@ -46,7 +49,7 @@ export default function BoatsView() {
       message.error('获取船舶列表失败');
       console.error("Failed to fetch boats:", error);
       const mockBoats = Array.from({ length: 5 }, (_, i) => ({
-        id: i + 1,
+        ID: i + 1,
         chineseName: `泰坦尼克号 ${i + 1}`,
         englishName: `Titanic ${i + 1}`,
         category: '豪华邮轮',
@@ -154,10 +157,10 @@ export default function BoatsView() {
   ];
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ padding: '1px' }}>
       <Row gutter={16}>
         {/* 左侧列表 */}
-        <Col span={16}>
+        <Col span={12}>
           <Card>
             <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Space>
@@ -176,9 +179,9 @@ export default function BoatsView() {
               rowSelection={rowSelection}
               columns={columns}
               dataSource={boats}
-              rowKey="id"
+              rowKey="ID"
               loading={loading}
-              scroll={{ x: 1800 }}
+              scroll={{ x: 'max-content' }}
               pagination={{ pageSize: 8 }}
               onRow={(record) => ({
                 onClick: () => setCurrentBoat(record),
@@ -188,7 +191,7 @@ export default function BoatsView() {
         </Col>
 
         {/* 右侧详情 */}
-        <Col span={8}>
+        <Col span={12}>
           <Card 
             title="船舶详情"
             styles={{ body: { maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' } }}
@@ -204,12 +207,12 @@ export default function BoatsView() {
                 ) : (
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无宣传图片" style={{ marginBottom: '16px' }} />
                 )}
-                <Descriptions bordered column={1} size="small">
+                <Descriptions bordered column={2} size="small">
                   <Descriptions.Item label="中文名称">{currentBoat.chineseName}</Descriptions.Item>
                   <Descriptions.Item label="英文名称">{currentBoat.englishName}</Descriptions.Item>
                   <Descriptions.Item label="价格">{currentBoat.price}</Descriptions.Item>
-                  <Descriptions.Item label="简介">{currentBoat.description}</Descriptions.Item>
                   <Descriptions.Item label="船舶类型">{currentBoat.category}</Descriptions.Item>
+                  <Descriptions.Item label="简介" span={2}>{currentBoat.description}</Descriptions.Item>
                   <Descriptions.Item label="总长">{currentBoat.overallLength}</Descriptions.Item>
                   <Descriptions.Item label="水线长">{currentBoat.waterlineLength}</Descriptions.Item>
                   <Descriptions.Item label="船宽">{currentBoat.beam}</Descriptions.Item>
@@ -222,6 +225,9 @@ export default function BoatsView() {
                   <Descriptions.Item label="动力形式">{currentBoat.propulsionType}</Descriptions.Item>
                   <Descriptions.Item label="材质">{currentBoat.material}</Descriptions.Item>
                   <Descriptions.Item label="证书类型">{currentBoat.certificateType}</Descriptions.Item>
+                  <Descriptions.Item label="宣传图0" span={2}>{currentBoat.adImg0}</Descriptions.Item>
+                  <Descriptions.Item label="宣传图1" span={2}>{currentBoat.adImg1}</Descriptions.Item>
+                  <Descriptions.Item label="宣传图2" span={2}>{currentBoat.adImg2}</Descriptions.Item>
                 </Descriptions>
               </div>
             ) : (
