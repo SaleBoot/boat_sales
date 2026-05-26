@@ -57,20 +57,7 @@ func Main_v1() {
 
 		// 注意：官方插件会自动处理第 3 步（OPTIONS 请求拦截并返回 204）
 	}))
-
-	// 1. 基础/公共路由
-	r.GET("/health", healthHandler)
-	api := r.Group("/api")
-	{
-		api.GET("/time", timeHandler)
-		api.GET("/scene/basic", basicSceneHandler)
-		api.GET("/scene/random", randomSceneHandler)
-	}
-	// 2. 业务模块路由（解耦设计）
-	app.RegisterAdminRoutes(api)
-	app.RegisterContentRoutes(api)
-	app.RegisterOrderRoutes(api)
-	app.RegisterStaticRscRoutes(r)
+	app.RegisterRoutes(r)
 
 	// 生产环境下关闭调试日志，能显著提升性能。
 	// gin.SetMode(gin.ReleaseMode)

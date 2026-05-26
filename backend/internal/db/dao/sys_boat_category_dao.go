@@ -42,3 +42,12 @@ func (d *SysBoatCategoryDao) UpdateBoatCategory(category *models.SysBoatCategory
 func (d *SysBoatCategoryDao) DeleteBoatCategories(ids []uint) error {
 	return d.DB.Delete(&models.SysBoatCategory{}, ids).Error
 }
+
+// Count returns the total number of boat categories.
+func (d *SysBoatCategoryDao) Count() (int64, error) {
+	var count int64
+	if err := d.DB.Model(&models.SysBoatCategory{}).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}

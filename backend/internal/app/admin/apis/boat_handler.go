@@ -9,15 +9,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type BoatHandler struct {
 	boatDao *dao.SysBoatDao
 }
 
-func NewBoatHandler(db *gorm.DB) *BoatHandler {
-	return &BoatHandler{boatDao: dao.NewSysBoatDao(db)}
+func NewBoatHandler(aBoatDao *dao.SysBoatDao) *BoatHandler {
+	return &BoatHandler{boatDao: aBoatDao} // 依赖注入
 }
 
 func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
@@ -38,9 +37,74 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 	})
 }
 
+// BoatInput defines the structure for creating or updating a boat.
+// It uses pointers for numeric fields to distinguish between a zero value and a missing field.
+type BoatInput struct {
+	ChineseName     string   `json:"chineseName"`
+	EnglishName     string   `json:"englishName"`
+	Category        string   `json:"Category"`
+	Price           *int     `json:"Price"`
+	Description     string   `json:"description"`
+	OverallLength   *float64 `json:"overallLength"`
+	WaterlineLength *float64 `json:"waterlineLength"`
+	Beam            *float64 `json:"beam"`
+	MoldedDepth     *float64 `json:"moldedDepth"`
+	Draft           *float64 `json:"draft"`
+	NavigationArea  string   `json:"navigationArea"`
+	MainEnginePower string   `json:"mainEnginePower"`
+	DesignSpeed     *float64 `json:"designSpeed"`
+	RatedCrew       *int     `json:"ratedCrew"`
+	PropulsionType  string   `json:"propulsionType"`
+	Material        string   `json:"material"`
+	CertificateType string   `json:"certificateType"`
+}
+
+// toModel converts a BoatInput DTO to a models.SysBoat database model.
+// It handles nil pointers by assigning zero values.
+func (input *BoatInput) toModel() *models.SysBoat {
+	boat := &models.SysBoat{
+		ChineseName:     input.ChineseName,
+		EnglishName:     input.EnglishName,
+		Category:        input.Category,
+		Description:     input.Description,
+		NavigationArea:  input.NavigationArea,
+		MainEnginePower: input.MainEnginePower,
+		PropulsionType:  input.PropulsionType,
+		Material:        input.Material,
+		CertificateType: input.CertificateType,
+	}
+
+	if input.Price != nil {
+		boat.Price = *input.Price
+	}
+	if input.OverallLength != nil {
+		boat.OverallLength = *input.OverallLength
+	}
+	if input.WaterlineLength != nil {
+		boat.WaterlineLength = *input.WaterlineLength
+	}
+	if input.Beam != nil {
+		boat.Beam = *input.Beam
+	}
+	if input.MoldedDepth != nil {
+		boat.MoldedDepth = *input.MoldedDepth
+	}
+	if input.Draft != nil {
+		boat.Draft = *input.Draft
+	}
+	if input.DesignSpeed != nil {
+		boat.DesignSpeed = *input.DesignSpeed
+	}
+	if input.RatedCrew != nil {
+		boat.RatedCrew = *input.RatedCrew
+	}
+
+	return boat
+}
+
 func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
-	var boat models.SysBoat
-	if err := c.ShouldBindJSON(&boat); err != nil {
+	var input BoatInput
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
 			Code:    http.StatusBadRequest,
 			Message: fmt.Sprintf("invalid request body: %s", err.Error()),
@@ -48,7 +112,9 @@ func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 		return
 	}
 
-	if err := aH.boatDao.CreateBoat(&boat); err != nil {
+	boat := input.toModel()
+
+	if err := aH.boatDao.CreateBoat(boat); err != nil {
 		log.Printf("failed to create boat: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,

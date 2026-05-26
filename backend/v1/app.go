@@ -1,8 +1,9 @@
 package v1
 
 import (
-	"boatsales-backend/internal/app/admin/apis"
+	"boatsales-backend/internal/app/admin"
 	"boatsales-backend/internal/db"
+	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/pkg/utils"
 	"database/sql"
 	"errors"
@@ -11,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/gin-gonic/gin"
 )
 
 type app struct {
@@ -27,9 +30,11 @@ type app struct {
 	orderDB                *sql.DB
 	mu                     sync.Mutex
 	// handlers
-	userH         *apis.UserHandler
-	boatCategoryH *apis.BoatCategoryHandler
-	boatH         *apis.BoatHandler
+	userDao         *dao.SysUserDao
+	boatCategoryDao *dao.SysBoatCategoryDao
+	boatDao         *dao.SysBoatDao
+	// modules
+	adminM *admin.AdminModule
 }
 
 type projectPaths struct {
@@ -43,11 +48,6 @@ type projectPaths struct {
 	distDir                string
 	contentPath            string
 	focusTargetsDir        string
-}
-
-type adminActionResponse struct {
-	Message string         `json:"message"`
-	State   adminDashboard `json:"state"`
 }
 
 func NewApp() (*app, error) {
@@ -74,11 +74,15 @@ func NewApp() (*app, error) {
 		return nil, fmt.Errorf("initialize database: %w", err)
 	}
 
-	// Ensure the default user exists for preview purposes.
-	if err := application.userH.EnsureDefaultUserExists(); err != nil {
-		log.Fatalf("Failed to ensure default user exists: %v", err)
+	adminModule, err := admin.NewAdminModule(application.userDao, // 依赖注入
+		application.boatCategoryDao, // 依赖注入
+		application.boatDao)         // 依赖注入
+	if err != nil {
+		return nil, fmt.Errorf("initialize admin module: %w", err)
 	}
+	application.adminM = adminModule
 
+	// 初始化订单数据库
 	if err := application.initializeSalesOrderDatabase(); err != nil {
 		return nil, err
 	}
@@ -138,12 +142,30 @@ func (a *app) initDb() error {
 	}
 
 	// Initialize DAO instances.
-	a.userH = apis.NewUserHandler(database)
-	a.boatCategoryH = apis.NewBoatCategoryHandler(database)
-	a.boatH = apis.NewBoatHandler(database)
+	a.userDao = dao.NewSysUserDao(database)
+	a.boatCategoryDao = dao.NewSysBoatCategoryDao(database)
+	a.boatDao = dao.NewSysBoatDao(database)
 	// TODO:  handler 可能用 几个dao，所以下一步app 只保存 dao实例，type DaoList struct { userDao *SysUserDao;... }
 	// AdminMgr 保存 handler 实例，type AdminMgr struct { userH *UserHandler;... }
 	// AdminMgr 中的dao 由 app 依赖注入
+
+	return nil
+}
+
+func (a *app) RegisterRoutes(r *gin.Engine) error {
+	// 1. 基础/公共路由
+	r.GET("/health", healthHandler)
+	api := r.Group("/api")
+	{
+		api.GET("/time", timeHandler)
+		api.GET("/scene/basic", basicSceneHandler)
+		api.GET("/scene/random", randomSceneHandler)
+	}
+	// 2. 业务模块路由（解耦设计）
+	a.RegisterAdminRoutes(api)
+	a.RegisterContentRoutes(api)
+	a.RegisterOrderRoutes(api)
+	a.RegisterStaticRscRoutes(r)
 
 	return nil
 }

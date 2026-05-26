@@ -19,8 +19,8 @@ type BoatCategoryHandler struct {
 	boatCategoryDao *dao.SysBoatCategoryDao
 }
 
-func NewBoatCategoryHandler(db *gorm.DB) *BoatCategoryHandler {
-	return &BoatCategoryHandler{boatCategoryDao: dao.NewSysBoatCategoryDao(db)}
+func NewBoatCategoryHandler(aBoatCategoryDao *dao.SysBoatCategoryDao) *BoatCategoryHandler {
+	return &BoatCategoryHandler{boatCategoryDao: aBoatCategoryDao} // 依赖注入
 }
 
 func (aH *BoatCategoryHandler) HandleGetBoatCategories(c *gin.Context) {

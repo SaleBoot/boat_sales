@@ -16,16 +16,19 @@ import (
 
 const maxUploadRequestSize = 512 << 20
 
-func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
-	// 创建管理后台路由组
-	admin := r.Group("/admin")
+type adminActionResponse struct { // old code
+	Message string         `json:"message"`
+	State   adminDashboard `json:"state"`
+}
 
-	// 登录和状态检查不需要 Session 中间件
-	admin.GET("/auth/status", a.userH.HandleAdminAuthStatus)
-	admin.POST("/auth/login", a.userH.HandleAdminLogin)
+func (a *app) RegisterAdminRoutes(aApiRG *gin.RouterGroup) {
+	// 创建管理后台路由组
+	adminRG := aApiRG.Group("/admin")
+
+	a.adminM.RegisterRoutes_noAuth(adminRG) //----------
 
 	// videos管理 (路径自动拼接为 /api/admin/videos)
-	videos := admin.Group("/videos")
+	videos := adminRG.Group("/videos")
 	{
 		// mux.HandleFunc("PUT /api/admin/videos/{videoID}", a.handleAdminUpdateVideo)
 		videos.PUT("/:videoID", a.handleAdminUpdateVideo)
@@ -35,17 +38,16 @@ func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
 
 	// 接下来的路由全部需要管理员权限
 	// 自动应用中间件，不再需要手动包裹每个 handler
-	admin.Use(a.userH.AdminAuthMiddleware())
+	adminRG.Use(a.adminM.AdminAuthMiddleware())
 	{
-		admin.POST("/auth/logout", a.userH.HandleAdminLogout)
-		admin.POST("/auth/change-password", a.userH.HandleAdminChangePassword)
+		a.adminM.RegisterRoutes_underAuth(adminRG) //----------
 
 		// mux.HandleFunc("POST /api/admin/videos",
 		//                a.requireAdminSession(a.handleAdminCreateVideo))
 		videos.POST("/", a.handleAdminCreateVideo)
 
 		// 模型管理 (路径自动拼接为 /api/admin/models)
-		models := admin.Group("/models")
+		models := adminRG.Group("/models")
 		{
 			models.GET("/overview", a.handleModelsOverview)
 			models.GET("/", a.handleAdminDashboard)
@@ -75,46 +77,19 @@ func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
 
 		// mux.HandleFunc("PUT /api/admin/hero",
 		// 				a.requireAdminSession(a.handleAdminUpdateHeroContent))
-		admin.PUT("/hero", a.handleAdminUpdateHeroContent)
+		adminRG.PUT("/hero", a.handleAdminUpdateHeroContent)
 		// mux.HandleFunc("PUT /api/admin/settings",
 		// 				a.requireAdminSession(a.handleAdminUpdateSiteSettings))
-		admin.PUT("/settings", a.handleAdminUpdateSiteSettings)
+		adminRG.PUT("/settings", a.handleAdminUpdateSiteSettings)
 		// mux.HandleFunc("POST /api/admin/file-texture-type",
 		// 					a.requireAdminSession(a.handleAdminUpdateTextureType))
-		admin.POST("/file-texture-type", a.handleAdminUpdateTextureType)
+		adminRG.POST("/file-texture-type", a.handleAdminUpdateTextureType)
 		// mux.HandleFunc("POST /api/admin/uv-set-material-hint",
 		// 					a.requireAdminSession(a.handleAdminUpdateUVSetMaterialHint))
-		admin.POST("/uv-set-material-hint", a.handleAdminUpdateUVSetMaterialHint)
+		adminRG.POST("/uv-set-material-hint", a.handleAdminUpdateUVSetMaterialHint)
 		// mux.HandleFunc("POST /api/admin/sync",
 		// 					a.requireAdminSession(a.handleAdminSync))
-		admin.POST("/sync", a.handleAdminSync)
-
-		// 用户管理 (路径自动拼接为 /api/admin/users)
-		usersGroup := admin.Group("/users")
-		{
-			usersGroup.GET("", a.userH.HandleGetAllUsers)
-			usersGroup.POST("", a.userH.HandleCreateUser)
-			usersGroup.POST("/delete", a.userH.HandleDeleteUsers)
-			usersGroup.GET("/:email", a.userH.HandleGetUserByEmail)
-			usersGroup.POST("/:email", a.userH.HandleUpdateUserByEmail)
-		}
-
-		// Boat Category routes
-		boatCategories := admin.Group("/boat-categories")
-		{
-			boatCategories.GET("", a.boatCategoryH.HandleGetBoatCategories)
-			boatCategories.POST("", a.boatCategoryH.HandleAddBoatCategory)
-			boatCategories.PUT("/:id", a.boatCategoryH.HandleUpdateBoatCategory)
-			boatCategories.POST("/delete", a.boatCategoryH.HandleDeleteBoatCategories)
-		}
-
-		// Boat routes
-		boats := admin.Group("/boats")
-		{
-			boats.GET("", a.boatH.HandleGetBoats)
-			boats.POST("", a.boatH.HandleAddBoat)
-			boats.POST("/delete", a.boatH.HandleDeleteBoats)
-		}
+		adminRG.POST("/sync", a.handleAdminSync)
 	}
 
 }

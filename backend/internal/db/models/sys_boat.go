@@ -8,7 +8,7 @@ type SysBoat struct {
 	ChineseName     string  `json:"chineseName" gorm:"type:varchar(128);comment:船舶中文名称"`
 	EnglishName     string  `json:"englishName" gorm:"type:varchar(128);comment:船舶英文名称"`
 	Category        string  `json:"Category" gorm:"type:varchar(64);comment:船舶类型"`
-	Price           string  `json:"Price" gorm:"type:int;comment:价格" `
+	Price           int     `json:"Price" gorm:"type:int;comment:价格" `
 	Description     string  `json:"description" gorm:"type:text;comment:简介"`
 	OverallLength   float64 `json:"overallLength" gorm:"comment:总长"`
 	WaterlineLength float64 `json:"waterlineLength" gorm:"comment:水线长"`
