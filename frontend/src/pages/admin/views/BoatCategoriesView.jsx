@@ -14,10 +14,10 @@ import { PlusOutlined, RedoOutlined } from '@ant-design/icons';
 import { getBoatCategories, addBoatCategory, updateBoatCategory, deleteBoatCategories } from '../../../apis/adminApi';
 
 const initialData = [
-    { id: 1, englishName: 'New Energy Ship', chineseName: '新能源船', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
-    { id: 2, englishName: 'Emergency Rescue Ship', chineseName: '应急救援船', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
-    { id: 3, englishName: 'Official Law Enforcement Boat', chineseName: '公务执法艇', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
-    { id: 4, englishName: 'Yacht', chineseName: '游艇', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:0<PASSWORD>Z' },
+    { ID: 1, englishName: 'New Energy Ship', chineseName: '新能源船', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 2, englishName: 'Emergency Rescue Ship', chineseName: '应急救援船', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 3, englishName: 'Official Law Enforcement Boat', chineseName: '公务执法艇', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 4, englishName: 'Yacht', chineseName: '游艇', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:0<PASSWORD>Z' },
 ];
 
 const BoatCategoriesView = () => {
@@ -41,11 +41,19 @@ const BoatCategoriesView = () => {
         pageSize: params.pageSize || pagination.pageSize,
         ...params,
       });
-      // response 本身就是数据数组
-      setData(response); 
+      console.log('Fetched boat categories:', response);
+      
+      // 强制将 'id', 'Id', 'iD', 'ID' 等统一转换成 'ID'
+      const normalizedData = response.map(({ id, Id, iD, ID, ...rest }) => ({
+        // 按照优先级，用 ?? 一路“或者”过去
+        ID: id ?? Id ?? iD ?? ID,
+        ...rest
+      }));
+
+      setData(normalizedData); 
       // 假设后端返回的数据就是当前页的全部数据，用其长度作为 total
       // 注意：如果后端支持返回总数，这里的逻辑需要调整
-      setPagination(prev => ({ ...prev, total: response.length }));
+      setPagination(prev => ({ ...prev, total: normalizedData.length }));
       message.success('列表刷新成功！');
     } catch (error) {
       console.error('Failed to fetch boat categories:', error);
@@ -139,15 +147,24 @@ const BoatCategoriesView = () => {
     },
     {
       title: '创建时间',
-      dataIndex: 'createdAt',
+      dataIndex: 'CreatedAt',
       key: 'createdAt',
-      render: (text) => new Date(text).toLocaleString(),
+      render: (text) => {
+        if (!text) return '';
+        // 后端返回的日期可能包含纳秒，JS Date不完全支持，截断到毫秒
+        const safeDate = text.substring(0, 23);
+        return new Date(safeDate).toLocaleString();
+      },
     },
     {
       title: '修改时间',
-      dataIndex: 'updatedAt',
+      dataIndex: 'UpdatedAt',
       key: 'updatedAt',
-      render: (text) => new Date(text).toLocaleString(),
+      render: (text) => {
+        if (!text) return '';
+        const safeDate = text.substring(0, 23);
+        return new Date(safeDate).toLocaleString();
+      },
     },
     {
       title: '操作',

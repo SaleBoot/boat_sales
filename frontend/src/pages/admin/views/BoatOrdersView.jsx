@@ -23,28 +23,32 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 
 // --- Mock Data and API ---
-const mockOrders = Array.from({ length: 8 }, (_, i) => ({
-  id: `order-${i + 1}`,
-  orderNumber: `JSSB-20240524-00${i + 1}`,
-  createdAt: new Date(Date.now() - Math.random() * 1000000000).toISOString(),
-  updatedAt: new Date().toISOString(),
-  boatName: `豪华游艇-G${i % 3 + 1}`,
-  source: ['线上官网', '线下推荐', '合作伙伴'][i % 3],
-  customerName: `客户-${String.fromCharCode(65 + i)}`,
-  contact: `138-xxxx-000${i}`,
-  boatType: 'Yacht',
-  appearance: '珍珠白',
-  color: '白色',
-  interior: '高级皮革',
-  power: '双引擎 500hp',
-  price: `${(Math.random() * 500 + 200).toFixed(2)}万`,
-  options: ['GPS导航', '高级音响', '拖车'][i % 3],
-  images: [
-    `https://picsum.photos/seed/boat${i % 3 + 1}/400/300`,
-    `https://picsum.photos/seed/boat${i % 3 + 2}/400/300`,
-    `https://picsum.photos/seed/boat${i % 3 + 3}/400/300`,
-  ],
-}));
+const mockOrders = Array.from({ length: 8 }, (_, i) => {
+  const statuses = ['新提交', '跟进中', '已完成'];
+  return {
+    id: `order-${i + 1}`,
+    orderNumber: `JSSB-20240524-00${i + 1}`,
+    createdAt: new Date(Date.now() - Math.random() * 1000000000).toISOString(),
+    updatedAt: new Date().toISOString(),
+    boatName: `豪华游艇-G${i % 3 + 1}`,
+    source: ['线上官网', '线下推荐', '合作伙伴'][i % 3],
+    customerName: `客户-${String.fromCharCode(65 + i)}`,
+    contact: `138-xxxx-000${i}`,
+    boatType: 'Yacht',
+    appearance: '珍珠白',
+    color: '白色',
+    interior: '高级皮革',
+    power: '双引擎 500hp',
+    price: `${(Math.random() * 500 + 200).toFixed(2)}万`,
+    options: ['GPS导航', '高级音响', '拖车'][i % 3],
+    status: statuses[i % statuses.length], // 添加状态字段
+    images: [
+      `https://picsum.photos/seed/boat${i % 3 + 1}/400/300`,
+      `https://picsum.photos/seed/boat${i % 3 + 2}/400/300`,
+      `https://picsum.photos/seed/boat${i % 3 + 3}/400/300`,
+    ],
+  };
+});
 
 const getBoatOrders = async () => {
   console.log('模拟获取订单列表');
@@ -127,6 +131,20 @@ export default function BoatOrdersView() {
   const columns = [
     { title: '订单号', dataIndex: 'orderNumber', key: 'orderNumber', width: 200, fixed: 'left' },
     { title: '船舶名称', dataIndex: 'boatName', key: 'boatName', width: 150, fixed: 'left' },
+    { 
+      title: '状态',  dataIndex: 'status',  key: 'status',  width: 100,
+      render: status => {
+        let color = 'default';
+        if (status === '已完成') {
+          color = 'success';
+        } else if (status === '跟进中') {
+          color = 'warning';
+        } else if (status === '新提交') {
+          color = 'processing';
+        }
+        return <Tag color={color}>{status}</Tag>;
+      }
+    },
     { title: '客户姓名', dataIndex: 'customerName', key: 'customerName', width: 100 },
     { title: '联系方式', dataIndex: 'contact', key: 'contact', width: 120 },
     { title: '价格', dataIndex: 'price', key: 'price', width: 120, sorter: (a, b) => parseFloat(a.price) - parseFloat(b.price) },
