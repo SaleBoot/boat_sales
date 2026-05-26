@@ -40,8 +40,8 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 // BoatInput defines the structure for creating or updating a boat.
 // It uses pointers for numeric fields to distinguish between a zero value and a missing field.
 type BoatInput struct {
-	ChineseName     string   `json:"chineseName"`
-	EnglishName     string   `json:"englishName"`
+	BoatName        string   `json:"boatName"`
+	ModelName       string   `json:"modelName"`
 	Category        string   `json:"Category"`
 	Price           *int     `json:"Price"`
 	Description     string   `json:"description"`
@@ -63,8 +63,8 @@ type BoatInput struct {
 // It handles nil pointers by assigning zero values.
 func (input *BoatInput) toModel() *models.SysBoat {
 	boat := &models.SysBoat{
-		ChineseName:     input.ChineseName,
-		EnglishName:     input.EnglishName,
+		BoatName:        input.BoatName,
+		ModelName:       input.ModelName,
 		Category:        input.Category,
 		Description:     input.Description,
 		NavigationArea:  input.NavigationArea,
@@ -113,6 +113,30 @@ func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 	}
 
 	boat := input.toModel()
+
+	// Check for uniqueness of BoatName and ModelName
+	existingBoat, err := aH.boatDao.FindByNameOrModel(boat.BoatName, boat.ModelName)
+	if err != nil {
+		log.Printf("failed to check for existing boat: %v", err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to check for existing boat",
+		})
+		return
+	}
+	if existingBoat != nil {
+		var conflictField string
+		if existingBoat.BoatName == boat.BoatName {
+			conflictField = "BoatName"
+		} else {
+			conflictField = "ModelName"
+		}
+		c.JSON(http.StatusConflict, types.ApiResponse{
+			Code:    http.StatusConflict,
+			Message: fmt.Sprintf("a boat with this %s already exists", conflictField),
+		})
+		return
+	}
 
 	if err := aH.boatDao.CreateBoat(boat); err != nil {
 		log.Printf("failed to create boat: %v", err)

@@ -2,6 +2,7 @@ package dao
 
 import (
 	"boatsales-backend/internal/db/models"
+	"errors"
 
 	"gorm.io/gorm"
 )
@@ -27,6 +28,19 @@ func (dao *SysBoatDao) GetAllBoats() ([]models.SysBoat, error) {
 // CreateBoat adds a new boat to the database.
 func (dao *SysBoatDao) CreateBoat(boat *models.SysBoat) error {
 	return dao.db.Create(boat).Error
+}
+
+// FindByNameOrModel checks if a boat with the given BoatName or ModelName already exists.
+func (dao *SysBoatDao) FindByNameOrModel(boatName, modelName string) (*models.SysBoat, error) {
+	var boat models.SysBoat
+	err := dao.db.Where("boat_name = ?", boatName).Or("model_name = ?", modelName).First(&boat).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // Not found, which is not an error in this context
+		}
+		return nil, err // Other database error
+	}
+	return &boat, nil // Found a conflicting record
 }
 
 // DeleteBoats removes boats from the database by their IDs.

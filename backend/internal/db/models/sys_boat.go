@@ -5,8 +5,8 @@ import "gorm.io/gorm"
 // SysBoat represents the boat model in the database.
 type SysBoat struct {
 	gorm.Model
-	ChineseName     string  `json:"chineseName" gorm:"type:varchar(128);comment:船舶中文名称"`
-	EnglishName     string  `json:"englishName" gorm:"type:varchar(128);comment:船舶英文名称"`
+	BoatName        string  `json:"boatName" gorm:"type:varchar(128);comment:船舶名称"`
+	ModelName       string  `json:"modelName" gorm:"type:varchar(128);comment:模型名(无空格英文名，唯一)，也是模型文件夹名"`
 	Category        string  `json:"Category" gorm:"type:varchar(64);comment:船舶类型"`
 	Price           int     `json:"Price" gorm:"type:int;comment:价格" `
 	Description     string  `json:"description" gorm:"type:text;comment:简介"`
