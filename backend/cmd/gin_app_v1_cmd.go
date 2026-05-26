@@ -16,14 +16,14 @@ type tPrjV1Command struct {
 
 func newPrjV1Command() *tPrjV1Command {
 	ret := &tPrjV1Command{
-		appName: "ginAppV1",
+		appName: "ginapp",
 	}
 
 	ret.cmd = &cobra.Command{
-		Use:     "ginAppV1",
-		Short:   "start a ginAppV1 app",
-		Long:    "Use when you need to create a new ginAppV1 app",
-		Example: "boatsales-backend ginAppV1 -n admin",
+		Use:     "ginapp",
+		Short:   "start a ginapp app",
+		Long:    "Use when you need to create a new ginapp app",
+		Example: "boatsales-backend ginapp -n admin",
 		Run: func(cmd *cobra.Command, args []string) {
 			ret.run()
 		},

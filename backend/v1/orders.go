@@ -137,7 +137,7 @@ func (a *app) RegisterOrderRoutes(r *gin.RouterGroup) {
 	r.POST("/orders", a.handleCreateSalesOrder)
 
 	// 后台订单管理（加入到管理组或单独加中间件）
-	adminOrder := r.Group("/admin/orders", a.AdminAuthMiddleware())
+	adminOrder := r.Group("/admin/orders", a.userH.AdminAuthMiddleware())
 	{
 		adminOrder.GET("/", a.handleAdminSalesOrders)
 		adminOrder.GET("/export", a.handleAdminExportSalesOrders)

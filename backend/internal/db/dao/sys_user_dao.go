@@ -1,7 +1,7 @@
 package dao
 
 import (
-	"boatsales-backend/internal/models"
+	"boatsales-backend/internal/db/models"
 
 	"gorm.io/gorm"
 )

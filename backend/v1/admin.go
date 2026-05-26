@@ -1,207 +1,28 @@
 package v1
 
 import (
-	"boatsales-backend/internal/dao"
-	"boatsales-backend/internal/db"
-	"boatsales-backend/internal/models"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 const maxUploadRequestSize = 512 << 20
-
-type app struct {
-	repoRoot               string
-	sourceDir              string
-	frontendDir            string
-	publicDir              string
-	manifestPath           string
-	textureAssignmentsPath string
-	ordersPath             string
-	orderDB                *sql.DB
-	distDir                string
-	contentPath            string
-	focusTargetsDir        string
-	mu                     sync.Mutex
-	sessionMu              sync.Mutex
-	sessions               map[string]adminSession
-	userDao                *dao.SysUserDao
-	boatCategoryDao        *dao.SysBoatCategoryDao
-	boatDao                *dao.SysBoatDao
-}
-
-type projectPaths struct {
-	repoRoot               string
-	sourceDir              string
-	frontendDir            string
-	publicDir              string
-	manifestPath           string
-	textureAssignmentsPath string
-	authPath               string
-	ordersPath             string
-	distDir                string
-	contentPath            string
-	focusTargetsDir        string
-}
-
-type adminActionResponse struct {
-	Message string         `json:"message"`
-	State   adminDashboard `json:"state"`
-}
-
-func NewApp() (*app, error) {
-	paths, err := discoverProjectPaths()
-	if err != nil {
-		return nil, err
-	}
-
-	application := &app{
-		repoRoot:               paths.repoRoot,
-		sourceDir:              paths.sourceDir,
-		frontendDir:            paths.frontendDir,
-		publicDir:              paths.publicDir,
-		manifestPath:           paths.manifestPath,
-		textureAssignmentsPath: paths.textureAssignmentsPath,
-		ordersPath:             paths.ordersPath,
-		distDir:                paths.distDir,
-		contentPath:            paths.contentPath,
-		focusTargetsDir:        paths.focusTargetsDir,
-		sessions:               make(map[string]adminSession),
-	}
-
-	// Initialize the database connection.
-	database, err := db.InitSqlite3DB()
-	if err != nil {
-		log.Fatalf("Failed to initialize sqlite3 database: %v", err)
-	}
-
-	// Initialize DAO instances.
-	application.userDao = dao.NewSysUserDao(database)
-	application.boatCategoryDao = dao.NewSysBoatCategoryDao(database)
-	application.boatDao = dao.NewSysBoatDao(database)
-
-	application.boatCategoryDao = dao.NewSysBoatCategoryDao(database)
-
-	// Ensure the default user exists for preview purposes.
-	if err := application.ensureDefaultUserExists(); err != nil {
-		log.Fatalf("Failed to ensure default user exists: %v", err)
-	}
-
-	if err := application.initializeSalesOrderDatabase(); err != nil {
-		return nil, err
-	}
-
-	return application, nil
-}
-
-func (a *app) ensureDefaultUserExists() error {
-	defaultEmail := "display@preview.com"
-	defaultPassword := "cqjscb2026"
-
-	_, err := a.userDao.GetUserByEmail(defaultEmail)
-	if err == nil {
-		// User already exists, nothing to do.
-		return nil
-	}
-
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		// An unexpected database error occurred.
-		return fmt.Errorf("failed to check for default user: %w", err)
-	}
-
-	// User does not exist, so create them.
-	passwordHash, err := hashAdminPassword(defaultPassword)
-	if err != nil {
-		return fmt.Errorf("failed to hash default password: %w", err)
-	}
-
-	defaultUser := &models.SysUser{
-		Username:     "Display",
-		Email:        defaultEmail,
-		PasswordHash: passwordHash,
-	}
-
-	if err := a.userDao.CreateUser(defaultUser); err != nil {
-		return fmt.Errorf("failed to create default user: %w", err)
-	}
-
-	log.Printf("Default user '%s' created successfully.", defaultEmail)
-	return nil
-}
-
-func discoverProjectPaths() (projectPaths, error) {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return projectPaths{}, fmt.Errorf("resolve current directory: %w", err)
-	}
-
-	searchDir := currentDir
-	for {
-		repoRoot := searchDir
-		if filepath.Base(searchDir) == "backend" { // "gltf"目录实际是go backend 代码目录
-			repoRoot = filepath.Dir(searchDir)
-		}
-
-		sourceDir := filepath.Join(repoRoot, "backend")    //golang backend 代码目录
-		frontendDir := filepath.Join(repoRoot, "frontend") // 前端代码目录
-		if isDirectory(sourceDir) && isDirectory(frontendDir) {
-			publicDir := filepath.Join(frontendDir, "public", "gltf")
-			manifestPath := filepath.Join(publicDir, "asset-manifest.json")
-			return projectPaths{
-				repoRoot:               repoRoot,
-				sourceDir:              sourceDir,    //golang backend 代码目录
-				frontendDir:            frontendDir,  // 前端代码目录
-				publicDir:              publicDir,    // glb文件夹目录
-				manifestPath:           manifestPath, // asset-manifest.json路径
-				textureAssignmentsPath: filepath.Join(repoRoot, "data", "texture-assignments.json"),
-				authPath:               filepath.Join(repoRoot, "data", "admin-auth.json"),
-				ordersPath:             filepath.Join(repoRoot, "data", "orders.json"),
-				distDir:                filepath.Join(frontendDir, "dist"), //// 前端编译结果目录
-				contentPath:            filepath.Join(repoRoot, "data", "site-content.json"),
-				focusTargetsDir:        filepath.Join(repoRoot, "data", "focus-targets"),
-			}, nil
-		}
-
-		parentDir := filepath.Dir(searchDir)
-		if parentDir == searchDir {
-			break
-		}
-
-		searchDir = parentDir
-	}
-
-	return projectPaths{}, errors.New("could not locate repository root containing gltf and frontend directories")
-}
-
-func isDirectory(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-
-	return info.IsDir()
-}
 
 func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
 	// 创建管理后台路由组
 	admin := r.Group("/admin")
 
 	// 登录和状态检查不需要 Session 中间件
-	admin.GET("/auth/status", a.handleAdminAuthStatus)
-	admin.POST("/auth/login", a.handleAdminLogin)
+	admin.GET("/auth/status", a.userH.HandleAdminAuthStatus)
+	admin.POST("/auth/login", a.userH.HandleAdminLogin)
 
 	// videos管理 (路径自动拼接为 /api/admin/videos)
 	videos := admin.Group("/videos")
@@ -214,10 +35,10 @@ func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
 
 	// 接下来的路由全部需要管理员权限
 	// 自动应用中间件，不再需要手动包裹每个 handler
-	admin.Use(a.AdminAuthMiddleware())
+	admin.Use(a.userH.AdminAuthMiddleware())
 	{
-		admin.POST("/auth/logout", a.handleAdminLogout)
-		admin.POST("/auth/change-password", a.handleAdminChangePassword)
+		admin.POST("/auth/logout", a.userH.HandleAdminLogout)
+		admin.POST("/auth/change-password", a.userH.HandleAdminChangePassword)
 
 		// mux.HandleFunc("POST /api/admin/videos",
 		//                a.requireAdminSession(a.handleAdminCreateVideo))
@@ -252,38 +73,47 @@ func (a *app) RegisterAdminRoutes(r *gin.RouterGroup) {
 			models.PUT("/:modelID/files/texture-type", a.handleAdminUpdateTextureType)
 		}
 
-		// mux.HandleFunc("PUT /api/admin/hero", a.requireAdminSession(a.handleAdminUpdateHeroContent))
+		// mux.HandleFunc("PUT /api/admin/hero",
+		// 				a.requireAdminSession(a.handleAdminUpdateHeroContent))
 		admin.PUT("/hero", a.handleAdminUpdateHeroContent)
-		// mux.HandleFunc("PUT /api/admin/settings", a.requireAdminSession(a.handleAdminUpdateSiteSettings))
+		// mux.HandleFunc("PUT /api/admin/settings",
+		// 				a.requireAdminSession(a.handleAdminUpdateSiteSettings))
 		admin.PUT("/settings", a.handleAdminUpdateSiteSettings)
-		// mux.HandleFunc("POST /api/admin/file-texture-type", a.requireAdminSession(a.handleAdminUpdateTextureType))
+		// mux.HandleFunc("POST /api/admin/file-texture-type",
+		// 					a.requireAdminSession(a.handleAdminUpdateTextureType))
 		admin.POST("/file-texture-type", a.handleAdminUpdateTextureType)
-		// mux.HandleFunc("POST /api/admin/uv-set-material-hint", a.requireAdminSession(a.handleAdminUpdateUVSetMaterialHint))
+		// mux.HandleFunc("POST /api/admin/uv-set-material-hint",
+		// 					a.requireAdminSession(a.handleAdminUpdateUVSetMaterialHint))
 		admin.POST("/uv-set-material-hint", a.handleAdminUpdateUVSetMaterialHint)
-		// mux.HandleFunc("POST /api/admin/sync", a.requireAdminSession(a.handleAdminSync))
+		// mux.HandleFunc("POST /api/admin/sync",
+		// 					a.requireAdminSession(a.handleAdminSync))
 		admin.POST("/sync", a.handleAdminSync)
 
-		admin.GET("/users", a.handleGetAllUsers)
-		admin.POST("/users", a.handleCreateUser)
-		admin.POST("/users/delete", a.handleDeleteUsers)
-		admin.GET("/users/:email", a.handleGetUserByEmail)
-		admin.POST("/users/:email", a.handleUpdateUserByEmail)
+		// 用户管理 (路径自动拼接为 /api/admin/users)
+		usersGroup := admin.Group("/users")
+		{
+			usersGroup.GET("", a.userH.HandleGetAllUsers)
+			usersGroup.POST("", a.userH.HandleCreateUser)
+			usersGroup.POST("/delete", a.userH.HandleDeleteUsers)
+			usersGroup.GET("/:email", a.userH.HandleGetUserByEmail)
+			usersGroup.POST("/:email", a.userH.HandleUpdateUserByEmail)
+		}
 
 		// Boat Category routes
 		boatCategories := admin.Group("/boat-categories")
 		{
-			boatCategories.GET("", a.handleGetBoatCategories)
-			boatCategories.POST("", a.handleAddBoatCategory)
-			boatCategories.PUT("/:id", a.handleUpdateBoatCategory)
-			boatCategories.POST("/delete", a.handleDeleteBoatCategories)
+			boatCategories.GET("", a.boatCategoryH.HandleGetBoatCategories)
+			boatCategories.POST("", a.boatCategoryH.HandleAddBoatCategory)
+			boatCategories.PUT("/:id", a.boatCategoryH.HandleUpdateBoatCategory)
+			boatCategories.POST("/delete", a.boatCategoryH.HandleDeleteBoatCategories)
 		}
 
 		// Boat routes
 		boats := admin.Group("/boats")
 		{
-			boats.GET("", a.handleGetBoats)
-			boats.POST("", a.handleAddBoat)
-			boats.POST("/delete", a.handleDeleteBoats)
+			boats.GET("", a.boatH.HandleGetBoats)
+			boats.POST("", a.boatH.HandleAddBoat)
+			boats.POST("/delete", a.boatH.HandleDeleteBoats)
 		}
 	}
 

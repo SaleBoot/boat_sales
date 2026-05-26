@@ -1,17 +1,27 @@
-package v1
+package apis
 
 import (
-	"boatsales-backend/internal/models"
+	"boatsales-backend/internal/db/dao"
+	"boatsales-backend/internal/db/models"
 	"boatsales-backend/internal/types"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func (a *app) handleGetBoats(c *gin.Context) {
-	boats, err := a.boatDao.GetAllBoats()
+type BoatHandler struct {
+	boatDao *dao.SysBoatDao
+}
+
+func NewBoatHandler(db *gorm.DB) *BoatHandler {
+	return &BoatHandler{boatDao: dao.NewSysBoatDao(db)}
+}
+
+func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
+	boats, err := aH.boatDao.GetAllBoats()
 	if err != nil {
 		log.Printf("failed to get boats: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -28,7 +38,7 @@ func (a *app) handleGetBoats(c *gin.Context) {
 	})
 }
 
-func (a *app) handleAddBoat(c *gin.Context) {
+func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 	var boat models.SysBoat
 	if err := c.ShouldBindJSON(&boat); err != nil {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
@@ -38,7 +48,7 @@ func (a *app) handleAddBoat(c *gin.Context) {
 		return
 	}
 
-	if err := a.boatDao.CreateBoat(&boat); err != nil {
+	if err := aH.boatDao.CreateBoat(&boat); err != nil {
 		log.Printf("failed to create boat: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -58,7 +68,7 @@ type DeleteBoatsInput struct {
 	BoatIDs []uint `json:"boatIds"`
 }
 
-func (a *app) handleDeleteBoats(c *gin.Context) {
+func (aH *BoatHandler) HandleDeleteBoats(c *gin.Context) {
 	var input DeleteBoatsInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
@@ -76,7 +86,7 @@ func (a *app) handleDeleteBoats(c *gin.Context) {
 		return
 	}
 
-	if err := a.boatDao.DeleteBoats(input.BoatIDs); err != nil {
+	if err := aH.boatDao.DeleteBoats(input.BoatIDs); err != nil {
 		log.Printf("failed to delete boats: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,

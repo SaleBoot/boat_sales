@@ -1,17 +1,33 @@
-package v1
+package apis
 
 import (
-	"boatsales-backend/internal/models"
+	"boatsales-backend/internal/db/dao"
+	"boatsales-backend/internal/db/models"
 	"boatsales-backend/internal/types"
+	"boatsales-backend/pkg/utils"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+type UserHandler struct {
+	sessionMu sync.Mutex
+	sessions  map[string]adminSession
+
+	userDao *dao.SysUserDao
+}
+
+func NewUserHandler(db *gorm.DB) *UserHandler {
+	return &UserHandler{userDao: dao.NewSysUserDao(db),
+		sessions: make(map[string]adminSession),
+	}
+}
 
 // --- User Handlers ---
 
@@ -21,10 +37,47 @@ type CreateUserInput struct {
 	Password string `json:"password"`
 }
 
-func (a *app) handleGetAllUsers(c *gin.Context) {
-	users, err := a.userDao.GetAllSysUsers()
+func (aH *UserHandler) EnsureDefaultUserExists() error {
+	defaultEmail := "display@preview.com"
+	defaultPassword := "cqjscb2026"
+
+	_, err := aH.userDao.GetUserByEmail(defaultEmail)
+	if err == nil {
+		// User already exists, nothing to do.
+		return nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		// An unexpected database error occurred.
+		return fmt.Errorf("failed to check for default user: %w", err)
+	}
+
+	// User does not exist, so create them.
+	passwordHash, err := utils.HashAdminPassword(defaultPassword)
 	if err != nil {
-		writeAPIError(c, http.StatusInternalServerError, fmt.Errorf("failed to get users: %w", err))
+		return fmt.Errorf("failed to hash default password: %w", err)
+	}
+
+	defaultUser := &models.SysUser{
+		Username:     "Display",
+		Email:        defaultEmail,
+		PasswordHash: passwordHash,
+	}
+
+	if err := aH.userDao.CreateUser(defaultUser); err != nil {
+		return fmt.Errorf("failed to create default user: %w", err)
+	}
+
+	log.Printf("Default user '%s' created successfully.", defaultEmail)
+	return nil
+}
+
+func (aH *UserHandler) HandleGetAllUsers(c *gin.Context) {
+	users, err := aH.userDao.GetAllSysUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError,
+			types.ApiResponse{Code: http.StatusInternalServerError,
+				Message: fmt.Sprintf("failed to get users: %s", err.Error())})
 		return
 	}
 
@@ -35,16 +88,16 @@ func (a *app) handleGetAllUsers(c *gin.Context) {
 	})
 }
 
-func (a *app) handleCreateUser(c *gin.Context) {
+func (aH *UserHandler) HandleCreateUser(c *gin.Context) {
 	var input CreateUserInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		log.Println("handleCreateUser 01")
+		log.Println("HandleCreateUser 01")
 		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest,
 			Message: fmt.Sprintf("invalid request body: %s", err.Error())})
 		return
 	}
-	log.Println("handleCreateUser 00000", input)
+	log.Println("HandleCreateUser 00000", input)
 
 	// Validate input
 	if strings.TrimSpace(input.Username) == "" {
@@ -53,26 +106,29 @@ func (a *app) handleCreateUser(c *gin.Context) {
 			Message: "username is required"})
 		return
 	}
-	email := normalizeAdminEmail(input.Email)
+	email := utils.NormalizeAdminEmail(input.Email)
 	if email == "" {
-		log.Println("handleCreateUser 03")
+		log.Println("HandleCreateUser 03")
 		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest,
 			Message: "email is required"})
 		return
 	}
 
 	// Validate password complexity
-	if err := validateAdminPassword(input.Password); err != nil {
-		log.Println("handleCreateUser 04")
-		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()})
+	if err := utils.ValidateAdminPassword(input.Password); err != nil {
+		log.Println("HandleCreateUser 04")
+		c.JSON(http.StatusBadRequest,
+			types.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()})
 		return
 	}
 
 	// Hash the password
-	passwordHash, err := hashAdminPassword(input.Password)
+	passwordHash, err := utils.HashAdminPassword(input.Password)
 	if err != nil {
 		log.Printf("failed to hash password for new user: %v", err)
-		c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError, Message: "failed to process password"})
+		c.JSON(http.StatusInternalServerError,
+			types.ApiResponse{Code: http.StatusInternalServerError,
+				Message: "failed to process password"})
 		return
 	}
 
@@ -83,10 +139,12 @@ func (a *app) handleCreateUser(c *gin.Context) {
 		PasswordHash: passwordHash,
 	}
 
-	if err := a.userDao.CreateUser(&newUser); err != nil {
+	if err := aH.userDao.CreateUser(&newUser); err != nil {
 		// TODO: Check for specific database errors, like duplicate entry
 		log.Printf("failed to create user in database: %v", err)
-		c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError, Message: fmt.Sprintf("failed to create user: %s", err.Error())})
+		c.JSON(http.StatusInternalServerError,
+			types.ApiResponse{Code: http.StatusInternalServerError,
+				Message: fmt.Sprintf("failed to create user: %s", err.Error())})
 		return
 	}
 
@@ -101,7 +159,7 @@ type DeleteUsersInput struct {
 	UserIDs []uint `json:"userIds"`
 }
 
-func (a *app) handleDeleteUsers(c *gin.Context) {
+func (a *UserHandler) HandleDeleteUsers(c *gin.Context) {
 	var input DeleteUsersInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
@@ -134,7 +192,7 @@ func (a *app) handleDeleteUsers(c *gin.Context) {
 	})
 }
 
-func (a *app) handleGetUserByEmail(c *gin.Context) {
+func (a *UserHandler) HandleGetUserByEmail(c *gin.Context) {
 	email := c.Param("email")
 	user, err := a.userDao.GetUserByEmail(email)
 	if err != nil {
@@ -165,7 +223,7 @@ type UpdateUserInput struct {
 	Password string `json:"password,omitempty"`
 }
 
-func (a *app) handleUpdateUserByEmail(c *gin.Context) {
+func (a *UserHandler) HandleUpdateUserByEmail(c *gin.Context) {
 	email := c.Param("email")
 	var input UpdateUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -198,12 +256,13 @@ func (a *app) handleUpdateUserByEmail(c *gin.Context) {
 
 	// If a new password is provided, validate and hash it.
 	if input.Password != "" {
-		if err := validateAdminPassword(input.Password); err != nil {
-			c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()})
+		if err := utils.ValidateAdminPassword(input.Password); err != nil {
+			c.JSON(http.StatusBadRequest,
+				types.ApiResponse{Code: http.StatusBadRequest, Message: err.Error()})
 			return
 		}
 
-		passwordHash, err := hashAdminPassword(input.Password)
+		passwordHash, err := utils.HashAdminPassword(input.Password)
 		if err != nil {
 			log.Printf("failed to hash new password for user %s: %v", email, err)
 			c.JSON(http.StatusInternalServerError, types.ApiResponse{

@@ -16,14 +16,14 @@ type tDbMigrateCommand struct {
 
 func newDbMigrateCommand() *tDbMigrateCommand {
 	ret := &tDbMigrateCommand{
-		appName: "dbMigrate",
+		appName: "migrate",
 	}
 
 	ret.cmd = &cobra.Command{
-		Use:     "dbMigrate",
-		Short:   "start a dbMigrate app",
-		Long:    "Use when you need to create a new dbMigrate app",
-		Example: "boatsales-backend dbMigrate -n admin",
+		Use:     "migrate",
+		Short:   "start a migrate app",
+		Long:    "Use when you need to create a new migrate app",
+		Example: "boatsales-backend migrate -n admin",
 		Run: func(cmd *cobra.Command, args []string) {
 			ret.run()
 		},

@@ -1,7 +1,7 @@
 package migrate
 
 import (
-	"boatsales-backend/internal/models"
+	"boatsales-backend/internal/db/models"
 	"fmt"
 	"log"
 
