@@ -238,7 +238,14 @@ const BoatCategoriesView = () => {
           <Form.Item
             name="englishName"
             label="船舶类型英文名"
-            rules={[{ required: true, message: '请输入船舶类型英文名' }]}
+            rules={[
+              { required: true, message: '请输入船舶类型英文名' },
+              {
+                pattern: /^\S*$/,
+                message: '英文名不能包含空格',
+              },
+            ]}
+            normalize={(value) => value && value.trim()}
           >
             <Input />
           </Form.Item>
@@ -246,6 +253,7 @@ const BoatCategoriesView = () => {
             name="chineseName"
             label="船舶类型中文名"
             rules={[{ required: true, message: '请输入船舶类型中文名' }]}
+            normalize={(value) => value && value.trim()}
           >
             <Input />
           </Form.Item>

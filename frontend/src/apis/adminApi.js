@@ -167,3 +167,19 @@ export const updateBoatCategory = (id, categoryData) => {
 export const deleteBoatCategories = (ids) => { 
   return api.post('/admin/boat-categories/delete', { ids });
 };
+
+// -------------------------------------------------------
+// 文件上传 (COS)
+// -------------------------------------------------------
+
+/**
+ * 获取 COS 预签名上传 URL
+ * @param {string} modelName - 船舶的模型名
+ * @param {string} fileName - 清洗后的纯文件名
+ * @returns {Promise<any>}
+ */
+export const getCosPresignedUrl = (modelName, fileName) => {
+  return api.get('/admin/cos/presigned-url', {
+    params: { modelName, fileName }
+  });
+};

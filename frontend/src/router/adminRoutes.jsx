@@ -44,10 +44,10 @@ const adminRoutes = [
         path: 'boat-categories',
         element: <BoatCategoriesView />,
       },      
-      {
-        path: 'boats',
-        element: <BoatsView />,
-      },
+      // {
+      //   path: 'boats',
+      //   element: <BoatsView />,
+      // },
       {
         path: 'models',
         element: <BoatModelsView />,

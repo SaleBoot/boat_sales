@@ -19,7 +19,7 @@ export default defineConfig(({ command, mode }) => {
     base: command === 'build' ? normalizeBaseUrl(publicBaseUrl || '/') : '/',
     server: {
       proxy: {
-        '/api': 'http://localhost:8080'
+        '/api': 'http://localhost:8080',
       }
     }
   }

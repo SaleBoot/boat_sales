@@ -4,3 +4,4 @@ boatsales-backend
 tmp/
 .env
 .env-dev
+test.db

@@ -89,19 +89,22 @@ export default function UserManagerView() {
     if (!searchText) {
       return users;
     }
-    return users.filter(user =>
-      user.username.toLowerCase().includes(searchText.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchText.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchText.toLowerCase())
-    );
+    return users.filter(user => {
+      const roleText = user.roleId === 1 ? '管理员用户' : '普通用户';
+      return (
+        (user.userName || '').toLowerCase().includes(searchText.toLowerCase()) ||
+        (user.email || '').toLowerCase().includes(searchText.toLowerCase()) ||
+        roleText.toLowerCase().includes(searchText.toLowerCase())
+      );
+    });
   }, [users, searchText]);
 
   // 表格列的定义
   const columns = [
     {
       title: '用户名',
-      dataIndex: 'username',
-      key: 'username',
+      dataIndex: 'userName',
+      key: 'userName',
     },
     {
       title: '邮箱地址',

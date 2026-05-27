@@ -46,7 +46,7 @@ export default function UserSetting() {
       try {
         const data = await getUserByEmail(user.email);
         form.setFieldsValue({
-          username: data.Username || data.username,
+          userName: data.userName,
           email: data.email,
           role: data.roleId === 1 ? 'admin' : 'regularUser',
         });
@@ -68,7 +68,7 @@ export default function UserSetting() {
     setIsSubmitting(true);
     try {
       const updateData = {
-        username: values.username,
+        userName: values.userName,
       };
       // 只有在输入了新密码时才更新密码
       if (values.password) {
@@ -97,7 +97,7 @@ export default function UserSetting() {
               onFinish={onFinish}
             >
               <Form.Item
-                name="username"
+                name="userName"
                 label="用户名"
                 rules={[{ required: true, message: '请输入您的用户名' }]}
               >

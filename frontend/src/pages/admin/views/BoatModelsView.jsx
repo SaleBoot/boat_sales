@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Row,
   Col,
@@ -26,7 +26,7 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import ShipScene from '../../scene3d/ShipScene.jsx';
-import { getBoatCategories, getBoats, addBoat, deleteBoats } from '../../../apis/adminApi';
+import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats } from '../../../apis/adminApi';
 import AddBoatModal from './BoatAddModal.jsx';
 
 // --- Mock Data and API ---
@@ -87,6 +87,15 @@ export default function BoatModelsView() {
   // Shared state
   const [boatCategories, setBoatCategories] = useState([]);
   const [form] = Form.useForm();
+
+  // 动态生成类型映射
+  const boatTypeMap = useMemo(() => {
+    if (!boatCategories) return {};
+    return boatCategories.reduce((acc, cat) => {
+      acc[cat.englishName] = cat.chineseName;
+      return acc;
+    }, {});
+  }, [boatCategories]);
 
   // --- Functions for Boat List ---
 
@@ -155,9 +164,13 @@ export default function BoatModelsView() {
   };
 
   // 处理新增船舶表单的提交
-  const handleAddFinish = async (values) => {
+  // 参数 values 是由 AddBoatModal 内部的 handleOk 函数处理好后，手动传递过来的。
+  // 处理新增船舶表单的提交
+  // 参数 values 是由 AddBoatModal 内部的 handleOk 函数处理好后，手动传递过来的。
+  const handleAddComplete = async (values) => {
     setIsSubmitting(true);
     try {
+      console.log('接收到来自Modal的最终数据:', values);
       await addBoat(values);
       message.success('船舶添加成功');
       setIsAddModalOpen(false);
@@ -197,11 +210,14 @@ export default function BoatModelsView() {
         getBoatCategories(),
         getBoats(), // Initial boat fetch
       ]);
-
-      const allModels = modelsResponse.data || [];
+      console.log("初始数据获取成功:", { modelsResponse, categoriesResponse, boatsResponse });
+      const allModels = (modelsResponse.data || []).map((model) => ({
+        ...model,
+        boatType: model.boatType.replace(/\s/g, ''),
+      }));
       setModels(allModels);
       
-      setBoatCategories(categoriesResponse.data || []);
+      setBoatCategories(categoriesResponse || []);
 
       const boatsData = (boatsResponse || []).map(({ id, Id, iD, ID, ...rest }) => ({
         ID: id ?? Id ?? iD ?? ID,
@@ -254,9 +270,112 @@ export default function BoatModelsView() {
   const columns = [
     { title: '船名', dataIndex: 'boatName', key: 'boatName', width: 150 },
     { title: '模型名', dataIndex: 'modelName', key: 'modelName', width: 150 },
-    { title: '船舶类型', dataIndex: 'category', key: 'category', width: 120 },
+    { 
+      title: '船舶类型', 
+      dataIndex: 'category', 
+      key: 'category', 
+      width: 120,
+      render: (category) => boatTypeMap[category] || category,
+    },
   ];
   // --- End definitions ---
+
+  // 为新的 Tabs items API 准备数据
+  const tabItems = [
+    {
+      key: '1',
+      label: '船舶基础信息',
+      children: (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+          {currentBoat ? (
+            <Form
+              form={form}
+              layout="horizontal"
+              labelCol={{ span: 6 }}
+              wrapperCol={{ span: 18 }}
+              onFinish={handleUpdateBoat}
+            >
+              <Form.Item style={{ marginTop: '8px' }}>
+                <Button type="primary" htmlType="submit" loading={isSubmitting} style={{ marginRight: 8 }}>
+                  保存修改
+                </Button>
+                <Button onClick={() => form.setFieldsValue(currentBoat)}>
+                  重置
+                </Button>
+              </Form.Item>
+              <Row gutter={16}>
+                <Col span={12}><Form.Item name="boatName" label="船名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="modelName" label="模型名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="price" label="价格" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}>
+                  <Form.Item name="category" label="船舶类型">
+                    <Select placeholder="请选择船舶类型">
+                      {boatCategories.map(cat => (
+                        <Select.Option key={cat.ID} value={cat.englishName}>
+                          {cat.chineseName}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={24}><Form.Item name="description" label="简介" labelCol={{ span: 3 }} wrapperCol={{ span: 21 }}><Input.TextArea rows={2} /></Form.Item></Col>
+                <Col span={12}><Form.Item name="overallLength" label="总长" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="waterlineLength" label="水线长" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="beam" label="船宽" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="moldedDepth" label="型深" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="draft" label="吃水" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="navigationArea" label="航区" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="mainEnginePower" label="主机功率" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="designSpeed" label="设计航速" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="ratedCrew" label="额定乘员"><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="propulsionType" label="动力形式" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="material" label="材质" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="certificateType" label="证书类型" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+              </Row>
+              <Divider>宣传图片</Divider>
+              <div>
+                {(() => {
+                  if (!currentBoat) return null;
+                  const imageUrls = [currentBoat.adImg0, currentBoat.adImg1, currentBoat.adImg2]
+                    .filter(url => url && typeof url === 'string') // 过滤掉空值和非字符串
+                    .map(url => url.trim().replace(/`/g, '')); // 清理URL
+
+                  if (imageUrls.length > 0) {
+                    return imageUrls.map((img, index) => (
+                      <Image key={index} width={100} src={img} style={{ marginRight: 8 }} />
+                    ));
+                  }
+                  return <Empty description="暂无宣传图片" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+                })()}
+              </div>
+            </Form>
+          ) : (
+            <Empty description="请在左侧选择一艘船以查看详情" />
+          )}
+        </div>
+      ),
+    },
+    {
+      key: '2',
+      label: '模型参数配置',
+      children: (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+          {currentModel ? (
+            <Descriptions column={1} bordered size="small">
+              <Descriptions.Item label="FBX 文件名">{currentModel.fbxFileName}</Descriptions.Item>
+              <Descriptions.Item label="GLB 文件名">{currentModel.glbFileName}</Descriptions.Item>
+              <Descriptions.Item label="材质槽数组">{currentModel.materialSlots.join(', ')}</Descriptions.Item>
+              <Descriptions.Item label="UV 目录">{currentModel.uvDir1}</Descriptions.Item>
+              <Descriptions.Item label="UV 目录 2">{currentModel.uvDir2}</Descriptions.Item>
+              <Descriptions.Item label="UV 目录 3">{currentModel.uvDir3}</Descriptions.Item>
+            </Descriptions>
+          ) : (
+            <Empty description="未找到关联的模型或未选择船舶" />
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div style={{ padding: '1px' }}>
@@ -345,80 +464,14 @@ export default function BoatModelsView() {
         <Col span={8}>
           <Card 
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-            bodyStyle={{ flex: 1, overflow: 'hidden', padding: 0 }}
+            styles={{ body: { flex: 1, overflow: 'hidden', padding: 0 } }}
           >
             <Tabs 
               defaultActiveKey="1" 
               style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
               tabBarStyle={{ paddingLeft: '24px', paddingRight: '24px', flexShrink: 0, marginBottom: 0 }}
-              tabPaneStyle={{ flex: 1, overflowY: 'auto', padding: '24px' }}
-            >
-              <Tabs.TabPane tab="船舶基础信息" key="1">
-                {currentBoat ? (
-                  <Form
-                    form={form}
-                    layout="horizontal"
-                    labelCol={{ span: 6 }}
-                    wrapperCol={{ span: 18 }}
-                    onFinish={handleUpdateBoat}
-                  >
-                    <Form.Item style={{ marginTop: '8px' }}>
-                      <Button type="primary" htmlType="submit" loading={isSubmitting} style={{ marginRight: 8 }}>
-                        保存修改
-                      </Button>
-                      <Button onClick={() => form.setFieldsValue(currentBoat)}>
-                        重置
-                      </Button>
-                    </Form.Item>
-                    <Row gutter={16}>
-                      <Col span={12}><Form.Item name="boatName" label="船名"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="modelName" label="模型名"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="price" label="价格"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="category" label="船舶类型"><Input /></Form.Item></Col>
-                      <Col span={24}><Form.Item name="description" label="简介" labelCol={{ span: 3 }} wrapperCol={{ span: 21 }}><Input.TextArea rows={2} /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="overallLength" label="总长"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="waterlineLength" label="水线长"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="beam" label="船宽"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="moldedDepth" label="型深"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="draft" label="吃水"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="navigationArea" label="航区"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="mainEnginePower" label="主机功率"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="designSpeed" label="设计航速"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="ratedCrew" label="额定乘员"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="propulsionType" label="动力形式"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="material" label="材质"><Input /></Form.Item></Col>
-                      <Col span={12}><Form.Item name="certificateType" label="证书类型"><Input /></Form.Item></Col>
-                    </Row>
-                    <Divider>宣传图片</Divider>
-                    <div>
-                      {((currentBoat.images && currentBoat.images.length > 0) ? currentBoat.images : [
-                          'https://picsum.photos/seed/default-boat-1/400/300',
-                          'https://picsum.photos/seed/default-boat-2/400/300',
-                          'https://picsum.photos/seed/default-boat-3/400/300',
-                      ]).map((img, index) => (
-                        <Image key={index} width={100} src={img} style={{ marginRight: 8 }} />
-                      ))}
-                    </div>
-                  </Form>
-                ) : (
-                  <Empty description="请在左侧选择一艘船以查看详情" />
-                )}
-              </Tabs.TabPane>
-              <Tabs.TabPane tab="模型参数配置" key="2">
-                {currentModel ? (
-                  <Descriptions column={1} bordered size="small">
-                    <Descriptions.Item label="FBX 文件名">{currentModel.fbxFileName}</Descriptions.Item>
-                    <Descriptions.Item label="GLB 文件名">{currentModel.glbFileName}</Descriptions.Item>
-                    <Descriptions.Item label="材质槽数组">{currentModel.materialSlots.join(', ')}</Descriptions.Item>
-                    <Descriptions.Item label="UV 目录">{currentModel.uvDir1}</Descriptions.Item>
-                    <Descriptions.Item label="UV 目录 2">{currentModel.uvDir2}</Descriptions.Item>
-                    <Descriptions.Item label="UV 目录 3">{currentModel.uvDir3}</Descriptions.Item>
-                  </Descriptions>
-                ) : (
-                  <Empty description="未找到关联的模型或未选择船舶" />
-                )}
-              </Tabs.TabPane>
-            </Tabs>
+              items={tabItems}
+            />
           </Card>
         </Col>
       </Row>
@@ -427,7 +480,7 @@ export default function BoatModelsView() {
       <AddBoatModal
         open={isAddModalOpen}
         onCancel={() => setIsAddModalOpen(false)}
-        onFinish={handleAddFinish}
+        onAddComplete={handleAddComplete}
         loading={isSubmitting}
       />
     </div>

@@ -47,7 +47,7 @@ const AddUserModal = ({ open, onCancel, onFinish, loading }) => {
         initialValues={{ role: 0 }} // 默认角色为普通用户
       >
         <Form.Item
-          name="username"
+          name="userName"
           label="用户名"
           rules={[{ required: true, message: '请输入用户名！' }]}
         >
