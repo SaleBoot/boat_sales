@@ -55,6 +55,6 @@ func (d *SysUserDao) DeleteUsersByID(userIDs []uint) error {
 // UpdateUser updates a user's profile.
 func (d *SysUserDao) UpdateUser(user *models.SysUser) error {
 	// We only want to update the username, not other fields like password.
-	result := d.DB.Model(user).Updates(models.SysUser{Username: user.Username})
+	result := d.DB.Model(user).Updates(models.SysUser{UserName: user.UserName})
 	return result.Error
 }

@@ -33,7 +33,7 @@ func EnsureDefaultUserExists(aUserDao *dao.SysUserDao) error {
 	}
 
 	defaultUser := &models.SysUser{
-		Username:     "Display",
+		UserName:     "Display",
 		Email:        defaultEmail,
 		PasswordHash: passwordHash,
 	}

@@ -20,7 +20,16 @@ func NewBoatHandler(aBoatDao *dao.SysBoatDao) *BoatHandler {
 }
 
 func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
-	boats, err := aH.boatDao.GetAllBoats()
+	category := c.Query("category")
+	var boats []models.SysBoat
+	var err error
+
+	if category != "" {
+		boats, err = aH.boatDao.GetBoatsByCategory(category)
+	} else {
+		boats, err = aH.boatDao.GetAllBoats()
+	}
+
 	if err != nil {
 		log.Printf("failed to get boats: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -29,10 +38,12 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 		})
 		return
 	}
+	log.Printf("HandleGetBoats():Successfully retrieved %d boats", len(boats))
 
+	log.Printf("Successfully retrieved %d boats", len(boats))
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Successfully retrieved boats",
+		Message: fmt.Sprintf("Successfully retrieved %d boats", len(boats)),
 		Data:    boats,
 	})
 }
@@ -40,10 +51,10 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 // BoatInput defines the structure for creating or updating a boat.
 // It uses pointers for numeric fields to distinguish between a zero value and a missing field.
 type BoatInput struct {
-	BoatName        string   `json:"boatName"`
-	ModelName       string   `json:"modelName"`
-	Category        string   `json:"Category"`
-	Price           *int     `json:"Price"`
+	BoatName        string   `json:"boatName" binding:"required"`
+	ModelName       string   `json:"modelName" binding:"required"`
+	Category        string   `json:"category" binding:"required"`
+	Price           *int     `json:"price"`
 	Description     string   `json:"description"`
 	OverallLength   *float64 `json:"overallLength"`
 	WaterlineLength *float64 `json:"waterlineLength"`
@@ -57,6 +68,9 @@ type BoatInput struct {
 	PropulsionType  string   `json:"propulsionType"`
 	Material        string   `json:"material"`
 	CertificateType string   `json:"certificateType"`
+	AdImg0          string   `json:"adImg0"`
+	AdImg1          string   `json:"adImg1"`
+	AdImg2          string   `json:"adImg2"`
 }
 
 // toModel converts a BoatInput DTO to a models.SysBoat database model.
@@ -72,6 +86,9 @@ func (input *BoatInput) toModel() *models.SysBoat {
 		PropulsionType:  input.PropulsionType,
 		Material:        input.Material,
 		CertificateType: input.CertificateType,
+		AdImg0:          input.AdImg0,
+		AdImg1:          input.AdImg1,
+		AdImg2:          input.AdImg2,
 	}
 
 	if input.Price != nil {
@@ -111,13 +128,14 @@ func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 		})
 		return
 	}
-
+	log.Printf("Received AddBoat request: %+v", input)
 	boat := input.toModel()
+	log.Printf("Converted to SysBoat model: %+v", boat)
 
-	// Check for uniqueness of BoatName and ModelName
-	existingBoat, err := aH.boatDao.FindByNameOrModel(boat.BoatName, boat.ModelName)
+	// Check for uniqueness of BoatName
+	existingBoat, err := aH.boatDao.FindByName(boat.BoatName)
 	if err != nil {
-		log.Printf("failed to check for existing boat: %v", err)
+		log.Printf("failed to check for existing boat by name: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "failed to check for existing boat",
@@ -125,15 +143,27 @@ func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 		return
 	}
 	if existingBoat != nil {
-		var conflictField string
-		if existingBoat.BoatName == boat.BoatName {
-			conflictField = "BoatName"
-		} else {
-			conflictField = "ModelName"
-		}
 		c.JSON(http.StatusConflict, types.ApiResponse{
 			Code:    http.StatusConflict,
-			Message: fmt.Sprintf("a boat with this %s already exists", conflictField),
+			Message: "a boat with this BoatName already exists",
+		})
+		return
+	}
+
+	// Check for uniqueness of ModelName
+	existingBoat, err = aH.boatDao.FindByModel(boat.ModelName)
+	if err != nil {
+		log.Printf("failed to check for existing boat by model: %v", err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to check for existing boat",
+		})
+		return
+	}
+	if existingBoat != nil {
+		c.JSON(http.StatusConflict, types.ApiResponse{
+			Code:    http.StatusConflict,
+			Message: "a boat with this ModelName already exists",
 		})
 		return
 	}
@@ -188,5 +218,47 @@ func (aH *BoatHandler) HandleDeleteBoats(c *gin.Context) {
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Successfully deleted boats",
+	})
+}
+
+func (aH *BoatHandler) HandleUpdateBoat(c *gin.Context) {
+	id := c.Param("id")
+
+	var input BoatInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprintf("invalid request body: %s", err.Error()),
+		})
+		return
+	}
+
+	boat := input.toModel()
+
+	// Convert id from string to uint and assign to boat.ID
+	var boatID uint
+	_, err := fmt.Sscan(id, &boatID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "Invalid boat ID",
+		})
+		return
+	}
+	boat.ID = boatID
+
+	if err := aH.boatDao.UpdateBoat(boat); err != nil {
+		log.Printf("failed to update boat: %v", err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to update boat",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, types.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Successfully updated boat",
+		Data:    boat,
 	})
 }

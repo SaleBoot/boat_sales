@@ -149,8 +149,11 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 		{
 			boats.GET("", a.boatH.HandleGetBoats)
 			boats.POST("", a.boatH.HandleAddBoat)
+			boats.POST("/:id", a.boatH.HandleUpdateBoat)
 			boats.POST("/delete", a.boatH.HandleDeleteBoats)
 		}
+
+		aAdminRG.GET("/cos/presigned-url", apis.HandleGetCosURL4SingleFile) // 获取 COS 预签名 URL 的接口
 	}
 
 }

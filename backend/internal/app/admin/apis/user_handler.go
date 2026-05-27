@@ -32,7 +32,7 @@ func NewUserHandler(aUserDao *dao.SysUserDao) *UserHandler {
 // --- User Handlers ---
 
 type CreateUserInput struct {
-	Username string `json:"username"`
+	UserName string `json:"userName"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -65,7 +65,7 @@ func (aH *UserHandler) HandleCreateUser(c *gin.Context) {
 	log.Println("HandleCreateUser 00000", input)
 
 	// Validate input
-	if strings.TrimSpace(input.Username) == "" {
+	if strings.TrimSpace(input.UserName) == "" {
 		log.Println("handleCreateUser 02")
 		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest,
 			Message: "username is required"})
@@ -99,7 +99,7 @@ func (aH *UserHandler) HandleCreateUser(c *gin.Context) {
 
 	// Prepare the user model
 	newUser := models.SysUser{
-		Username:     input.Username,
+		UserName:     input.UserName,
 		Email:        email,
 		PasswordHash: passwordHash,
 	}
@@ -184,7 +184,7 @@ func (a *UserHandler) HandleGetUserByEmail(c *gin.Context) {
 }
 
 type UpdateUserInput struct {
-	Username string `json:"username"`
+	UserName string `json:"userName"`
 	Password string `json:"password,omitempty"`
 }
 
@@ -217,7 +217,7 @@ func (a *UserHandler) HandleUpdateUserByEmail(c *gin.Context) {
 	}
 
 	// Update user fields
-	user.Username = input.Username
+	user.UserName = input.UserName
 
 	// If a new password is provided, validate and hash it.
 	if input.Password != "" {

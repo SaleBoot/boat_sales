@@ -1,3 +1,6 @@
 tmp*.md
 
 boatsales-backend
+tmp/
+.env
+.env-dev
