@@ -16,6 +16,7 @@ import {
   Tabs,
   Form,
   Divider,
+  Modal,
 } from 'antd';
 import {
   PlusOutlined,
@@ -27,15 +28,18 @@ import {
 } from '@ant-design/icons';
 import ShipScene from '../../scene3d/ShipScene.jsx';
 import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats } from '../../../apis/adminApi';
+import BoatListSider from '../components/BoatListSider';
+import BoatInfoPanel from '../components/BoatInfoPanel.jsx';
+import ModelParametersPanel from '../components/ModelParametersPanel.jsx';
+import Inspector from '../components/Inspector.jsx';
+import Inspector01 from '../components/Inspector01.jsx';
 import AddBoatModal from './BoatAddModal.jsx';
 
 // --- Mock Data and API ---
 const mockModels = Array.from({ length: 12 }, (_, i) => {
-  const types = ['Yacht', 'New Energy Ship', 'Emergency Rescue Ship', 'Official Law Enforcement Boat'];
   return {
     id: `model-${i + 1}`,
     modelName: `SuperYacht-X${i + 1}`,
-    boatType: types[i % types.length],
     storagePath: `/gltf/57sites/57.glb`,
     fbxFileName: `model_${i + 1}.fbx`,
     glbFileName: `model_${i + 1}.glb`,
@@ -83,6 +87,8 @@ export default function BoatModelsView() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentBoat, setCurrentBoat] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPathModalVisible, setIsPathModalVisible] = useState(false);
+  const [tempPath, setTempPath] = useState('');
 
   // Shared state
   const [boatCategories, setBoatCategories] = useState([]);
@@ -182,6 +188,13 @@ export default function BoatModelsView() {
     }
   };
 
+  const handleModelChange = (changedValues) => {
+    setCurrentModel(prevModel => ({
+      ...prevModel,
+      ...changedValues,
+    }));
+  };
+
   const handleUpdateBoat = async (values) => {
     if (!currentBoat) {
       message.error('请先选择一艘船');
@@ -200,6 +213,31 @@ export default function BoatModelsView() {
     }
   };
 
+  const handleOpenPathModal = () => {
+    if (!currentModel) {
+      message.warning('请先选择一个有关联模型的船舶。');
+      return;
+    }
+    const folderPath = currentModel.storagePath ? currentModel.storagePath.substring(0, currentModel.storagePath.lastIndexOf('/') + 1) : '';
+    setTempPath(folderPath);
+    setIsPathModalVisible(true);
+  };
+
+  const handlePathChange = () => {
+    if (currentModel) {
+      // 确保路径以斜杠结尾
+      const formattedPath = tempPath.endsWith('/') || tempPath === '' ? tempPath : tempPath + '/';
+      const newStoragePath = formattedPath + currentModel.glbFileName;
+
+      setCurrentModel(prev => ({
+        ...prev,
+        storagePath: newStoragePath,
+      }));
+      message.success('模型路径已在本地更新。');
+    }
+    setIsPathModalVisible(false);
+  };
+
   // --- End Functions for Boat List ---
 
   const fetchInitialData = async () => {
@@ -213,7 +251,6 @@ export default function BoatModelsView() {
       console.log("初始数据获取成功:", { modelsResponse, categoriesResponse, boatsResponse });
       const allModels = (modelsResponse.data || []).map((model) => ({
         ...model,
-        boatType: model.boatType.replace(/\s/g, ''),
       }));
       setModels(allModels);
       
@@ -278,6 +315,20 @@ export default function BoatModelsView() {
       render: (category) => boatTypeMap[category] || category,
     },
   ];
+
+  const handleRowClick = (record) => {
+    setCurrentBoat(record);
+    const correspondingModel = models.find(m => m.modelName === record.modelName);
+    if (correspondingModel) {
+      setCurrentModel(correspondingModel);
+      message.info(`已选择船舶: ${record.boatName}`);
+    } else {
+      // 即使在 mock models 中找不到，也创建一个基础对象
+      // 这样右侧面板就能知道模型名，并显示“上传”按钮
+      setCurrentModel({ modelName: record.modelName, storagePath: '' });
+      message.warning(`未找到 ${record.boatName} 关联的详细模型数据`);
+    }
+  };
   // --- End definitions ---
 
   // 为新的 Tabs items API 准备数据
@@ -286,94 +337,34 @@ export default function BoatModelsView() {
       key: '1',
       label: '船舶基础信息',
       children: (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          {currentBoat ? (
-            <Form
-              form={form}
-              layout="horizontal"
-              labelCol={{ span: 6 }}
-              wrapperCol={{ span: 18 }}
-              onFinish={handleUpdateBoat}
-            >
-              <Form.Item style={{ marginTop: '8px' }}>
-                <Button type="primary" htmlType="submit" loading={isSubmitting} style={{ marginRight: 8 }}>
-                  保存修改
-                </Button>
-                <Button onClick={() => form.setFieldsValue(currentBoat)}>
-                  重置
-                </Button>
-              </Form.Item>
-              <Row gutter={16}>
-                <Col span={12}><Form.Item name="boatName" label="船名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="modelName" label="模型名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="price" label="价格" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}>
-                  <Form.Item name="category" label="船舶类型">
-                    <Select placeholder="请选择船舶类型">
-                      {boatCategories.map(cat => (
-                        <Select.Option key={cat.ID} value={cat.englishName}>
-                          {cat.chineseName}
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={24}><Form.Item name="description" label="简介" labelCol={{ span: 3 }} wrapperCol={{ span: 21 }}><Input.TextArea rows={2} /></Form.Item></Col>
-                <Col span={12}><Form.Item name="overallLength" label="总长" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="waterlineLength" label="水线长" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="beam" label="船宽" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="moldedDepth" label="型深" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="draft" label="吃水" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="navigationArea" label="航区" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="mainEnginePower" label="主机功率" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="designSpeed" label="设计航速" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="ratedCrew" label="额定乘员"><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="propulsionType" label="动力形式" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="material" label="材质" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-                <Col span={12}><Form.Item name="certificateType" label="证书类型" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-              </Row>
-              <Divider>宣传图片</Divider>
-              <div>
-                {(() => {
-                  if (!currentBoat) return null;
-                  const imageUrls = [currentBoat.adImg0, currentBoat.adImg1, currentBoat.adImg2]
-                    .filter(url => url && typeof url === 'string') // 过滤掉空值和非字符串
-                    .map(url => url.trim().replace(/`/g, '')); // 清理URL
-
-                  if (imageUrls.length > 0) {
-                    return imageUrls.map((img, index) => (
-                      <Image key={index} width={100} src={img} style={{ marginRight: 8 }} />
-                    ));
-                  }
-                  return <Empty description="暂无宣传图片" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
-                })()}
-              </div>
-            </Form>
-          ) : (
-            <Empty description="请在左侧选择一艘船以查看详情" />
-          )}
-        </div>
+        <BoatInfoPanel
+          boat={currentBoat}
+          boatCategories={boatCategories}
+          form={form}
+          onUpdate={handleUpdateBoat}
+          isSubmitting={isSubmitting}
+        />
       ),
     },
     {
       key: '2',
       label: '模型参数配置',
       children: (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          {currentModel ? (
-            <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="FBX 文件名">{currentModel.fbxFileName}</Descriptions.Item>
-              <Descriptions.Item label="GLB 文件名">{currentModel.glbFileName}</Descriptions.Item>
-              <Descriptions.Item label="材质槽数组">{currentModel.materialSlots.join(', ')}</Descriptions.Item>
-              <Descriptions.Item label="UV 目录">{currentModel.uvDir1}</Descriptions.Item>
-              <Descriptions.Item label="UV 目录 2">{currentModel.uvDir2}</Descriptions.Item>
-              <Descriptions.Item label="UV 目录 3">{currentModel.uvDir3}</Descriptions.Item>
-            </Descriptions>
-          ) : (
-            <Empty description="未找到关联的模型或未选择船舶" />
-          )}
-        </div>
+        <ModelParametersPanel
+          model={currentModel}
+          onModelChange={handleModelChange}
+        />
       ),
+    },
+    {
+      key: '3',
+      label: 'Inspector',
+      children: <Inspector />,
+    },
+    {
+      key: '4',
+      label: 'Inspector01',
+      children: <Inspector01 />,
     },
   ];
 
@@ -382,50 +373,18 @@ export default function BoatModelsView() {
       <Row gutter={16} style={{ height: 'calc(100vh - 120px)' }}>
         {/* 左侧列表 (from BoatsView) */}
         <Col span={8}>
-          <Card>
-            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Space>
-                <Button icon={<RedoOutlined />} onClick={() => fetchBoats()}>刷新</Button>
-                <Button icon={<PlusOutlined />} onClick={() => setIsAddModalOpen(true)}>增加</Button>
-                <Button icon={<DeleteOutlined />} onClick={handleDelete} disabled={selectedRowKeys.length === 0} danger>删除</Button>
-              </Space>
-            </div>
-            <Select
-              placeholder="按船舶类型查询..."
-              style={{ width: '100%', marginBottom: 16 }}
-              onChange={(value) => fetchBoats({ category: value })}
-              onClear={() => fetchBoats()}
-              allowClear
-            >
-              {boatCategories.map(cat => (
-                <Select.Option key={cat.ID} value={cat.englishName}>
-                  {cat.chineseName}
-                </Select.Option>
-              ))}
-            </Select>
-            <Table
-              rowSelection={rowSelection}
-              columns={columns}
-              dataSource={boats}
-              rowKey="ID"
-              loading={loading}
-              pagination={{ pageSize: 8 }}
-              onRow={(record) => ({
-                onClick: () => {
-                  setCurrentBoat(record);
-                  const correspondingModel = models.find(m => m.modelName === record.modelName);
-                  if (correspondingModel) {
-                    setCurrentModel(correspondingModel);
-                    message.info(`已选择船舶: ${record.boatName}`);
-                  } else {
-                    setCurrentModel(null);
-                    message.warning(`未找到 ${record.boatName} 关联的模型`);
-                  }
-                },
-              })}
-              scroll={{ y: 'calc(100vh - 400px)' }}
-            />
-          </Card>
+          <BoatListSider
+            loading={loading}
+            boats={boats}
+            boatCategories={boatCategories}
+            selectedRowKeys={selectedRowKeys}
+            onRefresh={() => fetchBoats()}
+            onAdd={() => setIsAddModalOpen(true)}
+            onDelete={handleDelete}
+            onCategoryChange={(value) => fetchBoats({ category: value })}
+            onSelectChange={onSelectChange}
+            onRowClick={handleRowClick}
+          />
         </Col>
 
         {/* 中间预览 - 使用原生div替代Card以解决事件穿透问题 */}
@@ -483,6 +442,22 @@ export default function BoatModelsView() {
         onAddComplete={handleAddComplete}
         loading={isSubmitting}
       />
+
+      {/* 路径选择模态框 */}
+      <Modal
+        title="选择模型文件夹路径"
+        open={isPathModalVisible}
+        onOk={handlePathChange}
+        onCancel={() => setIsPathModalVisible(false)}
+        destroyOnHidden
+      >
+        <p>后端API暂未实现，请手动输入或粘贴路径。</p>
+        <Input 
+          value={tempPath}
+          onChange={(e) => setTempPath(e.target.value)}
+          placeholder="例如: /gltf/57sites/"
+        />
+      </Modal>
     </div>
   );
 }

@@ -183,3 +183,11 @@ export const getCosPresignedUrl = (modelName, fileName) => {
     params: { modelName, fileName }
   });
 };
+
+/**
+ * 获取 COS 模型文件夹路径列表
+ * @returns {Promise<any>}
+ */
+export const getAllCosModelPaths = () => {
+  return api.get('/admin/cos/model-paths');
+};

@@ -7,7 +7,6 @@ import AdminLayout from '../pages/admin/AdminLayout';
 const LoginPage = lazy(() => import('../pages/admin/LoginPage'));
 const DashboardView = lazy(() => import('../pages/admin/views/DashboardView'));
 const UserManagerView = lazy(() => import('../pages/admin/views/UserManagerView'));
-const BoatsView = lazy(() => import('../pages/admin/views/BoatsView'));
 const BoatModelsView = lazy(() => import('../pages/admin/views/BoatModelsView')); // 新增
 const BoatCategoriesView = lazy(() => import('../pages/admin/views/BoatCategoriesView'));
 const UserSetting = lazy(() => import('../pages/admin/views/UserSetting.jsx'));

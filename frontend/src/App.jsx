@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { App as AntApp } from 'antd';
 import { AuthProvider } from './pages/admin/context/AuthContext'
 import AdminPage from './pages/admin/AdminPage-notused'
 import OrderPage from './pages/front/OrderPage'
@@ -174,10 +175,12 @@ export default function App() {
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/login';
 
   return (
-    <AuthProvider>
-      <Suspense fallback={<div>Loading...</div>}>
-        {isAdminRoute ? <Outlet /> : <MainApp />}
-      </Suspense>
-    </AuthProvider>
+    <AntApp>
+      <AuthProvider>
+        <Suspense fallback={<div>Loading...</div>}>
+          {isAdminRoute ? <Outlet /> : <MainApp />}
+        </Suspense>
+      </AuthProvider>
+    </AntApp>
   )
 }

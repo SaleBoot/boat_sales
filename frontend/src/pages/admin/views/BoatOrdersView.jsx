@@ -196,7 +196,7 @@ export default function BoatOrdersView() {
         <Col span={8}>
           <Card 
             title="订单详情"
-            bodyStyle={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}
+            styles={{ body: { maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' } }}
           >
             {currentOrder ? (
               <div>
