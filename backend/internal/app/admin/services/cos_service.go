@@ -137,10 +137,182 @@ func CheckApiParam_originFileName(aOriginFileName string) (string, error) {
 	// 防御：提取纯文件名，防止前端利用 "../" 进行目录穿越攻击
 	safeFileName := filepath.Base(aOriginFileName)
 
-	// 提取后缀并限制格式
+	// 检查文件类型
 	ext := strings.ToLower(filepath.Ext(safeFileName))
-	if ext != ".fbx" && ext != ".glb" && ext != ".jpeg" && ext != ".jpg" && ext != ".png" {
+	allowedExts := map[string]bool{
+		".fbx":  true,
+		".glb":  true,
+		".jpg":  true,
+		".png":  true,
+		".jpeg": true,
+		".zip":  true,
+	}
+
+	if !allowedExts[ext] {
 		return "", fmt.Errorf("file format not supported: %s", ext)
 	}
+
 	return safeFileName, nil
+}
+
+// ----------------------------------------
+
+type FileInfo struct {
+	Key  string `json:"key"`
+	Size int64  `json:"size"`
+	ETag string `json:"etag"`
+}
+
+func ListCosFiles(prefix string) ([]FileInfo, error) {
+
+	prefix = strings.TrimSpace(prefix)
+	if prefix == "" {
+		return nil, fmt.Errorf("参数 is empty")
+	}
+
+	// 1. 初始化 COS 客户端 (填入你的 SecretId 和 SecretKey，这些安全留在后端)
+	config, err := GetCosConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load COS configuration: %w", err)
+	}
+
+	// 2. 获取 COS 客户端实例
+	client, _, err := GetCosClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get COS client: %w", err)
+	}
+
+	// 列出目录下所有文件（递归）
+	var files []FileInfo
+	ctx := context.Background()
+	opt := &cos.BucketGetOptions{
+		Prefix:  prefix,
+		MaxKeys: 1000,
+	}
+
+	for {
+		result, _, err := client.Bucket.Get(ctx, opt)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, obj := range result.Contents {
+			files = append(files, FileInfo{
+				Key:  obj.Key,
+				Size: obj.Size,
+				ETag: strings.Trim(obj.ETag, "\""),
+			})
+		}
+
+		if !result.IsTruncated {
+			break
+		}
+
+		opt.Marker = result.NextMarker
+	}
+
+	return files, nil
+}
+
+// 获取子目录列表
+func ListCosSubDirectories(aPrefix string) ([]string, error) {
+	aPrefix = strings.TrimSpace(aPrefix)
+	if aPrefix == "" {
+		return nil, fmt.Errorf("参数 is empty")
+	}
+
+	// 1. 初始化 COS 客户端 (填入你的 SecretId 和 SecretKey，这些安全留在后端)
+	config, err := GetCosConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load COS configuration: %w", err)
+	}
+
+	// 2. 获取 COS 客户端实例
+	client, _, err := GetCosClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get COS client: %w", err)
+	}
+
+	var subDirs []string
+	ctx := context.Background()
+
+	// 确保前缀以 / 结尾
+	if !strings.HasSuffix(aPrefix, "/") {
+		aPrefix += "/"
+	}
+
+	opt := &cos.BucketGetOptions{
+		Prefix:    aPrefix,
+		Delimiter: "/", // 关键：设置分隔符
+		MaxKeys:   1000,
+	}
+
+	for {
+		result, _, err := client.Bucket.Get(ctx, opt)
+		if err != nil {
+			return nil, err
+		}
+
+		// CommonPrefixes 就是子目录
+		for _, cp := range result.CommonPrefixes {
+			// 去掉前缀，只返回目录名
+			dirName := strings.TrimPrefix(cp, aPrefix)
+			// 去掉末尾的 /
+			dirName = strings.TrimSuffix(dirName, "/")
+			if dirName != "" {
+				subDirs = append(subDirs, dirName)
+			}
+		}
+
+		if !result.IsTruncated {
+			break
+		}
+
+		opt.Marker = result.NextMarker
+	}
+
+	return subDirs, nil
+}
+
+// 目录节点结构
+type DirectoryNode struct {
+	Name     string           `json:"name"`
+	Path     string           `json:"path"`
+	Children []*DirectoryNode `json:"children,omitempty"`
+}
+
+// 获取目录树（递归）
+func ListDirectoryTree(prefix string) (*DirectoryNode, error) {
+	node := &DirectoryNode{
+		Name:     getDirName(prefix),
+		Path:     prefix,
+		Children: []*DirectoryNode{},
+	}
+
+	// 获取当前目录下的子目录
+	subDirs, err := ListCosSubDirectories(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	// 递归获取每个子目录
+	for _, subDir := range subDirs {
+		subPrefix := prefix + subDir + "/"
+		childNode, err := ListDirectoryTree(subPrefix)
+		if err != nil {
+			return nil, err
+		}
+		node.Children = append(node.Children, childNode)
+	}
+
+	return node, nil
+}
+
+// 获取目录名
+func getDirName(path string) string {
+	// 去掉末尾的 /
+	path = strings.TrimSuffix(path, "/")
+	// 获取最后一段
+	parts := strings.Split(path, "/")
+	return parts[len(parts)-1]
 }

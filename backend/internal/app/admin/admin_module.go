@@ -154,6 +154,9 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 		}
 
 		aAdminRG.GET("/cos/presigned-url", apis.HandleGetCosURL4SingleFile) // 获取 COS 预签名 URL 的接口
+		aAdminRG.GET("/cos/model-paths", apis.HandleListAllModelPaths)      // 列出模型路径的接口
+		aAdminRG.GET("/cos/list-files", apis.HandleListFiles)               // 列出 COS 文件的接口
+		aAdminRG.GET("/cos/tree", apis.HandleListDirTree)
 	}
 
 }

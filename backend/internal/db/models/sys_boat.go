@@ -2,6 +2,15 @@ package models
 
 import "gorm.io/gorm"
 
+//  BoatName、ModelName 是“双重唯一性约束” 或 “独立唯一索引”，类似于用户表中的手机号和身份证号。
+//  也就是说，BoatName 和 ModelName 都必须是唯一的，不能重复。
+//  无论是 BoatName 还是 ModelName，只要有一个重复了，就不能插入新的记录。
+//
+// 某系统用户表中的手机号和身份证号 。a 字段是 手机号（Unique）， b 字段是 身份证号（Unique）
+// 业务逻辑： * 如果一个新用户来注册，只要他的手机号被人用过了（a相同），拒绝！
+//          * 或者他的身份证号被人用过了（b相同），也拒绝！
+//          * 只有当手机号和身份证号都是全新的，才允许注册。
+
 // SysBoat represents the boat model in the database.
 type SysBoat struct {
 	gorm.Model
