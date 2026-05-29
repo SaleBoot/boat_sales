@@ -4,6 +4,7 @@ import (
 	"boatsales-backend/internal/app/admin/apis"
 	"boatsales-backend/internal/app/admin/services"
 	"boatsales-backend/internal/db/dao"
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -14,11 +15,13 @@ type AdminModule struct {
 	userH         *apis.UserHandler
 	boatCategoryH *apis.BoatCategoryHandler
 	boatH         *apis.BoatHandler
+	cosH          *apis.CosHandler
 }
 
 func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 	aBoatCategoryDao *dao.SysBoatCategoryDao, // 依赖注入
-	aBoatDao *dao.SysBoatDao) (*AdminModule, error) { // aBoatDao是 依赖注入
+	aBoatDao *dao.SysBoatDao, // 依赖注入
+	aCosPathDao *dao.SysCosPathDao) (*AdminModule, error) { // aCosPathDao是 依赖注入
 
 	// 确保默认用户存在
 	if err := services.EnsureDefaultUserExists(aUserDao); err != nil {
@@ -30,11 +33,18 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		return nil, fmt.Errorf("failed to initialize admin module: %w", err)
 	}
 
+	// 初始化COS目录树
+	cosPathSyncService := services.NewCosPathSyncerService(aCosPathDao)
+	if _, err := cosPathSyncService.SyncCosDirTree(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to initialize COS directory tree: %w", err)
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &AdminModule{
 		userH:         apis.NewUserHandler(aUserDao),
 		boatCategoryH: apis.NewBoatCategoryHandler(aBoatCategoryDao),
 		boatH:         apis.NewBoatHandler(aBoatDao),
+		cosH:          apis.NewCosHandler(cosPathSyncService), // 依赖注入
 	}
 
 	return adminM, nil
@@ -153,10 +163,11 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			boats.POST("/delete", a.boatH.HandleDeleteBoats)
 		}
 
-		aAdminRG.GET("/cos/presigned-url", apis.HandleGetCosURL4SingleFile) // 获取 COS 预签名 URL 的接口
-		aAdminRG.GET("/cos/model-paths", apis.HandleListAllModelPaths)      // 列出模型路径的接口
-		aAdminRG.GET("/cos/list-files", apis.HandleListFiles)               // 列出 COS 文件的接口
-		aAdminRG.GET("/cos/tree", apis.HandleListDirTree)
+		aAdminRG.GET("/cos/sync-cos-dir-tree", a.cosH.HandleSyncCosDirTree)   // 同步 COS 目录树的接口
+		aAdminRG.GET("/cos/presigned-url", a.cosH.HandleGetCosURL4SingleFile) // 获取 COS 预签名 URL 的接口
+		aAdminRG.GET("/cos/model-paths", a.cosH.HandleGetAllModelPaths)       // 列出模型路径的接口
+		aAdminRG.GET("/cos/list-files", a.cosH.HandleGetFiles)                // 列出 COS 文件的接口
+		aAdminRG.GET("/cos/tree", a.cosH.HandleListDirTree)
 	}
 
 }

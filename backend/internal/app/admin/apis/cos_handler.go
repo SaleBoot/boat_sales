@@ -11,9 +11,39 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type CosHandler struct {
+	cosPathSyncService *services.CosPathSyncerService
+}
+
+func NewCosHandler(cosPathSyncService *services.CosPathSyncerService) *CosHandler {
+	return &CosHandler{cosPathSyncService: cosPathSyncService}
+}
+
+func (h *CosHandler) HandleSyncCosDirTree(c *gin.Context) {
+	syncCount, err := h.cosPathSyncService.SyncCosDirTree(c.Request.Context())
+	if err != nil {
+		log.Printf("HandleSyncCosDirTree():Error syncing cos dir tree: %v", err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: fmt.Sprintf("同步COS目录树失败: %v", err),
+		})
+		return
+	}
+
+	log.Printf("HandleSyncCosDirTree():COS目录树同步完成，共处理%d个节点", syncCount)
+
+	c.JSON(http.StatusOK, types.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "COS目录树同步完成",
+		Data: gin.H{
+			"totalNodes": syncCount,
+		},
+	})
+}
+
 // HandleGetCosURL 处理生成腾讯云 COS 预签名 URL 的请求，前端可以
 // 使用这个 URL 直接上传文件到 COS，而不需要经过后端服务器转发。
-func HandleGetCosURL4SingleFile(c *gin.Context) {
+func (h *CosHandler) HandleGetCosURL4SingleFile(c *gin.Context) {
 	// 1. 前端只允许传纯粹的文件名或特定业务ID，不允许传带有复杂路径的斜杠
 	modelName := c.Query("modelName") // 比如: "102"
 	originName := c.Query("fileName") // 比如: "tbrender.png"
@@ -43,7 +73,7 @@ func HandleGetCosURL4SingleFile(c *gin.Context) {
 
 	//  🌟 由后端牢牢掌控并拼接“相对路径”！
 	// 这样就死死限制了前端只能把文件传到指定的船舶目录里
-	objectKey := fmt.Sprintf("gltf01/%s/%s", modelName, safeFileName)
+	objectKey := fmt.Sprintf("%s%s/%s", services.GetModelsCosRootPrefix(), modelName, safeFileName)
 	presignedURL, accessUrl, err := services.GeneratePresignedURL(objectKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -77,12 +107,12 @@ type ListFilesResponse struct {
 	Total int                 `json:"total"`
 }
 
-func HandleListFiles(c *gin.Context) {
+func (h *CosHandler) HandleGetFiles(c *gin.Context) {
 	var req ListFilesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, types.ApiResponse{
-			Code:    http.StatusOK,
-			Message: "HandleListFiles():no prefix parameter",
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "缺少必填的prefix参数",
 			Data:    nil,
 		})
 		return
@@ -92,7 +122,28 @@ func HandleListFiles(c *gin.Context) {
 	if req.Prefix == "" {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
 			Code:    http.StatusBadRequest,
-			Message: "HandleListFiles():prefix 参数不能为空",
+			Message: "prefix参数不能为空",
+			Data:    nil,
+		})
+		return
+	}
+
+	// 安全检查：防止目录穿越攻击
+	if strings.Contains(req.Prefix, "..") {
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "非法的路径参数",
+			Data:    nil,
+		})
+		return
+	}
+
+	// 安全检查：确保只能访问允许的根目录
+	if !strings.HasPrefix(req.Prefix, services.GetModelsCosRootPrefix()) &&
+		req.Prefix != "/" && req.Prefix != "" {
+		c.JSON(http.StatusForbidden, types.ApiResponse{
+			Code:    http.StatusForbidden,
+			Message: "无权访问该路径",
 			Data:    nil,
 		})
 		return
@@ -103,23 +154,36 @@ func HandleListFiles(c *gin.Context) {
 		req.Prefix += "/"
 	}
 
-	files, err := services.ListCosFiles(req.Prefix)
+	dbNodes, err := h.cosPathSyncService.GetSubFiles(c.Request.Context(), req.Prefix)
 	if err != nil {
+		log.Printf("HandleGetFiles():Error getting sub files for prefix '%s': %v", req.Prefix, err)
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{
 				Code:    http.StatusInternalServerError,
-				Message: "HandleListFiles():获取 Cos files 列表失败",
+				Message: fmt.Sprintf("获取文件列表失败: %v", err),
 				Data:    nil,
 			})
 		return
 	}
 
+	// 将models.CosPathMeta转换为services.FileInfo，保持响应格式不变
+	var fileInfos []services.FileInfo
+	for _, node := range dbNodes {
+		fileInfo := services.FileInfo{
+			Key:  node.Path,
+			Size: node.Size,
+		}
+		fileInfos = append(fileInfos, fileInfo)
+	}
+
+	log.Printf("HandleGetFiles():Successfully listed %d files for prefix '%s'",
+		len(fileInfos), req.Prefix)
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "HandleListFiles(): get Cos files list successfully",
+		Message: "获取文件列表成功",
 		Data: ListFilesResponse{
-			Files: files,
-			Total: len(files),
+			Files: fileInfos,
+			Total: len(fileInfos),
 		},
 	})
 }
@@ -136,23 +200,24 @@ type ListDirectoriesResponse struct {
 }
 
 // 获取模型路径列表
-func HandleListAllModelPaths(c *gin.Context) {
-	prefix := "gltf/" // 这里直接写死了模型的根目录，前端只能列这个目录下的内容，不能越界访问其他目录
-
-	subDirs, err := services.ListCosSubDirectories(prefix)
+func (h *CosHandler) HandleGetAllModelPaths(c *gin.Context) {
+	subDirs, err := h.cosPathSyncService.GetSubDirectories(c.Request.Context(),
+		services.GetModelsCosRootPrefix())
 	if err != nil {
-		log.Printf("HandleListModelPaths():Error listing sub directories: %v", err)
+		log.Printf("HandleGetAllModelPaths(): Error getting subdirectories from DB: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "获取模型路径失败",
+			Message: fmt.Sprintf("从数据库获取模型目录失败: %v", err),
 			Data:    nil,
 		})
 		return
 	}
 
+	// 打印获取到的子目录信息，用于调试
+	log.Printf("Successfully fetched model paths. Subdirectories: %+v", subDirs)
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "get 模型路径 list successfully",
+		Message: "获取所有模型路径成功",
 		Data: ListDirectoriesResponse{
 			Directories: subDirs,
 			Total:       len(subDirs),
@@ -161,7 +226,7 @@ func HandleListAllModelPaths(c *gin.Context) {
 }
 
 // 获取目录树
-func HandleListDirTree(c *gin.Context) {
+func (h *CosHandler) HandleListDirTree(c *gin.Context) {
 	var req ListDirectoriesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
 		log.Printf("HandleListDirTree():Error binding query parameters: %v", err)

@@ -33,6 +33,7 @@ type app struct {
 	userDao         *dao.SysUserDao
 	boatCategoryDao *dao.SysBoatCategoryDao
 	boatDao         *dao.SysBoatDao
+	cosPathDao      *dao.SysCosPathDao
 	// modules
 	adminM *admin.AdminModule
 }
@@ -76,7 +77,8 @@ func NewApp() (*app, error) {
 
 	adminModule, err := admin.NewAdminModule(application.userDao, // 依赖注入
 		application.boatCategoryDao, // 依赖注入
-		application.boatDao)         // 依赖注入
+		application.boatDao,         // 依赖注入
+		application.cosPathDao)      // 依赖注入
 	if err != nil {
 		return nil, fmt.Errorf("initialize admin module: %w", err)
 	}
@@ -145,6 +147,7 @@ func (a *app) initDb() error {
 	a.userDao = dao.NewSysUserDao(database)
 	a.boatCategoryDao = dao.NewSysBoatCategoryDao(database)
 	a.boatDao = dao.NewSysBoatDao(database)
+	a.cosPathDao = dao.NewSysCosPathDao(database)
 	// TODO:  handler 可能用 几个dao，所以下一步app 只保存 dao实例，type DaoList struct { userDao *SysUserDao;... }
 	// AdminMgr 保存 handler 实例，type AdminMgr struct { userH *UserHandler;... }
 	// AdminMgr 中的dao 由 app 依赖注入

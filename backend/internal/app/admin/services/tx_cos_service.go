@@ -15,6 +15,16 @@ import (
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
+// modelsCosRootPrefix 定义了在COS中存放模型文件的根路径。
+// 这是一个包内私有变量，外部请通过 GetModelsCosRootPrefix() 函数获取。
+var modelsCosRootPrefix = "gltf/"
+
+// GetModelsCosRootPrefix 返回在COS中存放模型文件的根路径。
+// 使用函数而不是直接暴露变量，可以更好地封装内部实现，方便未来扩展。
+func GetModelsCosRootPrefix() string {
+	return modelsCosRootPrefix
+}
+
 // Config 结构体，用来统一存放你的全局配置
 type CosConfig struct {
 	SecretID  string
@@ -23,7 +33,7 @@ type CosConfig struct {
 	Bucket    string
 }
 
-func GetCosConfig() (*CosConfig, error) {
+func getCosConfig() (*CosConfig, error) {
 	// 1. 🌟 关键：加载项目根目录下的 .env 文件
 	// 它会自动把文件里的键值对注入到系统的环境变量中
 	err := godotenv.Load()
@@ -69,9 +79,9 @@ func GetCosConfig() (*CosConfig, error) {
 	return config, nil
 }
 
-func GetCosClient(config *CosConfig) (*cos.Client, string, error) {
+func getCosClient(config *CosConfig) (*cos.Client, string, error) {
 	if config == nil {
-		return nil, "", fmt.Errorf("GetCosClient() config is nil")
+		return nil, "", fmt.Errorf("getCosClient() config is nil")
 	}
 
 	// 拼接 COS 域名
@@ -95,13 +105,13 @@ func GetCosClient(config *CosConfig) (*cos.Client, string, error) {
 func GeneratePresignedURL(objectKey string) (*url.URL, string, error) {
 
 	// 1. 初始化 COS 客户端 (填入你的 SecretId 和 SecretKey，这些安全留在后端)
-	config, err := GetCosConfig()
+	config, err := getCosConfig()
 	if err != nil {
 		return nil, "", fmt.Errorf("Failed to load COS configuration: %w", err)
 	}
 
 	// 2. 获取 COS 客户端实例
-	client, cosBaseUrlStr, err := GetCosClient(config)
+	client, cosBaseUrlStr, err := getCosClient(config)
 	if err != nil {
 		return nil, "", fmt.Errorf("Failed to get COS client: %w", err)
 	}
@@ -160,7 +170,7 @@ func CheckApiParam_originFileName(aOriginFileName string) (string, error) {
 type FileInfo struct {
 	Key  string `json:"key"`
 	Size int64  `json:"size"`
-	ETag string `json:"etag"`
+	// ETag string `json:"etag"`
 }
 
 func ListCosFiles(prefix string) ([]FileInfo, error) {
@@ -171,13 +181,13 @@ func ListCosFiles(prefix string) ([]FileInfo, error) {
 	}
 
 	// 1. 初始化 COS 客户端 (填入你的 SecretId 和 SecretKey，这些安全留在后端)
-	config, err := GetCosConfig()
+	config, err := getCosConfig()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load COS configuration: %w", err)
 	}
 
 	// 2. 获取 COS 客户端实例
-	client, _, err := GetCosClient(config)
+	client, _, err := getCosClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get COS client: %w", err)
 	}
@@ -200,7 +210,7 @@ func ListCosFiles(prefix string) ([]FileInfo, error) {
 			files = append(files, FileInfo{
 				Key:  obj.Key,
 				Size: obj.Size,
-				ETag: strings.Trim(obj.ETag, "\""),
+				// ETag: strings.Trim(obj.ETag, "\""),
 			})
 		}
 
@@ -222,13 +232,13 @@ func ListCosSubDirectories(aPrefix string) ([]string, error) {
 	}
 
 	// 1. 初始化 COS 客户端 (填入你的 SecretId 和 SecretKey，这些安全留在后端)
-	config, err := GetCosConfig()
+	config, err := getCosConfig()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load COS configuration: %w", err)
 	}
 
 	// 2. 获取 COS 客户端实例
-	client, _, err := GetCosClient(config)
+	client, _, err := getCosClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get COS client: %w", err)
 	}
