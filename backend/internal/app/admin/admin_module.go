@@ -163,11 +163,15 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			boats.POST("/delete", a.boatH.HandleDeleteBoats)
 		}
 
-		aAdminRG.GET("/cos/sync-cos-dir-tree", a.cosH.HandleSyncCosDirTree)   // 同步 COS 目录树的接口
-		aAdminRG.GET("/cos/presigned-url", a.cosH.HandleGetCosURL4SingleFile) // 获取 COS 预签名 URL 的接口
-		aAdminRG.GET("/cos/model-paths", a.cosH.HandleGetAllModelPaths)       // 列出模型路径的接口
-		aAdminRG.GET("/cos/list-files", a.cosH.HandleGetFiles)                // 列出 COS 文件的接口
-		aAdminRG.GET("/cos/tree", a.cosH.HandleListDirTree)
+		cosRG := aAdminRG.Group("/cos")
+		{
+			cosRG.GET("/sync-cos-dir-tree", a.cosH.HandleSyncCosDirTree)       // 同步 COS 目录树的接口
+			cosRG.GET("/presigned-url", a.cosH.HandleGetCosURL4SingleFile)     // 获取 COS 预签名 URL 的接口
+			cosRG.GET("/model-paths", a.cosH.HandleGetAllModelPaths)           // 列出模型路径的接口
+			cosRG.GET("/subfiles", a.cosH.HandleGetSubFiles)                   // 列出 COS 文件的接口
+			cosRG.GET("/descendant-files", a.cosH.HandleGetAllDescendantFiles) // 递归列出所有后代文件的接口
+			cosRG.GET("/tree", a.cosH.HandleListDirTree)
+		}
 	}
 
 }

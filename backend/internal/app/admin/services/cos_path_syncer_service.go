@@ -345,8 +345,26 @@ func (s *CosPathSyncerService) GetSubFiles(ctx context.Context,
 	return subFiles, err
 }
 
-// GetSubDirectories 毫秒级获取某一层路径下的子目录列表
-func (s *CosPathSyncerService) GetSubDirectories(ctx context.Context,
+// GetAllDescendantFiles 递归获取指定路径下的所有后代文件
+func (s *CosPathSyncerService) GetAllDescendantFiles(ctx context.Context, currentPath string) ([]models.CosPathMeta, error) {
+	if currentPath == "" || currentPath == "/" {
+		currentPath = "/"
+	} else {
+		if !strings.HasPrefix(currentPath, "/") {
+			currentPath = "/" + currentPath
+		}
+		if !strings.HasSuffix(currentPath, "/") {
+			currentPath = currentPath + "/"
+		}
+	}
+
+	// 直接调用DAO层的新方法，使用LIKE查询来获取所有后代文件
+	descendantFiles, err := s.cosPathDao.FindAllDescendantFilesByPath(ctx, currentPath)
+	return descendantFiles, err
+}
+
+// GetSubDirPaths 毫秒级获取某一层路径下的子目录的路径列表
+func (s *CosPathSyncerService) GetSubDirPaths(ctx context.Context,
 	currentPath string) ([]string, error) {
 	if currentPath == "" || currentPath == "/" {
 		currentPath = "/"
@@ -398,7 +416,7 @@ func (s *CosPathSyncerService) GetSubDirectories(ctx context.Context,
 
 	var dirNames []string
 	for _, dir := range subDirs {
-		dirNames = append(dirNames, dir.Name)
+		dirNames = append(dirNames, dir.Path)
 	}
 
 	return dirNames, nil

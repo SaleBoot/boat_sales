@@ -107,7 +107,8 @@ type ListFilesResponse struct {
 	Total int                 `json:"total"`
 }
 
-func (h *CosHandler) HandleGetFiles(c *gin.Context) {
+// HandleGetSubFiles 根据前端提供的路径，获取其下一层的所有子节点（文件和目录）
+func (h *CosHandler) HandleGetSubFiles(c *gin.Context) {
 	var req ListFilesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
@@ -139,7 +140,8 @@ func (h *CosHandler) HandleGetFiles(c *gin.Context) {
 	}
 
 	// 安全检查：确保只能访问允许的根目录
-	if !strings.HasPrefix(req.Prefix, services.GetModelsCosRootPrefix()) &&
+	// 通过 strings.TrimPrefix 临时移除路径开头的'/'，使其能正确匹配不带'/'的根路径常量
+	if !strings.HasPrefix(strings.TrimPrefix(req.Prefix, "/"), services.GetModelsCosRootPrefix()) &&
 		req.Prefix != "/" && req.Prefix != "" {
 		c.JSON(http.StatusForbidden, types.ApiResponse{
 			Code:    http.StatusForbidden,
@@ -156,7 +158,7 @@ func (h *CosHandler) HandleGetFiles(c *gin.Context) {
 
 	dbNodes, err := h.cosPathSyncService.GetSubFiles(c.Request.Context(), req.Prefix)
 	if err != nil {
-		log.Printf("HandleGetFiles():Error getting sub files for prefix '%s': %v", req.Prefix, err)
+		log.Printf("HandleGetSubFiles():Error getting sub files for prefix '%s': %v", req.Prefix, err)
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{
 				Code:    http.StatusInternalServerError,
@@ -176,7 +178,90 @@ func (h *CosHandler) HandleGetFiles(c *gin.Context) {
 		fileInfos = append(fileInfos, fileInfo)
 	}
 
-	log.Printf("HandleGetFiles():Successfully listed %d files for prefix '%s'",
+	log.Printf("HandleGetSubFiles():Successfully listed %d files for prefix '%s'",
+		len(fileInfos), req.Prefix)
+	c.JSON(http.StatusOK, types.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "获取文件列表成功",
+		Data: ListFilesResponse{
+			Files: fileInfos,
+			Total: len(fileInfos),
+		},
+	})
+}
+
+// HandleGetAllDescendantFiles 根据前端提供的路径，递归获取其所有后代文件节点
+func (h *CosHandler) HandleGetAllDescendantFiles(c *gin.Context) {
+	var req ListFilesRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "缺少必填的prefix参数",
+			Data:    nil,
+		})
+		return
+	}
+
+	req.Prefix = strings.TrimSpace(req.Prefix)
+	if req.Prefix == "" {
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "prefix参数不能为空",
+			Data:    nil,
+		})
+		return
+	}
+
+	// 安全检查：防止目录穿越攻击
+	if strings.Contains(req.Prefix, "..") {
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: "非法的路径参数",
+			Data:    nil,
+		})
+		return
+	}
+
+	// 安全检查：确保只能访问允许的根目录
+	// 通过 strings.TrimPrefix 临时移除路径开头的'/'，使其能正确匹配不带'/'的根路径常量
+	if !strings.HasPrefix(strings.TrimPrefix(req.Prefix, "/"), services.GetModelsCosRootPrefix()) &&
+		req.Prefix != "/" && req.Prefix != "" {
+		c.JSON(http.StatusForbidden, types.ApiResponse{
+			Code:    http.StatusForbidden,
+			Message: "无权访问该路径",
+			Data:    nil,
+		})
+		return
+	}
+
+	// 确保前缀以 / 结尾
+	if !strings.HasSuffix(req.Prefix, "/") {
+		req.Prefix += "/"
+	}
+
+	dbNodes, err := h.cosPathSyncService.GetAllDescendantFiles(c.Request.Context(), req.Prefix)
+	if err != nil {
+		log.Printf("HandleGetAllDescendantFiles(): Error getting descendant files for prefix '%s': %v", req.Prefix, err)
+		c.JSON(http.StatusInternalServerError,
+			types.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: fmt.Sprintf("获取文件列表失败: %v", err),
+				Data:    nil,
+			})
+		return
+	}
+
+	// 将models.CosPathMeta转换为services.FileInfo，保持响应格式不变
+	var fileInfos []services.FileInfo
+	for _, node := range dbNodes {
+		fileInfo := services.FileInfo{
+			Key:  node.Path,
+			Size: node.Size,
+		}
+		fileInfos = append(fileInfos, fileInfo)
+	}
+
+	log.Printf("HandleGetAllDescendantFiles(): Successfully listed %d descendant files for prefix '%s'",
 		len(fileInfos), req.Prefix)
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
@@ -201,7 +286,7 @@ type ListDirectoriesResponse struct {
 
 // 获取模型路径列表
 func (h *CosHandler) HandleGetAllModelPaths(c *gin.Context) {
-	subDirs, err := h.cosPathSyncService.GetSubDirectories(c.Request.Context(),
+	subDirs, err := h.cosPathSyncService.GetSubDirPaths(c.Request.Context(),
 		services.GetModelsCosRootPrefix())
 	if err != nil {
 		log.Printf("HandleGetAllModelPaths(): Error getting subdirectories from DB: %v", err)

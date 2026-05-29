@@ -81,6 +81,18 @@ func (dao *SysCosPathDao) FindSubDirs(ctx context.Context, parentID int64) ([]mo
 	return subDirs, err
 }
 
+// FindAllDescendantFilesByPath 查询指定路径下的所有后代文件节点
+func (dao *SysCosPathDao) FindAllDescendantFilesByPath(ctx context.Context, pathPrefix string) ([]models.CosPathMeta, error) {
+	var descendantFiles []models.CosPathMeta
+	// 使用 LIKE 查询来匹配所有以给定路径为前缀的记录
+	// pathPrefix 应该类似于 "/gltf/57sites/"
+	err := dao.db.WithContext(ctx).
+		Where("path LIKE ? AND is_dir = ?", pathPrefix+"%", false).
+		Order("path ASC").
+		Find(&descendantFiles).Error
+	return descendantFiles, err
+}
+
 // DeleteAll 删除表中的所有记录
 func (dao *SysCosPathDao) DeleteAll(ctx context.Context) error {
 	// 使用 Unscoped().Delete 而不是 Delete 是为了确保物理删除，而不是软删除
