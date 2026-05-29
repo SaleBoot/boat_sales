@@ -102,7 +102,7 @@ export default function HomepageHeader({
           </nav>
         </div>
 
-        <a className="brand" href="#top">京穗船舶</a>
+        <Link className="brand" to="/">京穗船舶</Link>
 
         <div className="site-nav-right">
           <nav className="site-links" aria-label="主导航">

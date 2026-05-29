@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function HomePageHeroScreen({ heroImagePath, heroContent, scrollToExperience }) {
   return (
     <section className="hero-screen" id="poster">
@@ -20,7 +22,7 @@ export default function HomePageHeroScreen({ heroImagePath, heroContent, scrollT
         </div>
         <div className="hero-actions reveal reveal-4">
           <a className="btn primary" href="#experience">{heroContent.primaryButtonLabel}</a>
-          <a className="btn order-btn" href="#/order">{heroContent.secondaryButtonLabel}</a>
+          <Link className="btn order-btn" to="/order">{heroContent.secondaryButtonLabel}</Link>
         </div>
       </div>
 

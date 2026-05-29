@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from './context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const DEFAULT_ADMIN_EMAIL = 'display@preview.com'
 const DEFAULT_password = 'cqjscb2026'
@@ -15,6 +16,7 @@ export default function LoginPage() {
   // isSubmitting 状态是必需的，以防止重复提交并提供用户反馈
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -79,6 +81,23 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <button 
+            type="button" 
+            onClick={() => navigate('/')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#1677ff',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              fontSize: '14px'
+            }}
+          >
+            返回前端首页
+          </button>
+        </div>
 
         {error && (
           <section className="admin-notice error">

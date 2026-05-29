@@ -66,7 +66,7 @@ export default function AdminLayout() {
             退出登录
           </button>
           <NavLink to="/" className="btn text admin-header-frontend-link" style={{ marginTop: '0.5rem' }}>
-            返回前端页面
+            返回前端首页
           </NavLink>
         </footer>
       </aside>

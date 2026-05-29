@@ -191,3 +191,21 @@ export const getCosPresignedUrl = (modelName, fileName) => {
 export const getAllCosModelPaths = () => {
   return api.get('/admin/cos/model-paths');
 };
+
+/**
+ * 获取 COS 模型文件夹下的文件列表
+ * @param {string} path - 模型文件夹路径
+ * @returns {Promise<any>}
+ */
+export const getSubFilesByPath = (path) => {  
+  return api.get(`/admin/cos/subfiles`, { params: { prefix: path } });
+};
+
+/**
+ * 获取 COS 模型文件夹下的所有子文件和文件夹
+ * @param {string} path - 模型文件夹路径
+ * @returns {Promise<any>}
+ */
+export const getDescendantFilesByPath = (path) => { 
+  return api.get(`/admin/cos/descendant-files`, { params: { prefix: path } });
+};

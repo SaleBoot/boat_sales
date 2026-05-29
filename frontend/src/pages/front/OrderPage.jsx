@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import ShipScene from '../scene3d/ShipScene'
 
 const productCategories = ['新能源船', '应急救援船', '公务执法艇', '游艇']
@@ -606,7 +606,7 @@ export default function OrderPage() {
     <div className="order-page">
       <header className="order-topbar">
         <div className="order-topbar-inner">
-          <a className="order-back-link" href="#top">返回首页</a>
+          <Link className="order-back-link" to="/">返回首页</Link>
           <div className="order-progress" aria-label="订购流程">
             {orderStageOptions.map((option) => (
               <button

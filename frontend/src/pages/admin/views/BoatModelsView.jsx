@@ -17,6 +17,7 @@ import {
   Form,
   Divider,
   Modal,
+  App,
 } from 'antd';
 import {
   PlusOutlined,
@@ -27,7 +28,7 @@ import {
   DownloadOutlined,
 } from '@ant-design/icons';
 import ShipScene from '../../scene3d/ShipScene.jsx';
-import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats } from '../../../apis/adminApi';
+import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats, getAllCosModelPaths } from '../../../apis/adminApi';
 import BoatListSider from '../components/BoatListSider';
 import BoatInfoPanel from '../components/BoatInfoPanel.jsx';
 import ModelParametersPanel from '../components/ModelParametersPanel.jsx';
@@ -35,47 +36,13 @@ import Inspector from '../components/Inspector.jsx';
 import Inspector01 from '../components/Inspector01.jsx';
 import AddBoatModal from './BoatAddModal.jsx';
 
-// --- Mock Data and API ---
-const mockModels = Array.from({ length: 12 }, (_, i) => {
-  return {
-    id: `model-${i + 1}`,
-    modelName: `SuperYacht-X${i + 1}`,
-    storagePath: `/gltf/57sites/57.glb`,
-    fbxFileName: `model_${i + 1}.fbx`,
-    glbFileName: `model_${i + 1}.glb`,
-    materialSlots: ['hull', 'deck', 'interior'],
-    uvDir1: '/uv/model_1/',
-    uvDir2: '/uv/model_2/',
-    uvDir3: '/uv/model_3/',
-    // 假设这是3D模型的路径
-    modelUrl: '/gltf/951/951NS/950ns.glb',
-  };
-});
 
-const getBoatModels = async (params) => {
-  console.log('模拟获取船模列表, 参数:', params);
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (params?.boatType) {
-        const filteredData = mockModels.filter(m => m.boatType === params.boatType);
-        resolve({ data: filteredData });
-      } else {
-        resolve({ data: mockModels });
-      }
-    }, 100);
-  });
-};
-
-const deleteBoatModels = async (ids) => {
-  console.log('模拟删除船模:', ids);
-  return new Promise((resolve) => setTimeout(resolve, 500));
-};
-// --- End Mock ---
 
 /**
  * 船模管理视图
  */
 export default function BoatModelsView() {
+  const { message: messageApi } = App.useApp();
   // State for boat models (original, kept for linking)
   const [models, setModels] = useState([]);
   const [currentModel, setCurrentModel] = useState(null);
@@ -127,9 +94,9 @@ export default function BoatModelsView() {
         setCurrentModel(null);
       }
       
-      message.success('船舶列表已刷新');
+      messageApi.success('船舶列表已刷新');
     } catch (error) {
-      message.error('获取船舶列表失败');
+      messageApi.error('获取船舶列表失败');
       console.error("Failed to fetch boats:", error);
       // Mock data as fallback
       const mockBoats = Array.from({ length: 5 }, (_, i) => ({
@@ -156,16 +123,16 @@ export default function BoatModelsView() {
   // 删除选定船舶
   const handleDelete = async () => {
     if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要删除的船舶。');
+      messageApi.warning('请先选择要删除的船舶。');
       return;
     }
     try {
       await deleteBoats(selectedRowKeys);
-      message.success('船舶删除成功');
+      messageApi.success('船舶删除成功');
       fetchBoats();
       setSelectedRowKeys([]);
     } catch (error) {
-      message.error('删除船舶失败');
+      messageApi.error('删除船舶失败');
     }
   };
 
@@ -178,11 +145,11 @@ export default function BoatModelsView() {
     try {
       console.log('接收到来自Modal的最终数据:', values);
       await addBoat(values);
-      message.success('船舶添加成功');
+      messageApi.success('船舶添加成功');
       setIsAddModalOpen(false);
       fetchBoats();
     } catch (error) {
-      message.error(error.message || '添加船舶失败');
+      messageApi.error(error.message || '添加船舶失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -197,17 +164,17 @@ export default function BoatModelsView() {
 
   const handleUpdateBoat = async (values) => {
     if (!currentBoat) {
-      message.error('请先选择一艘船');
+      messageApi.error('请先选择一艘船');
       return;
     }
     setIsSubmitting(true);
     try {
       await updateBoat(currentBoat.ID, values);
-      message.success('船舶信息更新成功');
+      messageApi.success('船舶信息更新成功');
       // Refresh the list to show updated data
       await fetchBoats();
     } catch (error) {
-      message.error('更新失败');
+      messageApi.error('更新失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -215,7 +182,7 @@ export default function BoatModelsView() {
 
   const handleOpenPathModal = () => {
     if (!currentModel) {
-      message.warning('请先选择一个有关联模型的船舶。');
+      messageApi.warning('请先选择一个有关联模型的船舶。');
       return;
     }
     const folderPath = currentModel.storagePath ? currentModel.storagePath.substring(0, currentModel.storagePath.lastIndexOf('/') + 1) : '';
@@ -230,11 +197,11 @@ export default function BoatModelsView() {
       const newStoragePath = formattedPath + currentModel.glbFileName;
 
       setCurrentModel(prev => ({
-        ...prev,
-        storagePath: newStoragePath,
-      }));
-      message.success('模型路径已在本地更新。');
-    }
+            ...prev,
+            storagePath: newStoragePath,
+          }));
+          messageApi.success('模型路径已在本地更新。');
+        }
     setIsPathModalVisible(false);
   };
 
@@ -244,13 +211,18 @@ export default function BoatModelsView() {
     setLoading(true);
     try {
       const [modelsResponse, categoriesResponse, boatsResponse] = await Promise.all([
-        getBoatModels(),
+        getAllCosModelPaths(),
         getBoatCategories(),
         getBoats(), // Initial boat fetch
       ]);
       console.log("初始数据获取成功:", { modelsResponse, categoriesResponse, boatsResponse });
-      const allModels = (modelsResponse.data || []).map((model) => ({
-        ...model,
+      // The API returns an object with a 'directories' property containing the array of paths.
+      const allModels = (modelsResponse.directories || []).map((path, index) => ({
+        id: `model-${index + 1}`,
+        modelName: path.split('/').filter(Boolean).pop() || `Model ${index + 1}`,
+        storagePath: path,
+        modelUrl: path, // Assuming the path is the model URL
+        // You may need to add other fields here if the component requires them
       }));
       setModels(allModels);
       
@@ -275,7 +247,7 @@ export default function BoatModelsView() {
       }
       
     } catch (error) {
-      message.error('初始化数据失败');
+      messageApi.error('初始化数据失败');
       console.error("Failed to fetch initial data:", error);
     } finally {
       setLoading(false);
@@ -321,12 +293,12 @@ export default function BoatModelsView() {
     const correspondingModel = models.find(m => m.modelName === record.modelName);
     if (correspondingModel) {
       setCurrentModel(correspondingModel);
-      message.info(`已选择船舶: ${record.boatName}`);
+      messageApi.info(`已选择船舶: ${record.boatName}`);
     } else {
       // 即使在 mock models 中找不到，也创建一个基础对象
       // 这样右侧面板就能知道模型名，并显示“上传”按钮
       setCurrentModel({ modelName: record.modelName, storagePath: '' });
-      message.warning(`未找到 ${record.boatName} 关联的详细模型数据`);
+      messageApi.warning(`未找到 ${record.boatName} 关联的详细模型数据`);
     }
   };
   // --- End definitions ---
