@@ -279,38 +279,50 @@ type ListDirectoriesRequest struct {
 }
 
 // 响应结构
-type ListDirectoriesResponse struct {
-	Directories []string `json:"directories"`
-	Total       int      `json:"total"`
+type ListModelFoldersResponse struct {
+	ModelFolders []ModelFolder `json:"modelFolders"`
+	Total        int           `json:"total"`
 }
 
-// 获取模型路径列表
+type ModelFolder struct {
+	ModelFolderName string   `json:"modelFolderName"`
+	DescendantFiles []string `json:"descendantFiles"`
+}
+
 func (h *CosHandler) HandleGetAllModelPaths(c *gin.Context) {
-	subDirs, err := h.cosPathSyncService.GetSubDirPaths(c.Request.Context(),
-		services.GetModelsCosRootPrefix())
+	modelFolders, err := h.cosPathSyncService.GetAllModelFoldersWithFiles(c.Request.Context())
 	if err != nil {
-		log.Printf("HandleGetAllModelPaths(): Error getting subdirectories from DB: %v", err)
-		c.JSON(http.StatusInternalServerError, types.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: fmt.Sprintf("从数据库获取模型目录失败: %v", err),
-			Data:    nil,
-		})
+		log.Printf("HandleGetAllModelPaths(): Error getting all model folders with files: %v", err)
+		c.JSON(http.StatusInternalServerError,
+			types.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: fmt.Sprintf("获取模型列表失败: %v", err),
+				Data:    nil,
+			})
 		return
 	}
 
-	// 打印获取到的子目录信息，用于调试
-	log.Printf("Successfully fetched model paths. Subdirectories: %+v", subDirs)
+	response := ListModelFoldersResponse{
+		ModelFolders: make([]ModelFolder, 0, len(modelFolders)),
+		Total:        len(modelFolders),
+	}
+
+	for folderName, files := range modelFolders {
+		response.ModelFolders = append(response.ModelFolders, ModelFolder{
+			ModelFolderName: folderName,
+			DescendantFiles: files,
+		})
+	}
+
+	log.Printf("HandleGetAllModelPaths(): Successfully listed %d model folders", len(modelFolders))
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "获取所有模型路径成功",
-		Data: ListDirectoriesResponse{
-			Directories: subDirs,
-			Total:       len(subDirs),
-		},
+		Message: "获取模型列表成功",
+		Data:    response,
 	})
 }
 
-// 获取目录树
+// 获取目录树-note: 这个接口目前没有被前端调用，先保留在这里备用
 func (h *CosHandler) HandleListDirTree(c *gin.Context) {
 	var req ListDirectoriesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {

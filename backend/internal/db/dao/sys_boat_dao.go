@@ -44,10 +44,10 @@ func (dao *SysBoatDao) FindByName(boatName string) (*models.SysBoat, error) {
 	return &boat, nil // Found a conflicting record
 }
 
-// FindByModel checks if a boat with the given ModelName already exists.
-func (dao *SysBoatDao) FindByModel(modelName string) (*models.SysBoat, error) {
+// FindByBoatEnName checks if a boat with the given BoatEnName already exists.
+func (dao *SysBoatDao) FindByBoatEnName(boatEnName string) (*models.SysBoat, error) {
 	var boat models.SysBoat
-	err := dao.db.Where("model_name = ?", modelName).First(&boat).Error
+	err := dao.db.Where("boat_en_name = ?", boatEnName).First(&boat).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // Not found, which is not an error in this context

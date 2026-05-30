@@ -52,7 +52,7 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 // It uses pointers for numeric fields to distinguish between a zero value and a missing field.
 type BoatInput struct {
 	BoatName        string   `json:"boatName" binding:"required"`
-	ModelName       string   `json:"modelName" binding:"required"`
+	BoatEnName      string   `json:"boatEnName" binding:"required"`
 	Category        string   `json:"category" binding:"required"`
 	Price           *int     `json:"price"`
 	Description     string   `json:"description"`
@@ -68,9 +68,6 @@ type BoatInput struct {
 	PropulsionType  string   `json:"propulsionType"`
 	Material        string   `json:"material"`
 	CertificateType string   `json:"certificateType"`
-	AdImg0          string   `json:"adImg0"`
-	AdImg1          string   `json:"adImg1"`
-	AdImg2          string   `json:"adImg2"`
 }
 
 // toModel converts a BoatInput DTO to a models.SysBoat database model.
@@ -78,7 +75,7 @@ type BoatInput struct {
 func (input *BoatInput) toModel() *models.SysBoat {
 	boat := &models.SysBoat{
 		BoatName:        input.BoatName,
-		ModelName:       input.ModelName,
+		BoatEnName:      input.BoatEnName,
 		Category:        input.Category,
 		Description:     input.Description,
 		NavigationArea:  input.NavigationArea,
@@ -86,9 +83,6 @@ func (input *BoatInput) toModel() *models.SysBoat {
 		PropulsionType:  input.PropulsionType,
 		Material:        input.Material,
 		CertificateType: input.CertificateType,
-		AdImg0:          input.AdImg0,
-		AdImg1:          input.AdImg1,
-		AdImg2:          input.AdImg2,
 	}
 
 	if input.Price != nil {
@@ -150,10 +144,10 @@ func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 		return
 	}
 
-	// Check for uniqueness of ModelName
-	existingBoat, err = aH.boatDao.FindByModel(boat.ModelName)
+	// Check for uniqueness of BoatEnName
+	existingBoat, err = aH.boatDao.FindByBoatEnName(boat.BoatEnName)
 	if err != nil {
-		log.Printf("failed to check for existing boat by model: %v", err)
+		log.Printf("failed to check for existing boat by boatEnName: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: "failed to check for existing boat",
@@ -163,7 +157,7 @@ func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 	if existingBoat != nil {
 		c.JSON(http.StatusConflict, types.ApiResponse{
 			Code:    http.StatusConflict,
-			Message: "a boat with this ModelName already exists",
+			Message: "a boat with this BoatEnName already exists",
 		})
 		return
 	}

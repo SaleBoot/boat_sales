@@ -17,7 +17,7 @@ import (
 
 // modelsCosRootPrefix 定义了在COS中存放模型文件的根路径。
 // 这是一个包内私有变量，外部请通过 GetModelsCosRootPrefix() 函数获取。
-var modelsCosRootPrefix = "gltf/"
+var modelsCosRootPrefix = "gltf01/"
 
 // GetModelsCosRootPrefix 返回在COS中存放模型文件的根路径。
 // 使用函数而不是直接暴露变量，可以更好地封装内部实现，方便未来扩展。

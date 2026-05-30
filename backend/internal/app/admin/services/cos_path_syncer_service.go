@@ -421,3 +421,38 @@ func (s *CosPathSyncerService) GetSubDirPaths(ctx context.Context,
 
 	return dirNames, nil
 }
+
+func (s *CosPathSyncerService) GetAllModelFoldersWithFiles(ctx context.Context) (map[string][]string, error) {
+	modelsRoot := GetModelsCosRootPrefix()
+	// 确保 modelsRoot 以 / 结尾，以便 GetSubDirPaths 正确工作
+	if !strings.HasSuffix(modelsRoot, "/") {
+		modelsRoot += "/"
+	}
+
+	modelFolderPaths, err := s.GetSubDirPaths(ctx, modelsRoot)
+	if err != nil {
+		return nil, fmt.Errorf("error getting model folders: %w", err)
+	}
+
+	result := make(map[string][]string)
+	for _, folderPath := range modelFolderPaths {
+		descendantFiles, err := s.GetAllDescendantFiles(ctx, folderPath)
+		if err != nil {
+			// 打印日志或根据需要处理错误，但继续处理其他文件夹
+			log.Printf("Error getting descendant files for %s: %v", folderPath, err)
+			continue
+		}
+
+		var filePaths []string
+		for _, file := range descendantFiles {
+			filePaths = append(filePaths, file.Path)
+		}
+
+		// 从完整路径中提取纯粹的文件夹名
+		// 例如，从 "/models/yacht/" 提取 "yacht"
+		folderName := strings.TrimSuffix(strings.TrimPrefix(folderPath, modelsRoot), "/")
+		result[folderName] = filePaths
+	}
+
+	return result, nil
+}
