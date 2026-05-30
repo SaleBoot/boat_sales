@@ -57,7 +57,7 @@ const BoatCategoriesView = () => {
       message.success('列表刷新成功！');
     } catch (error) {
       console.error('Failed to fetch boat categories:', error);
-      message.error('获取船舶类型列表失败。');
+      message.error('获取船舶类别列表失败。');
     } finally {
       setLoading(false);
     }
@@ -136,12 +136,12 @@ const BoatCategoriesView = () => {
 
   const columns = [
     {
-      title: '船舶类型英文名',
+      title: '船舶类别英文名',
       dataIndex: 'englishName',
       key: 'englishName',
     },
     {
-      title: '船舶类型中文名',
+      title: '船舶类别中文名',
       dataIndex: 'chineseName',
       key: 'chineseName',
     },
@@ -228,7 +228,7 @@ const BoatCategoriesView = () => {
         })}
       />
       <Modal
-        title={editingItem ? '修改船舶类型' : '增加船舶类型'}
+        title={editingItem ? '修改船舶类别' : '增加船舶类别'}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
@@ -237,9 +237,9 @@ const BoatCategoriesView = () => {
         <Form form={form} layout="vertical" name="boatCategoryForm">
           <Form.Item
             name="englishName"
-            label="船舶类型英文名"
+            label="船舶类别英文名"
             rules={[
-              { required: true, message: '请输入船舶类型英文名' },
+              { required: true, message: '请输入船舶类别英文名' },
               {
                 pattern: /^\S*$/,
                 message: '英文名不能包含空格',
@@ -251,8 +251,8 @@ const BoatCategoriesView = () => {
           </Form.Item>
           <Form.Item
             name="chineseName"
-            label="船舶类型中文名"
-            rules={[{ required: true, message: '请输入船舶类型中文名' }]}
+            label="船舶类别中文名"
+            rules={[{ required: true, message: '请输入船舶类别中文名' }]}
             normalize={(value) => value && value.trim()}
           >
             <Input />

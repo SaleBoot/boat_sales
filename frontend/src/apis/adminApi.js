@@ -128,11 +128,11 @@ export const updateBoat = (id, boatData) => {
 };
 
 // -------------------------------------------------------
-// 船舶类型管理 (Boat Categories)
+// 船舶类别管理 (Boat Categories)
 // -------------------------------------------------------
 
 /**
- * 获取船舶类型列表
+ * 获取船舶类别列表
  * @param {object} params - 查询参数
  * @returns {Promise<any>}
  */
@@ -141,8 +141,8 @@ export const getBoatCategories = (params) => {
 };
 
 /**
- * 添加新船舶类型
- * @param {object} categoryData - 船舶类型数据
+ * 添加新船舶类别
+ * @param {object} categoryData - 船舶类别数据
  * @returns {Promise<any>}
  */
 export const addBoatCategory = (categoryData) => {
@@ -150,9 +150,9 @@ export const addBoatCategory = (categoryData) => {
 };
 
 /**
- * 更新船舶类型
- * @param {number} id - 船舶类型ID
- * @param {object} categoryData - 更新的船舶类型数据
+ * 更新船舶类别
+ * @param {number} id - 船舶类别ID
+ * @param {object} categoryData - 更新的船舶类别数据
  * @returns {Promise<any>}
  */
 export const updateBoatCategory = (id, categoryData) => {
@@ -160,8 +160,8 @@ export const updateBoatCategory = (id, categoryData) => {
 };
 
 /**
- * 删除船舶类型
- * @param {Array<number>} ids - 船舶类型ID列表
+ * 删除船舶类别
+ * @param {Array<number>} ids - 船舶类别ID列表
  * @returns {Promise<any>}
  */
 export const deleteBoatCategories = (ids) => { 
@@ -191,16 +191,7 @@ export const getCosPresignedUrl = (modelName, fileName) => {
 export const getAllCosModelPaths = () => {
   return api.get('/admin/cos/model-paths');
 };
-
-/**
- * 获取 COS 模型文件夹下的文件列表
- * @param {string} path - 模型文件夹路径
- * @returns {Promise<any>}
- */
-export const getSubFilesByPath = (path) => {  
-  return api.get(`/admin/cos/subfiles`, { params: { prefix: path } });
-};
-
+ 
 /**
  * 获取 COS 模型文件夹下的所有子文件和文件夹
  * @param {string} path - 模型文件夹路径

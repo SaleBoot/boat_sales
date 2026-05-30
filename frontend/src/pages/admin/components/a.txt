@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Descriptions, Input, Button, Empty, message as staticMessage, Select, Typography, App, Space, Collapse, Radio } from 'antd';
+import {
+  Descriptions,
+  Button,
+  Empty,
+  Select,
+  App,
+  Space,
+  Collapse,
+  Radio,
+  message as staticMessage,
+} from 'antd';
 import { getAllCosModelPaths, getDescendantFilesByPath } from '../../../apis/adminApi';
-
-const { Title } = Typography;
 
 const ModelParametersPanel = ({ boat, onModelChange }) => {
   const { message } = App.useApp();
@@ -15,13 +23,12 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
     const fetchPaths = async () => {
       if (!boat) {
         setCosPaths([]);
+        setFiles([]);
         return;
       }
       setIsLoadingPaths(true);
       try {
-        // The API returns an object like { directories: [...] }
         const response = await getAllCosModelPaths();
-        // We need to extract the array from the response object.
         const directories = response.directories || [];
         const formattedPaths = directories.map(p => ({ label: p, value: p }));
         setCosPaths(formattedPaths);
@@ -34,7 +41,7 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
     };
 
     fetchPaths();
-  }, [boat]);
+  }, [boat, message]);
 
   const handlePathSelect = async (selectedPath) => {
     if (onModelChange) {
@@ -62,32 +69,19 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
     }
   };
 
-  const handleSaveModel = () => {
-    // TODO: 实现调用 updateModel API 的逻辑
-    staticMessage.info('保存功能待实现');
-  };
-
   if (!boat) {
     return <Empty description="请先在左侧选择一艘船" style={{ paddingTop: '60px' }} />;
   }
 
   return (
     <div style={{ padding: '24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <Title level={5} style={{ margin: 0 }}>
-          {boat ? `船名: ${boat.boatName} (${boat.boatEnName})` : '模型参数配置'}
-        </Title>
-        <Button type="primary" onClick={handleSaveModel} disabled={!boat}>
-          保存
-        </Button>
-      </div>
       <Descriptions column={1} bordered size="small">
         <Descriptions.Item label="模型文件夹路径" labelStyle={{ width: '120px', whiteSpace: 'nowrap' }}>
           <Space.Compact style={{ display: 'flex' }}>
             <Select
               style={{ flex: 1 }}
-              value={boat?.storagePath || undefined} // This needs to be updated for the new data model
-              placeholder={boat ? "选择现有路径或上传新模型" : "请先选择一艘船"}
+              value={boat?.storagePath || undefined}
+              placeholder="选择现有路径或上传新模型"
               disabled={!boat}
               loading={isLoadingPaths}
               onChange={handlePathSelect}
@@ -97,7 +91,6 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
             <Button
               type="primary"
               onClick={() => staticMessage.info('上传功能待实现')}
-              // This logic needs to be updated based on the new data model
               disabled={!boat}
             >
               上传

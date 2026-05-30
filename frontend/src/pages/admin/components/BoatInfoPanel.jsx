@@ -24,22 +24,9 @@ const BoatInfoPanel = ({ boat, boatCategories, form, onUpdate, isSubmitting }) =
     );
   }
 
-  const renderImages = () => {
-    const imageUrls = [boat.adImg0, boat.adImg1, boat.adImg2]
-      .filter(url => url && typeof url === 'string')
-      .map(url => url.trim().replace(/`/g, ''));
-
-    if (imageUrls.length > 0) {
-      return imageUrls.map((img, index) => (
-        <Image key={index} width={100} src={img} style={{ marginRight: 8 }} />
-      ));
-    }
-    return <Empty description="暂无宣传图片" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
-  };
-
   return (
     <ConfigProvider theme={{ algorithm: compactAlgorithm }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+      <div style={{ padding: '24px' }}>
         <Form
           form={form}
           layout="horizontal"
@@ -58,11 +45,11 @@ const BoatInfoPanel = ({ boat, boatCategories, form, onUpdate, isSubmitting }) =
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}><Form.Item name="boatName" label="船名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="modelName" label="模型名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+            <Col span={12}><Form.Item name="boatEnName" label="船舶英文名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
             <Col span={12}><Form.Item name="price" label="价格" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
             <Col span={12}>
-              <Form.Item name="category" label="船舶类型">
-                <Select placeholder="请选择船舶类型">
+              <Form.Item name="category" label="船舶类别">
+                <Select placeholder="请选择船舶类别">
                   {boatCategories.map(cat => (
                     <Select.Option key={cat.ID} value={cat.englishName}>
                       {cat.chineseName}
@@ -85,10 +72,6 @@ const BoatInfoPanel = ({ boat, boatCategories, form, onUpdate, isSubmitting }) =
             <Col span={12}><Form.Item name="material" label="材质" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
             <Col span={12}><Form.Item name="certificateType" label="证书类型" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
           </Row>
-          <Divider>宣传图片</Divider>
-          <div>
-            {renderImages()}
-          </div>
         </Form>
       </div>
     </ConfigProvider>

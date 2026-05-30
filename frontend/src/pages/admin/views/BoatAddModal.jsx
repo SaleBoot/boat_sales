@@ -27,12 +27,13 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
   //   }
   // }, [open, form]);
 
+  /*
   // 上传前的校验拦截器
   const handleBeforeUpload = (file) => {
-    // 1. 检查模型名是否填写
-    const modelName = form.getFieldValue('modelName');
-    if (!modelName) {
-      message.error('请先填写模型名再上传图片！');
+    // 1. 检查船舶英文名是否填写
+    const boatEnName = form.getFieldValue('boatEnName');
+    if (!boatEnName) {
+      message.error('请先填写船舶英文名再上传图片！');
       return Upload.LIST_IGNORE;
     }
 
@@ -56,12 +57,12 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
   };
 
   // 独立的上传辅助函数，负责编排
-  const uploadFileToCos = async (file, modelName) => {
-    if (!file || !modelName) return null;
+  const uploadFileToCos = async (file, boatEnName) => {
+    if (!file || !boatEnName) return null;
 
     try {
       // 1. 从自己的后端获取预签名 URL 和最终访问 URL
-      const res = await getCosPresignedUrl(modelName, file.name);
+      const res = await getCosPresignedUrl(boatEnName, file.name);
       
       // 从响应中解构URL
       let { uploadUrl, accessUrl } = res;
@@ -86,6 +87,7 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
       throw error; // 抛出错误，中断整个 handleOk 流程
     }
   };
+  */
 
 
   const handleOk = async () => {
@@ -95,12 +97,13 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
       const values = await form.validateFields();
       const processedValues = { ...values };
 
+      /*
       // 2. 从 adImgs 字段中提取文件列表并处理上传
       const fileList = values.adImgs || [];
       const uploadPromises = fileList.map(file => {
         if (file.originFileObj) {
           // 新上传的文件
-          return uploadFileToCos(file.originFileObj, values.modelName);
+          return uploadFileToCos(file.originFileObj, values.boatEnName);
         }
         if (file.url) {
           // 可能是已存在的文件（用于编辑模式）
@@ -119,6 +122,7 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
       
       // 从最终提交的数据中删除临时的 adImgs 字段
       delete processedValues.adImgs;
+      */
 
       // 4. 定义需要转换为数字的字段列表
       const numericFields = [
@@ -179,13 +183,13 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="modelName"
-              label="模型名"
+              name="boatEnName"
+              label="船舶英文名"
               rules={[
-                { required: true, message: '请输入模型名' },
+                { required: true, message: '请输入船舶英文名' },
                 {
-                  pattern: /^[a-zA-Z0-9_-]+$/,
-                  message: '模型名只能包含英文、数字、下划线或连字符，且不能包含空格',
+                  pattern: /^[a-z0-9_-]+$/,
+                  message: '船舶英文名只能包含小写英文、数字、下划线或连字符',
                 },
               ]}
               style={{ marginBottom: '4px' }}
@@ -198,11 +202,11 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
           <Col span={12}>
             <Form.Item 
               name="category" 
-              label="船舶类型"
-              rules={[{ required: true, message: '请选择船舶类型' }]}
+              label="船舶类别"
+              rules={[{ required: true, message: '请选择船舶类别' }]}
               style={{ marginBottom: '4px' }}
             >
-              <Select placeholder="请选择一个船舶类型">
+              <Select placeholder="请选择一个船舶类别">
                 {boatTypes.map(type => (
                   <Option key={type.id} value={type.id}>
                     {type.name}
@@ -212,7 +216,7 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="price" label="价格">
+            <Form.Item name="price" label="价格" style={{ marginBottom: '4px' }}>
               <InputNumber style={{ width: '100%' }} />
             </Form.Item>
           </Col>
@@ -227,20 +231,15 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
           </Col>
         </Row>
 
-        <Row gutter={16}>
+        {/* <Row gutter={16}>
           <Col span={24}>
-            <Form.Item
-              name="adImgs"
-              label="宣传图片"
+            <Form.Item name="adImgs" label="宣传图片"
               valuePropName="fileList"
               getValueFromEvent={(e) => (Array.isArray(e) ? e : e && e.fileList)}
               labelCol={{span: 4}} 
               wrapperCol={{span: 20}}
             >
-              <Upload
-                listType="picture-card"
-                maxCount={3}
-                multiple
+              <Upload  listType="picture-card"  maxCount={3} multiple
                 beforeUpload={handleBeforeUpload}
               >
                 <div>
@@ -250,7 +249,7 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
               </Upload>
             </Form.Item>
           </Col>
-        </Row>
+        </Row> */}
         
         <Divider titlePlacement="left">技术参数(Specs)</Divider>
         <Row gutter={16}>

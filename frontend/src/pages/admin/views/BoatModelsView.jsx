@@ -4,31 +4,21 @@ import {
   Col,
   Card,
   Button,
-  Table,
   Input,
   Space,
-  message,
-  Image,
-  Carousel,
   Empty,
-  Descriptions,
-  Select,
   Tabs,
   Form,
-  Divider,
   Modal,
   App,
 } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
-  SearchOutlined,
   RedoOutlined,
-  UploadOutlined,
-  DownloadOutlined,
 } from '@ant-design/icons';
 import ShipScene from '../../scene3d/ShipScene.jsx';
-import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats, getAllCosModelPaths } from '../../../apis/adminApi';
+import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats } from '../../../apis/adminApi';
 import BoatListSider from '../components/BoatListSider';
 import BoatInfoPanel from '../components/BoatInfoPanel.jsx';
 import ModelParametersPanel from '../components/ModelParametersPanel.jsx';
@@ -36,32 +26,24 @@ import Inspector from '../components/Inspector.jsx';
 import Inspector01 from '../components/Inspector01.jsx';
 import AddBoatModal from './BoatAddModal.jsx';
 
-
-
 /**
  * 船模管理视图
  */
 export default function BoatModelsView() {
   const { message: messageApi } = App.useApp();
-  // State for boat models (original, kept for linking)
-  const [models, setModels] = useState([]);
-  const [currentModel, setCurrentModel] = useState(null);
 
-  // State for boat list (from BoatsView, now primary)
   const [boats, setBoats] = useState([]);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentBoat, setCurrentBoat] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPathModalVisible, setIsPathModalVisible] = useState(false);
-  const [tempPath, setTempPath] = useState('');
-
-  // Shared state
   const [boatCategories, setBoatCategories] = useState([]);
   const [form] = Form.useForm();
 
-  // 动态生成类型映射
+  const remoteFBXOrigin = import.meta.env.VITE_REMOTE_FBX_ORIGIN;
+  const fbxBaseUrl = `${remoteFBXOrigin}/gltf01/`;
+
   const boatTypeMap = useMemo(() => {
     if (!boatCategories) return {};
     return boatCategories.reduce((acc, cat) => {
@@ -70,9 +52,6 @@ export default function BoatModelsView() {
     }, {});
   }, [boatCategories]);
 
-  // --- Functions for Boat List ---
-
-  // 获取船舶列表
   const fetchBoats = async (filters = {}) => {
     setLoading(true);
     try {
@@ -83,44 +62,28 @@ export default function BoatModelsView() {
       }));
       setBoats(boatsData);
 
-      // After filtering, update the current boat and model view
-      if (boatsData.length > 0) {
-        const newCurrentBoat = boatsData.find(b => b.ID === currentBoat?.ID) || boatsData[0];
-        setCurrentBoat(newCurrentBoat);
-        const correspondingModel = models.find(m => m.modelName === newCurrentBoat.modelName);
-        setCurrentModel(correspondingModel || null);
-      } else {
-        setCurrentBoat(null);
-        setCurrentModel(null);
+      if (!currentBoat && boatsData.length > 0) {
+        setCurrentBoat(boatsData[0]);
+      } else if (currentBoat) {
+        const newCurrentBoat = boatsData.find(b => b.ID === currentBoat.ID);
+        if (!newCurrentBoat) {
+          setCurrentBoat(boatsData.length > 0 ? boatsData[0] : null);
+        }
       }
       
       messageApi.success('船舶列表已刷新');
     } catch (error) {
       messageApi.error('获取船舶列表失败');
       console.error("Failed to fetch boats:", error);
-      // Mock data as fallback
-      const mockBoats = Array.from({ length: 5 }, (_, i) => ({
-        ID: i + 1,
-        chineseName: `泰坦尼克号 ${i + 1}`,
-        englishName: `Titanic ${i + 1}`,
-        category: '豪华邮轮',
-        price: `¥${(100 + i * 50).toLocaleString()}`,
-      }));
-      setBoats(mockBoats);
-      if (mockBoats.length > 0 && !currentBoat) {
-        setCurrentBoat(mockBoats[0]);
-      }
     } finally {
       setLoading(false);
     }
   };
 
-  // 处理行选择变化的函数
   const onSelectChange = (newSelectedRowKeys) => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
-  // 删除选定船舶
   const handleDelete = async () => {
     if (selectedRowKeys.length === 0) {
       messageApi.warning('请先选择要删除的船舶。');
@@ -136,14 +99,9 @@ export default function BoatModelsView() {
     }
   };
 
-  // 处理新增船舶表单的提交
-  // 参数 values 是由 AddBoatModal 内部的 handleOk 函数处理好后，手动传递过来的。
-  // 处理新增船舶表单的提交
-  // 参数 values 是由 AddBoatModal 内部的 handleOk 函数处理好后，手动传递过来的。
   const handleAddComplete = async (values) => {
     setIsSubmitting(true);
     try {
-      console.log('接收到来自Modal的最终数据:', values);
       await addBoat(values);
       messageApi.success('船舶添加成功');
       setIsAddModalOpen(false);
@@ -155,13 +113,6 @@ export default function BoatModelsView() {
     }
   };
 
-  const handleModelChange = (changedValues) => {
-    setCurrentModel(prevModel => ({
-      ...prevModel,
-      ...changedValues,
-    }));
-  };
-
   const handleUpdateBoat = async (values) => {
     if (!currentBoat) {
       messageApi.error('请先选择一艘船');
@@ -171,7 +122,6 @@ export default function BoatModelsView() {
     try {
       await updateBoat(currentBoat.ID, values);
       messageApi.success('船舶信息更新成功');
-      // Refresh the list to show updated data
       await fetchBoats();
     } catch (error) {
       messageApi.error('更新失败');
@@ -180,51 +130,13 @@ export default function BoatModelsView() {
     }
   };
 
-  const handleOpenPathModal = () => {
-    if (!currentModel) {
-      messageApi.warning('请先选择一个有关联模型的船舶。');
-      return;
-    }
-    const folderPath = currentModel.storagePath ? currentModel.storagePath.substring(0, currentModel.storagePath.lastIndexOf('/') + 1) : '';
-    setTempPath(folderPath);
-    setIsPathModalVisible(true);
-  };
-
-  const handlePathChange = () => {
-    if (currentModel) {
-      // 确保路径以斜杠结尾
-      const formattedPath = tempPath.endsWith('/') || tempPath === '' ? tempPath : tempPath + '/';
-      const newStoragePath = formattedPath + currentModel.glbFileName;
-
-      setCurrentModel(prev => ({
-            ...prev,
-            storagePath: newStoragePath,
-          }));
-          messageApi.success('模型路径已在本地更新。');
-        }
-    setIsPathModalVisible(false);
-  };
-
-  // --- End Functions for Boat List ---
-
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      const [modelsResponse, categoriesResponse, boatsResponse] = await Promise.all([
-        getAllCosModelPaths(),
+      const [categoriesResponse, boatsResponse] = await Promise.all([
         getBoatCategories(),
-        getBoats(), // Initial boat fetch
+        getBoats(),
       ]);
-      console.log("初始数据获取成功:", { modelsResponse, categoriesResponse, boatsResponse });
-      // The API returns an object with a 'directories' property containing the array of paths.
-      const allModels = (modelsResponse.directories || []).map((path, index) => ({
-        id: `model-${index + 1}`,
-        modelName: path.split('/').filter(Boolean).pop() || `Model ${index + 1}`,
-        storagePath: path,
-        modelUrl: path, // Assuming the path is the model URL
-        // You may need to add other fields here if the component requires them
-      }));
-      setModels(allModels);
       
       setBoatCategories(categoriesResponse || []);
 
@@ -235,15 +147,7 @@ export default function BoatModelsView() {
       setBoats(boatsData);
       
       if (boatsData.length > 0) {
-        const firstBoat = boatsData[0];
-        setCurrentBoat(firstBoat);
-        // Link to the model on initial load
-        const correspondingModel = allModels.find(m => m.modelName === firstBoat.modelName);
-        if (correspondingModel) {
-          setCurrentModel(correspondingModel);
-        } else if (allModels.length > 0) {
-          setCurrentModel(allModels[0]); // Fallback to the first model if no link found
-        }
+        setCurrentBoat(boatsData[0]);
       }
       
     } catch (error) {
@@ -260,91 +164,57 @@ export default function BoatModelsView() {
 
   useEffect(() => {
     if (currentBoat) {
-      // 增加一个日志，方便我们在浏览器控制台查看数据是否正确
-      console.log("Current boat selected, attempting to set form values:", currentBoat);
-      // 使用 setTimeout 确保在 Form 组件完全渲染后再执行 setFieldsValue
-      // 这可以解决因组件渲染时序导致的问题
       setTimeout(() => {
         form.setFieldsValue(currentBoat);
       }, 0);
     }
   }, [currentBoat, form]);
 
-  // --- Column and selection definitions for Boat List ---
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: onSelectChange,
-  };
-
-  const columns = [
-    { title: '船名', dataIndex: 'boatName', key: 'boatName', width: 150 },
-    { title: '模型名', dataIndex: 'modelName', key: 'modelName', width: 150 },
-    { 
-      title: '船舶类型', 
-      dataIndex: 'category', 
-      key: 'category', 
-      width: 120,
-      render: (category) => boatTypeMap[category] || category,
-    },
-  ];
-
-  const handleRowClick = (record) => {
-    setCurrentBoat(record);
-    const correspondingModel = models.find(m => m.modelName === record.modelName);
-    if (correspondingModel) {
-      setCurrentModel(correspondingModel);
-      messageApi.info(`已选择船舶: ${record.boatName}`);
-    } else {
-      // 即使在 mock models 中找不到，也创建一个基础对象
-      // 这样右侧面板就能知道模型名，并显示“上传”按钮
-      setCurrentModel({ modelName: record.modelName, storagePath: '' });
-      messageApi.warning(`未找到 ${record.boatName} 关联的详细模型数据`);
-    }
-  };
-  // --- End definitions ---
-
-  // 为新的 Tabs items API 准备数据
   const tabItems = [
     {
       key: '1',
       label: '船舶基础信息',
       children: (
-        <BoatInfoPanel
-          boat={currentBoat}
-          boatCategories={boatCategories}
-          form={form}
-          onUpdate={handleUpdateBoat}
-          isSubmitting={isSubmitting}
-        />
+        <div className="admin-boat-model-tab-pane">
+          <BoatInfoPanel
+            boat={currentBoat}
+            boatCategories={boatCategories}
+            form={form}
+            onUpdate={handleUpdateBoat}
+            isSubmitting={isSubmitting}
+          />
+        </div>
       ),
     },
     {
       key: '2',
       label: '模型参数配置',
       children: (
-        <ModelParametersPanel
-          model={currentModel}
-          onModelChange={handleModelChange}
-        />
+        <div className="admin-boat-model-tab-pane">
+          <ModelParametersPanel
+            boat={currentBoat}
+            // onModelChange is now handled internally or via form
+          />
+        </div>
       ),
     },
     {
       key: '3',
       label: 'Inspector',
-      children: <Inspector />,
+      children: <div className="admin-boat-model-tab-pane"><Inspector /></div>,
     },
     {
       key: '4',
       label: 'Inspector01',
-      children: <Inspector01 />,
+      children: <div className="admin-boat-model-tab-pane"><Inspector01 /></div>,
     },
   ];
 
   return (
-    <div style={{ padding: '1px' }}>
-      <Row gutter={16} style={{ height: 'calc(100vh - 120px)' }}>
-        {/* 左侧列表 (from BoatsView) */}
-        <Col span={8}>
+    <div style={{ height: 'calc(100vh - 160px)', display: 'flex', flexDirection: 'column', padding: '1px' }}>
+      <Row gutter={16} style={{ flex: 1, overflow: 'hidden' }}>
+        {/* 左侧列表 */}
+        <Col span={8} style={{ height: '100%' }}>
           <BoatListSider
             loading={loading}
             boats={boats}
@@ -355,16 +225,20 @@ export default function BoatModelsView() {
             onDelete={handleDelete}
             onCategoryChange={(value) => fetchBoats({ category: value })}
             onSelectChange={onSelectChange}
-            onRowClick={handleRowClick}
+            onRowClick={(record) => {
+              setCurrentBoat(record);
+              messageApi.info(`已选择船舶: ${record.boatName}`);
+            }}
+            boatTypeMap={boatTypeMap}
           />
         </Col>
 
-        {/* 中间预览 - 使用原生div替代Card以解决事件穿透问题 */}
-        <Col span={8} style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* 中间预览 */}
+        <Col span={8} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <div style={{ 
             border: '1px solid #f0f0f0', 
             borderRadius: '8px', 
-            height: '100%', 
+            flex: 1, 
             display: 'flex', 
             flexDirection: 'column',
             backgroundColor: '#ffffff'
@@ -377,11 +251,11 @@ export default function BoatModelsView() {
               模型预览
             </div>
             <div style={{ flex: 1, position: 'relative' }}>
-              {currentModel ? (
+              {currentBoat ? (
                 <ShipScene 
                   modelConfig={{
-                    id: currentModel.id,
-                    model: { path: currentModel.modelUrl }
+                    id: currentBoat.ID,
+                    model: { path: `${fbxBaseUrl}${currentBoat.boatEnName}/scene.gltf` }
                   }} 
                 />
               ) : (
@@ -392,44 +266,32 @@ export default function BoatModelsView() {
         </Col>
 
         {/* 右侧详情与参数 */}
-        <Col span={8}>
+        <Col span={8} style={{ height: '100%' }}>
           <Card 
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-            styles={{ body: { flex: 1, overflow: 'hidden', padding: 0 } }}
+            bodyStyle={{ flex: 1, overflow: 'hidden', padding: 0, minHeight: 0 }}
           >
             <Tabs 
               defaultActiveKey="1" 
-              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+              className="admin-boat-model-tabs"
+              style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
               tabBarStyle={{ paddingLeft: '24px', paddingRight: '24px', flexShrink: 0, marginBottom: 0 }}
               items={tabItems}
+              // This makes the content of the active tab scrollable
+              renderTabBar={(props, DefaultTabBar) => (
+                <DefaultTabBar {...props} />
+              )}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* 新增船舶模态框 */}
       <AddBoatModal
         open={isAddModalOpen}
         onCancel={() => setIsAddModalOpen(false)}
         onAddComplete={handleAddComplete}
         loading={isSubmitting}
       />
-
-      {/* 路径选择模态框 */}
-      <Modal
-        title="选择模型文件夹路径"
-        open={isPathModalVisible}
-        onOk={handlePathChange}
-        onCancel={() => setIsPathModalVisible(false)}
-        destroyOnHidden
-      >
-        <p>后端API暂未实现，请手动输入或粘贴路径。</p>
-        <Input 
-          value={tempPath}
-          onChange={(e) => setTempPath(e.target.value)}
-          placeholder="例如: /gltf/57sites/"
-        />
-      </Modal>
     </div>
   );
 }

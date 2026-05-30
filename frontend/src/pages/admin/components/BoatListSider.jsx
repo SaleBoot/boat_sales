@@ -13,16 +13,17 @@ const BoatListSider = ({
   onCategoryChange,
   onSelectChange,
   onRowClick,
+  boatTypeMap,
 }) => {
   const columns = [
     { title: '船名', dataIndex: 'boatName', key: 'boatName', width: 150 },
-    { title: '模型名', dataIndex: 'modelName', key: 'modelName', width: 150 },
+    { title: '船舶英文名', dataIndex: 'boatEnName', key: 'boatEnName', width: 150 },
     {
-      title: '船舶类型',
+      title: '船舶类别',
       dataIndex: 'category',
       key: 'category',
       width: 120,
-      // Note: The mapping logic will be handled in the parent component
+      render: (category) => boatTypeMap[category] || category,
     },
   ];
 
@@ -35,7 +36,11 @@ const BoatListSider = ({
 
   return (
     <ConfigProvider theme={{ algorithm: compactAlgorithm }}>
-      <Card title="船舶列表">
+      <Card 
+        title="船舶列表"
+        style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+        bodyStyle={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      >
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
             <Button icon={<RedoOutlined />} onClick={onRefresh}>刷新</Button>
@@ -44,7 +49,7 @@ const BoatListSider = ({
           </Space>
         </div>
         <Select
-          placeholder="按船舶类型查询..."
+          placeholder="按船舶类别查询..."
           style={{ width: '100%', marginBottom: 16 }}
           onChange={onCategoryChange}
           onClear={() => onCategoryChange(null)}
@@ -56,18 +61,19 @@ const BoatListSider = ({
             </Select.Option>
           ))}
         </Select>
-        <Table
-          rowSelection={rowSelection}
-          columns={columns}
-          dataSource={boats}
-          rowKey="ID"
-          loading={loading}
-          pagination={{ pageSize: 8 }}
-          onRow={(record) => ({
-            onClick: () => onRowClick(record),
-          })}
-          scroll={{ y: 'calc(100vh - 400px)' }}
-        />
+        <div style={{ flex: 1, overflow: 'auto' }}>
+          <Table
+            rowSelection={rowSelection}
+            columns={columns}
+            dataSource={boats}
+            rowKey="ID"
+            loading={loading}
+            pagination={{ pageSize: 8 }}
+            onRow={(record) => ({
+              onClick: () => onRowClick(record),
+            })}
+          />
+        </div>
       </Card>
     </ConfigProvider>
   );
