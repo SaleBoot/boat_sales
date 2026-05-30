@@ -291,6 +291,25 @@ export default function ShipScene({
   const [loadingState, setLoadingState] = useState(() => createInitialLoadingState(hasRenderableModel))
   const [isLoadingHudVisible, setIsLoadingHudVisible] = useState(true)
   const [sceneError, setSceneError] = useState('')
+
+  useEffect(() => {
+    if (loadingOverlayTimerRef.current) {
+      window.clearTimeout(loadingOverlayTimerRef.current)
+      loadingOverlayTimerRef.current = null
+    }
+
+    modeRef.current = 'exterior'
+    cameraRef.current = null
+    loadedRootRef.current = null
+    focusCoordinateRootRef.current = null
+    transformControlsRef.current?.detach?.()
+    setActiveView('exterior')
+    setIsSceneLoading(true)
+    setIsLoadingHudVisible(true)
+    setSceneError('')
+    setLoadingState(createInitialLoadingState(hasRenderableModel))
+  }, [modelId, effectiveModelPath, hasRenderableModel])
+
   // 初始化threejs 场景
   const threeContext = useThree(canvasRef, {
     isStudioLook,
@@ -705,13 +724,11 @@ export default function ShipScene({
       loadingTracker.dispose()
       window.cancelAnimationFrame(frameId)
        
-      controls.dispose()
       if (transformControls) {
         transformControls.dispose()
         scene.remove(transformControls)
         transformControlsRef.current = null
       }
-
 
       disposeLoadedRoot({
         loadedRoot,
@@ -719,27 +736,11 @@ export default function ShipScene({
         transformControls
       })
 
-      scene.environment = null
-      reflectionEnvironment.dispose()
-      environmentTexture.dispose()
-      pmremGenerator.dispose()
       externalTextures.forEach((texture) => texture?.dispose())
       controlsRef.current = null
       cameraRef.current = null
       loadedRootRef.current = null
       focusCoordinateRootRef.current = null
-
-      if (waterSurface) {
-        waterRoot.remove(waterSurface.mesh)
-        waterSurface.geometry.dispose()
-        waterSurface.material.dispose()
-      }
-      if (interiorSkySphere) {
-        scene.remove(interiorSkySphere.mesh)
-        interiorSkySphere.geometry.dispose()
-        interiorSkySphere.material.dispose()
-        interiorSkySphere.texture.dispose()
-      }
 
       stageRoot.traverse((child) => {
         if (!child.isMesh) {
@@ -749,8 +750,7 @@ export default function ShipScene({
         child.geometry?.dispose()
         child.material?.dispose?.()
       })
-
-      renderer.dispose()
+      stageRoot.clear()
     }
   }, [
     compositeParts,
@@ -766,7 +766,8 @@ export default function ShipScene({
     shouldShowWaterSurface,
     uvSets,
     stabilizedSmartSystemPreset,
-    focusTargetStrategy
+    focusTargetStrategy,
+    threeContext
   ])
 
   useEffect(() => {
@@ -785,6 +786,11 @@ export default function ShipScene({
     )
     setFocusTargetRef.current(appliedFocusTarget)
     const nextFocusPreset = resolvedOrderFocusPresets[appliedFocusTarget] ?? resolvedOrderFocusPresets.exterior ?? resolvedOrderFocusPresets.overview
+    if (appliedFocusTarget === 'exterior') {
+      setActiveView('exterior')
+      return
+    }
+
     if (nextFocusPreset.cameraMode === CAMERA_MODE_FIRST_PERSON || nextFocusPreset.type === 'interior') {
       setActiveView('interior')
       return

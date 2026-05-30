@@ -20,14 +20,15 @@ import {
 } from '../constants/constants_ship_scene.js';
 
 // 将“原材料名称”转化为一种标准化的、只有小写字母和数字的格式。
+// "nsuv2_03 - Default_BaseColor.png" --> "nsuv203defaultbasecolorpng"
 export function normalizeMaterialName(value) {
   if (!value) {
     return ''
-  }
+  } 
 
   return value
     .toLowerCase()  // 统一转小写
-    // 删除前缀 m
+    // 删掉开头的 m_ 或 m-
     // ^m：匹配字符串开头的一个字符 m。
     // [_\s-]*：匹配后面跟着的任意个（0个或多个）下划线 _、空格 \s 或连字符 -。
     .replace(/^m[_\s-]*/, '')
@@ -83,11 +84,12 @@ export function getAssetDisplayLabel(assetPath) {
 
 
 export function getStaticAssetBaseUrl(staticAssetOrigin, fallbackBaseUrl) {
+  // 1如果显式传了 `staticAssetOrigin`，优先用它
   const explicitOrigin = `${staticAssetOrigin ?? ''}`.trim()
   if (explicitOrigin) {
     return normalizeBaseUrl(explicitOrigin)
   }
-
+  // 2否则在浏览器环境下根据当前 `window.location.pathname` 推断基础路径
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname || '/'
     const basePath = pathname.endsWith('/')
@@ -96,7 +98,7 @@ export function getStaticAssetBaseUrl(staticAssetOrigin, fallbackBaseUrl) {
 
     return normalizeBaseUrl(basePath || '/')
   }
-
+  // 3. 最后退回 `fallbackBaseUrl`
   return normalizeBaseUrl(fallbackBaseUrl)
 }
 
@@ -227,6 +229,7 @@ export function getColorConfigMaterialSlots(colorConfig) {
   return new Set(
     colorConfig.materialSlots
       .map((slot) => normalizeMaterialName(slot))
+      // filter 用于过滤数组，它会把数组中的每个元素传入 Boolean() 进行检查，只保留结果为 true 的元素。
       .filter(Boolean)
   )
 }
@@ -265,6 +268,11 @@ export function materialMatchesOverrideSlots(material, override) {
   return override?.materialSlots?.has(normalizeMaterialName(material?.name))
 }
 // ----
+// 作用：从材质层面筛掉不适合做颜色染色的对象。
+// 这是一条非常典型的“视觉质量规则”：
+// - 玻璃不应该跟着船体配色染色 
+// - 金属和栏杆通常也不应该
+// 否则最终画面会很假。
 export function isColorTintCandidate(material, options = {}) {
   const { allowHighMetalness = false } = options
   if (!material) {

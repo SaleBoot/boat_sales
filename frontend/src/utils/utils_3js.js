@@ -578,6 +578,7 @@ export function applyDitherFadeMaterial(material, opacity = 0.45) {
       }
 
       shader.uniforms.uDitherOpacity = ditherUniforms.uDitherOpacity
+      // salesboatDitherThreshold实现了一个经典的 4x4 有序抖动矩阵（Bayer Matrix）
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',

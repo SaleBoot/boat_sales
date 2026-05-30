@@ -23,9 +23,9 @@ const orderStageOptions = [
 const stepFocusTargets = {
   船型: 'exterior',
   外观: 'exterior',
-  内饰: 'interior',
+  内饰: 'exterior',
   动力: 'engine',
-  选装: 'console'
+  选装: 'exterior'
 }
 
 const COMPACT_STEP_WHEEL_LOCK_MS = 520
@@ -323,9 +323,7 @@ export default function OrderPage() {
     () => getMaterialOverridesForOptionalSelection(activeOrderConfig.optionalSeriesOptions, selectedOptionalIds),
     [activeOrderConfig.optionalSeriesOptions, selectedOptionalIds]
   )
-  const sceneFocusTarget = activeConfigStep === '选装' && activeOptionalFocusTarget
-    ? activeOptionalFocusTarget
-    : stepFocusTargets[activeConfigStep] ?? 'exterior'
+  const sceneFocusTarget = 'exterior'
 
   const totalPrice = (activeModelReferencePrice ?? 0)
     + (activeAppearance?.price ?? 0)
@@ -503,6 +501,7 @@ export default function OrderPage() {
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category)
+    setActiveConfigStep('船型')
     const nextModel = models.find((model) => getCategoryForModel(model) === category)
     if (nextModel) {
       onSelectModel(nextModel.id)
@@ -628,6 +627,7 @@ export default function OrderPage() {
             <div className="order-scene-panel">
               {activeModel ? (
                 <ShipScene
+                  key={activeModel.id}
                   modelConfig={activeModel}
                   focusTarget={sceneFocusTarget}
                   focusTargetPresets={effectiveFocusTargets}
@@ -685,7 +685,7 @@ export default function OrderPage() {
                     key={model.id}
                     type="button"
                     className={`order-model-card ${isActive ? 'active' : ''}`}
-                    onClick={() => onSelectModel(model.id)}
+                    onClick={() => { setActiveConfigStep('船型'); onSelectModel(model.id) }}
                   >
                     <div className="order-model-card-copy">
                       <p className="order-model-category">{getCategoryForModel(model)}</p>

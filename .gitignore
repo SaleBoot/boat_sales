@@ -11,3 +11,4 @@ service/
 temp/
 SalesBoat-code-only-20260514-013133.zip
 salesboat-deploy.zip
+backend/test.db

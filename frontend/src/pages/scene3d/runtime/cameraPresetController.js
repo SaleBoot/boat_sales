@@ -187,7 +187,15 @@ export function createCameraPresetController({
     const latestFocusPresets = resolvedOrderFocusPresetsRef.current
     const preset = target === 'smart-system' && stabilizedSmartSystemPreset
       ? stabilizedSmartSystemPreset
+      : target === 'exterior'
+      ? latestFocusPresets.exterior
       : (latestFocusPresets[target] ?? latestFocusPresets.exterior ?? latestFocusPresets.overview)
+
+    if (target === 'exterior') {
+      setViewPreset('exterior', interiorDeckRef.current, preset)
+      return
+    }
+
     if (preset.cameraMode === CAMERA_MODE_FIRST_PERSON || preset.type === 'interior') {
       setViewPreset('interior', preset.deck ?? '1', preset)
       return
