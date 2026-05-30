@@ -18,7 +18,7 @@ import {
   RedoOutlined,
 } from '@ant-design/icons';
 import ShipScene from '../../scene3d/ShipScene.jsx';
-import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats } from '../../../apis/adminApi';
+import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats, getAllCosModelPaths } from '../../../apis/adminApi';
 import BoatListSider from '../components/BoatListSider';
 import BoatInfoPanel from '../components/BoatInfoPanel.jsx';
 import ModelParametersPanel from '../components/ModelParametersPanel.jsx';
@@ -39,6 +39,9 @@ export default function BoatModelsView() {
   const [currentBoat, setCurrentBoat] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [boatCategories, setBoatCategories] = useState([]);
+  const [modelFolders, setModelFolders] = useState([]);
+  const [isLoadingModelFolders, setIsLoadingModelFolders] = useState(false);
+  const [selectedRuntimeModelPath, setSelectedRuntimeModelPath] = useState('');
   const [form] = Form.useForm();
 
   const remoteFBXOrigin = import.meta.env.VITE_REMOTE_FBX_ORIGIN;
@@ -77,6 +80,7 @@ export default function BoatModelsView() {
       console.error("Failed to fetch boats:", error);
     } finally {
       setLoading(false);
+      setIsLoadingModelFolders(false);
     }
   };
 
@@ -113,6 +117,11 @@ export default function BoatModelsView() {
     }
   };
 
+  const handleRuntimeModelChange = (path) => {
+    console.log("setSelectedRuntimeModelPath=",path)
+    setSelectedRuntimeModelPath(path);
+  };
+
   const handleUpdateBoat = async (values) => {
     if (!currentBoat) {
       messageApi.error('请先选择一艘船');
@@ -132,13 +141,16 @@ export default function BoatModelsView() {
 
   const fetchInitialData = async () => {
     setLoading(true);
+    setIsLoadingModelFolders(true);
     try {
-      const [categoriesResponse, boatsResponse] = await Promise.all([
+      const [categoriesResponse, boatsResponse, modelFoldersResponse] = await Promise.all([
         getBoatCategories(),
         getBoats(),
+        getAllCosModelPaths(),
       ]);
       
       setBoatCategories(categoriesResponse || []);
+      setModelFolders(modelFoldersResponse?.modelFolders || []);
 
       const boatsData = (boatsResponse || []).map(({ id, Id, iD, ID, ...rest }) => ({
         ID: id ?? Id ?? iD ?? ID,
@@ -155,6 +167,7 @@ export default function BoatModelsView() {
       console.error("Failed to fetch initial data:", error);
     } finally {
       setLoading(false);
+      setIsLoadingModelFolders(false);
     }
   };
 
@@ -193,7 +206,10 @@ export default function BoatModelsView() {
         <div className="admin-boat-model-tab-pane">
           <ModelParametersPanel
             boat={currentBoat}
-            // onModelChange is now handled internally or via form
+            modelFolders={modelFolders}
+            isLoadingModelFolders={isLoadingModelFolders}
+            onModelChange={handleRuntimeModelChange}
+            runtimeModelPath={selectedRuntimeModelPath}
           />
         </div>
       ),
@@ -227,6 +243,7 @@ export default function BoatModelsView() {
             onSelectChange={onSelectChange}
             onRowClick={(record) => {
               setCurrentBoat(record);
+              setSelectedRuntimeModelPath(''); // 重置预览模型路径
               messageApi.info(`已选择船舶: ${record.boatName}`);
             }}
             boatTypeMap={boatTypeMap}
@@ -252,11 +269,14 @@ export default function BoatModelsView() {
             </div>
             <div style={{ flex: 1, position: 'relative' }}>
               {currentBoat ? (
-                <ShipScene 
+                <ShipScene
                   modelConfig={{
                     id: currentBoat.ID,
-                    model: { path: `${fbxBaseUrl}${currentBoat.boatEnName}/scene.gltf` }
-                  }} 
+                    model: {
+                      path: selectedRuntimeModelPath ? `${remoteFBXOrigin}${selectedRuntimeModelPath}` : undefined,
+                      format: selectedRuntimeModelPath.split('.').pop()?.toLowerCase(),
+                    },
+                  }}
                 />
               ) : (
                 <Empty description="请在左侧选择一个模型进行预览" />

@@ -1,64 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Descriptions, Input, Button, Empty, message as staticMessage, Select, Typography, App, Space, Collapse, Radio } from 'antd';
-import { getAllCosModelPaths, getDescendantFilesByPath } from '../../../apis/adminApi';
 
 const { Title } = Typography;
 
-const ModelParametersPanel = ({ boat, onModelChange }) => {
+const ModelParametersPanel = ({ boat,     
+  modelFolders = [], 
+  isLoadingModelFolders = false, 
+  onModelChange, 
+  runtimeModelPath
+   }) => {
   const { message } = App.useApp();
-  const [cosPaths, setCosPaths] = useState([]);
+  const [selectedModelFolderName, setSelectedModelFolderName] = useState('');
   const [files, setFiles] = useState([]);
-  const [isLoadingPaths, setIsLoadingPaths] = useState(false);
-  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+
+  const cosPaths = useMemo(() => (
+    modelFolders.map((folder) => ({
+      label: folder.modelFolderName,
+      value: folder.modelFolderName,
+    }))
+  ), [modelFolders]);
 
   useEffect(() => {
-    const fetchPaths = async () => {
-      if (!boat) {
-        setCosPaths([]);
-        return;
-      }
-      setIsLoadingPaths(true);
-      try {
-        // The API returns an object like { directories: [...] }
-        const response = await getAllCosModelPaths();
-        // We need to extract the array from the response object.
-        const directories = response.directories || [];
-        const formattedPaths = directories.map(p => ({ label: p, value: p }));
-        setCosPaths(formattedPaths);
-      } catch (error) {
-        console.error('Failed to fetch COS paths:', error);
-        message.error('获取模型路径列表失败');
-      } finally {
-        setIsLoadingPaths(false);
-      }
-    };
+    setSelectedModelFolderName('')
+    setFiles([])
+  }, [boat?.ID]);
 
-    fetchPaths();
-  }, [boat]);
+  useEffect(() => {
+    if (!selectedModelFolderName) {
+      setFiles([])
+      return
+    }
 
-  const handlePathSelect = async (selectedPath) => {
-    if (onModelChange) {
-      onModelChange({ storagePath: selectedPath || '' });
-    }
-    if (selectedPath) {
-      setIsLoadingFiles(true);
-      try {
-        const response = await getDescendantFilesByPath(selectedPath);
-        setFiles(response.files || []);
-      } catch (error) {
-        console.error('Failed to fetch files:', error);
-        message.error('获取文件列表失败');
-      } finally {
-        setIsLoadingFiles(false);
-      }
-    } else {
-      setFiles([]);
-    }
+    const matchedFolder = modelFolders.find((folder) => folder.modelFolderName === selectedModelFolderName)
+    setFiles((matchedFolder?.descendantFiles || []).map((file) => ({ key: file })))
+  }, [modelFolders, selectedModelFolderName]);
+
+  const handlePathSelect = (selectedPath) => {
+    setSelectedModelFolderName(selectedPath || '')
   };
 
   const handleRuntimeModelChange = (e) => {
     if (onModelChange) {
-      onModelChange({ runtimeModelPath: e.target.value });
+      onModelChange(e.target.value);
     }
   };
 
@@ -86,10 +69,10 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
           <Space.Compact style={{ display: 'flex' }}>
             <Select
               style={{ flex: 1 }}
-              value={boat?.storagePath || undefined} // This needs to be updated for the new data model
+              value={selectedModelFolderName || undefined}
               placeholder={boat ? "选择现有路径或上传新模型" : "请先选择一艘船"}
               disabled={!boat}
-              loading={isLoadingPaths}
+              loading={isLoadingModelFolders}
               onChange={handlePathSelect}
               options={cosPaths}
               allowClear
@@ -108,9 +91,7 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
 
       <Collapse defaultActiveKey={['1']} style={{ marginTop: '16px' }}>
         <Collapse.Panel header="模型资源" key="1">
-          {isLoadingFiles ? (
-            <p>加载中...</p>
-          ) : files.length > 0 ? (
+          {files.length > 0 ? (
             (() => {
               const modelFiles = files.filter(file => 
                 file.key.toLowerCase().endsWith('.fbx') || file.key.toLowerCase().endsWith('.glb')
@@ -137,7 +118,7 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
                         <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择运行时模型:</div>
                         <Radio.Group
                           onChange={handleRuntimeModelChange}
-                          value={boat?.runtimeModelPath}
+                          value={runtimeModelPath || undefined}
                           style={{ display: 'flex', flexDirection: 'column' }}
                         >
                           {Object.entries(groupedModels).map(([baseName, filesInGroup], index) => (
@@ -148,7 +129,7 @@ const ModelParametersPanel = ({ boat, onModelChange }) => {
                               </div>
                               {filesInGroup.map(file => (
                                 <Radio key={file.key} value={file.key} style={{ paddingLeft: '8px' }}>
-                                  {file.key.toLowerCase().endsWith('.glb') ? 'GLB 版本' : file.key.toLowerCase().endsWith('.fbx') ? 'FBX 版本' : file.key}
+                                  {file.key.toLowerCase().endsWith('.glb') ? `GLB 版本 (${file.key})` : file.key.toLowerCase().endsWith('.fbx') ? `FBX 版本 (${file.key})` : file.key}
                                 </Radio>
                               ))}
                             </React.Fragment>
