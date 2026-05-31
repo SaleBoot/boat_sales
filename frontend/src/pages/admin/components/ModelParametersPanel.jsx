@@ -340,15 +340,23 @@ const ModelParametersPanel = ({ boat,
                   </Popconfirm>
                 }
               >
-                <Form layout="vertical" size="small">
-                  <Form.Item label="样式名称 (ModelName)" style={{ marginBottom: '8px' }}>
+                <Form layout="horizontal" size="small">
+                  <Form.Item
+                    label="样式名称"
+                    labelCol={{ span: 6 }}
+                    wrapperCol={{ span: 18 }}
+                    style={{ marginBottom: '8px' }}
+                  >
                     <Input
                       value={model.modelName}
                       onChange={(e) => handleModelChange(index, 'modelName', e.target.value)}
-                      placeholder="例如 01, 02..."
+                      placeholder="例如：运动版"
                     />
                   </Form.Item>
-                  <Form.Item label="运行时模型路径 (ModelRuntimePath)" style={{ marginBottom: '8px' }}>
+                  <Form.Item label="运行时模型路径 (ModelRuntimePath)" 
+                        labelCol={{ span: 24 }}
+                        wrapperCol={{ span: 24 }}
+                        style={{ marginBottom: '8px' }}>
                     <Space.Compact style={{ width: '100%' }}>
                       <Select
                         value={model.modelRuntimePath || undefined}
