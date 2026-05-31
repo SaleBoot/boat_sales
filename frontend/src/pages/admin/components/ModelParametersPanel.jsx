@@ -168,126 +168,144 @@ const ModelParametersPanel = ({ boat,
     {
       key: '1',
       label: '模型资源浏览',
+
       children: (
         <>
           {files.length > 0 ? (
             (() => {
-              const adImages = files.filter(file => {
-                const lowerKey = file.key.toLowerCase();
-                const fileName = lowerKey.substring(lowerKey.lastIndexOf('/') + 1);
-                return fileName.startsWith('adimg') && (lowerKey.endsWith('.png') || lowerKey.endsWith('.jpg') || lowerKey.endsWith('.jpeg'));
-              });
+              // 1. 按子文件夹分组
+              // 这是新代码
+              const groupedBySubfolder = files.reduce((acc, file) => {
+                // 构造要查找的父文件夹路径，确保末尾有斜杠
+                const parentPath = `${selectedModelFolderName}/`;
+                const parentPathIndex = file.key.indexOf(parentPath);
 
-              const modelFiles = files.filter(file => 
-                file.key.toLowerCase().endsWith('.fbx') || file.key.toLowerCase().endsWith('.glb')
-              );
-              const otherFiles = files.filter(file => 
-                !adImages.some(img => img.key === file.key) && 
-                !modelFiles.some(mf => mf.key === file.key)
-              );
+                // 如果文件路径不包含父文件夹，则跳过
+                if (parentPathIndex === -1) {
+                  return acc;
+                }
 
+                // 提取父文件夹之后的部分
+                const remainingPath = file.key.substring(parentPathIndex + parentPath.length);
+                const remainingParts = remainingPath.split('/');
+
+                let subfolder;
+                // 如果剩余部分包含斜杠，说明文件在子文件夹内
+                if (remainingParts.length > 1) {
+                  subfolder = remainingParts[0]; // 这就是子文件夹名，例如 '57sites01'
+                } else {
+                  // 否则，文件直接在父文件夹下
+                  subfolder = '(根目录文件)';
+                }
+
+                if (!acc[subfolder]) {
+                  acc[subfolder] = [];
+                }
+                acc[subfolder].push(file);
+                return acc;
+              }, {});
+
+              const subfolders = Object.keys(groupedBySubfolder);
+              if (subfolders.length === 0) {
+                return <Empty description="没有找到子文件夹" />;
+              }
+
+              // 2. 为每个子文件夹创建一个 Collapse
               return (
-                <div>
-                  {adImages.length > 0 && (
-                    <>
-                      <Collapse size="small" ghost defaultActiveKey={['1']}>
-                        <Collapse.Panel header={`宣传图预览 (${adImages.length}张)`} key="1">
-                          <Image.PreviewGroup>
-                            <Space wrap>
-                              {adImages.map(image => (
-                                <Image
-                                  key={image.key}
-                                  width={80}
-                                  height={80}
-                                  src={`${cosOrigin}/${image.key}`}
-                                  alt={image.key}
-                                  style={{ objectFit: 'cover' }}
-                                />
-                              ))}
-                            </Space>
-                          </Image.PreviewGroup>
-                        </Collapse.Panel>
-                      </Collapse>
-                      {(modelFiles.length > 0 || otherFiles.length > 0) && <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
-                    </>
-                  )}
+                <Collapse defaultActiveKey={subfolders}>
+                  {subfolders.map(subfolder => {
+                    const subfolderFiles = groupedBySubfolder[subfolder];
 
-                  {modelFiles.length > 0 && (() => {
-                    const groupedModels = modelFiles.reduce((acc, file) => {
-                      const path = file.key;
-                      const lastDotIndex = path.lastIndexOf('.');
-                      const baseName = lastDotIndex === -1 ? path : path.substring(0, lastDotIndex);
+                    // 3. 在每个子文件夹内部进行分类
+                    const adImages = subfolderFiles.filter(file => {
+                      const lowerKey = file.key.toLowerCase();
+                      const fileName = lowerKey.substring(lowerKey.lastIndexOf('/') + 1);
+                      return fileName.startsWith('adimg') && (lowerKey.endsWith('.png') || lowerKey.endsWith('.jpg') || lowerKey.endsWith('.jpeg'));
+                    });
 
-                      if (!acc[baseName]) {
-                        acc[baseName] = [];
-                      }
-                      acc[baseName].push(file);
-                      return acc;
-                    }, {});
+                    const modelFiles = subfolderFiles.filter(file => 
+                      file.key.toLowerCase().endsWith('.fbx') || file.key.toLowerCase().endsWith('.glb')
+                    );
+                    
+                    const otherFiles = subfolderFiles.filter(file => 
+                      !adImages.some(img => img.key === file.key) && 
+                      !modelFiles.some(mf => mf.key === file.key)
+                    );
 
                     return (
-                      <>
-                        <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择模型进行预览:</div>
-                        <Radio.Group
-                          onChange={handleRuntimeModelChange}
-                          value={runtimeModelPath || undefined}
-                          style={{ display: 'flex', flexDirection: 'column' }}
-                        >
-                          {Object.entries(groupedModels).map(([baseName, filesInGroup], index) => (
-                            <React.Fragment key={baseName}>
-                              {index > 0 && <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
-                              <div style={{ marginTop: '8px', marginBottom: '4px', fontWeight: 500, color: 'rgba(0, 0, 0, 0.88)' }}>
-                                {baseName.substring(baseName.lastIndexOf('/') + 1)}
-                              </div>
-                              {filesInGroup.map(file => (
-                                <Radio key={file.key} value={file.key} style={{ paddingLeft: '8px' }}>
-                                  {file.key.toLowerCase().endsWith('.glb') ? `GLB 版本 (${file.key})` : file.key.toLowerCase().endsWith('.fbx') ? `FBX 版本 (${file.key})` : file.key}
-                                </Radio>
-                              ))}
-                            </React.Fragment>
-                          ))}
-                        </Radio.Group>
-                      </>
-                    );
-                  })()}
-                  {otherFiles.length > 0 && (() => {
-                    const groupedFiles = otherFiles.reduce((acc, file) => {
-                      const path = file.key;
-                      const lastSlashIndex = path.lastIndexOf('/');
-                      const dir = lastSlashIndex === -1 ? '(根目录)' : path.substring(0, lastSlashIndex);
-                      const filename = lastSlashIndex === -1 ? path : path.substring(lastSlashIndex + 1);
+                      <Collapse.Panel header={subfolder} key={subfolder}>
+                        {adImages.length > 0 && (
+                          <>
+                            <Collapse size="small" ghost defaultActiveKey={['1']}>
+                              <Collapse.Panel header={`宣传图预览 (${adImages.length}张)`} key="1">
+                                <Image.PreviewGroup>
+                                  <Space wrap>
+                                    {adImages.map(image => (
+                                      <Image
+                                        key={image.key}
+                                        width={80}
+                                        height={80}
+                                        src={`${cosOrigin}/${image.key}`}
+                                        alt={image.key}
+                                        style={{ objectFit: 'cover' }}
+                                      />
+                                    ))}
+                                  </Space>
+                                </Image.PreviewGroup>
+                              </Collapse.Panel>
+                            </Collapse>
+                            {(modelFiles.length > 0 || otherFiles.length > 0) && <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
+                          </>
+                        )}
 
-                      if (!acc[dir]) {
-                        acc[dir] = [];
-                      }
-                      acc[dir].push(filename);
-                      return acc;
-                    }, {});
 
-                    return (
-                      <>
-                        {modelFiles.length > 0 && <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
-                        <div style={{ marginTop: '8px', fontWeight: 500 }}>其他资源文件:</div>
-                        {Object.entries(groupedFiles).map(([dir, filesInDir]) => (
-                          <div key={dir} style={{ marginTop: '8px' }}>
-                            <div style={{ color: 'rgba(0, 0, 0, 0.85)', paddingLeft: '8px' }}>{dir}</div>
-                            <ul style={{ listStyleType: 'none', paddingLeft: '24px', margin: '4px 0 0 0' }}>
-                              {filesInDir.map((filename, index) => (
-                                <li key={index} style={{ padding: '2px 0', color: 'rgba(0, 0, 0, 0.45)' }}>
-                                  {filename}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </>
+                        {modelFiles.length > 0 && (
+                          <>
+                            <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择模型进行预览:</div>
+                            <Radio.Group
+                              value={runtimeModelPath}
+                              onChange={(e) => onModelChange(e.target.value)}
+                              style={{ width: '100%' }}
+                            >
+                              <Space direction="vertical" style={{ width: '100%' }}>
+                                {modelFiles.map(file => (
+                                  <Radio key={file.key} value={file.key}>
+                                    {file.key.substring(file.key.lastIndexOf('/') + 1)}
+                                  </Radio>
+                                ))}
+                              </Space>
+                            </Radio.Group>
+                          </>
+                        )}
+
+
+ 
+			{otherFiles.length > 0 && (
+			  <>
+			    {(modelFiles.length > 0 || adImages.length > 0) && <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
+			    <Collapse size="small" ghost>
+			      <Collapse.Panel header={`其他资源文件 (${otherFiles.length}个)`} key="other-files">
+			        <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0, maxHeight: '200px', overflowY: 'auto' }}>
+			          {otherFiles.map(file => (
+			            <li key={file.key} style={{ padding: '2px 0' }}>
+			              <Typography.Text type="secondary">{file.key}</Typography.Text>
+			            </li>
+			          ))}
+			        </ul>
+			      </Collapse.Panel>
+			    </Collapse>
+			  </>
+			)}
+
+			
+                      </Collapse.Panel>
                     );
-                  })()}
-                </div>
+                  })}
+                </Collapse>
               );
             })()
           ) : (
-            <Empty description="没有文件" />
+            <Empty description="请先选择一个模型文件夹路径" />
           )}
         </>
       ),
