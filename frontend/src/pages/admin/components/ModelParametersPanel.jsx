@@ -312,7 +312,7 @@ const ModelParametersPanel = ({ boat,
     },
     {
       key: '2',
-      label: '默认样式模型编辑',
+      label: '默认样式编辑',
       children: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {boatModels.map((model, index) => {
