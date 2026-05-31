@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Descriptions, Input, Button, Empty, message as staticMessage, Select, Typography, App, Space, Collapse, Radio } from 'antd';
+import { Descriptions, Input, Button, Empty, message as staticMessage, Select, Typography, App, Space, Collapse, Radio, Card, Form, InputNumber, Popconfirm } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { getModelsByBoatEnName } from '../../../apis/adminApi';
 
 const { Title } = Typography;
 
@@ -12,6 +14,36 @@ const ModelParametersPanel = ({ boat,
   const { message } = App.useApp();
   const [selectedModelFolderName, setSelectedModelFolderName] = useState('');
   const [files, setFiles] = useState([]);
+  const [boatModels, setBoatModels] = useState([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+ 
+  useEffect(() => {
+    if (!boat?.boatEnName) {
+      setBoatModels([]);
+      return;
+    }
+
+    const fetchBoatModels = async () => {
+      setIsLoadingModels(true);
+      try {
+        const models = await getModelsByBoatEnName(boat.boatEnName);
+        setBoatModels(models || []);
+        if (models && models.length > 0) {
+          message.success(`成功获取 ${models.length} 个船型样式`);
+        } else {
+          message.info(`船型 ${boat.boatEnName} 没有找到相关样式配置`);
+        }
+      } catch (error) {
+        message.error('获取船型样式数据失败');
+        console.error('Failed to fetch boat models:', error);
+        setBoatModels([]);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+
+    fetchBoatModels();
+  }, [boat?.boatEnName, message]);
 
   const cosPaths = useMemo(() => (
     modelFolders.map((folder) => ({
@@ -23,7 +55,7 @@ const ModelParametersPanel = ({ boat,
   useEffect(() => {
     setSelectedModelFolderName('')
     setFiles([])
-  }, [boat?.ID]);
+  }, [boat?.boatEnName]);
 
   useEffect(() => {
     if (!selectedModelFolderName) {
@@ -49,6 +81,45 @@ const ModelParametersPanel = ({ boat,
     // TODO: 实现调用 updateModel API 的逻辑
     staticMessage.info('保存功能待实现');
   };
+
+  const handleModelChange = (index, field, value) => {
+    const newModels = [...boatModels];
+    newModels[index] = { ...newModels[index], [field]: value };
+    setBoatModels(newModels);
+  };
+
+  const addDefaultStyleModel = () => {
+    if (boatModels.length >= 4) {
+      message.warning('最多只能添加4个默认样式模型');
+      return;
+    }
+    setBoatModels([
+      ...boatModels,
+      {
+        boatEnName: boat?.boatEnName || '',
+        modelName: '',
+        modelRuntimePath: '',
+        exteriorName: '',
+        exteriorDescr: '',
+        exteriorAddedPrice: 0,
+        interiorName: '',
+        interiorDescr: '',
+        interiorAddedPrice: 0,
+        deckName: '',
+        deckDescr: '',
+        deckAddedPrice: 0,
+        powerName: '',
+        powerDescr: '',
+        powerAddedPrice: 0,
+      },
+    ]);
+  };
+
+  const removeDefaultStyleModel = (index) => {
+    const newModels = boatModels.filter((_, i) => i !== index);
+    setBoatModels(newModels);
+  };
+
 
   if (!boat) {
     return <Empty description="请先在左侧选择一艘船" style={{ paddingTop: '60px' }} />;
@@ -89,8 +160,8 @@ const ModelParametersPanel = ({ boat,
         </Descriptions.Item>
       </Descriptions>
 
-      <Collapse defaultActiveKey={['1']} style={{ marginTop: '16px' }}>
-        <Collapse.Panel header="模型资源" key="1">
+      <Collapse defaultActiveKey={['1', '2']} style={{ marginTop: '16px' }}>
+        <Collapse.Panel header="模型资源浏览" key="1">
           {files.length > 0 ? (
             (() => {
               const modelFiles = files.filter(file => 
@@ -177,6 +248,115 @@ const ModelParametersPanel = ({ boat,
           ) : (
             <Empty description="没有文件" />
           )}
+        </Collapse.Panel>
+        <Collapse.Panel header="默认样式模型编辑" key="2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {boatModels.map((model, index) => {
+              const runtimeModelOptions = files
+                .filter(file =>
+                  (file.key.toLowerCase().endsWith('.fbx') || file.key.toLowerCase().endsWith('.glb')) &&
+                  selectedModelFolderName &&
+                  file.key.startsWith(`${selectedModelFolderName}`)
+                )
+                .map(file => ({ label: file.key, value: file.key }));
+
+              return (
+                <Card
+                  key={index}
+                  title={`样式 ${index + 1}: ${model.modelName || '(未命名)'}`}
+                  size="small"
+                  extra={
+                    <Popconfirm
+                      title="确定要删除这个样式吗？"
+                      onConfirm={() => removeDefaultStyleModel(index)}
+                      okText="确定"
+                      cancelText="取消"
+                    >
+                      <Button icon={<DeleteOutlined />} danger type="link" />
+                    </Popconfirm>
+                  }
+                >
+                  <Form layout="vertical" size="small">
+                    <Form.Item label="样式名称 (ModelName)" style={{ marginBottom: '8px' }}>
+                      <Input
+                        value={model.modelName}
+                        onChange={(e) => handleModelChange(index, 'modelName', e.target.value)}
+                        placeholder="例如 01, 02..."
+                      />
+                    </Form.Item>
+                    <Form.Item label="运行时模型路径 (ModelRuntimePath)" style={{ marginBottom: '8px' }}>
+                      <Space.Compact style={{ width: '100%' }}>
+                        <Select
+                          value={model.modelRuntimePath || undefined}
+                          onChange={(value) => handleModelChange(index, 'modelRuntimePath', value)}
+                          options={runtimeModelOptions}
+                          placeholder="请从下方选择模型文件"
+                          disabled={!selectedModelFolderName}
+                          allowClear
+                          style={{ flex: 1 }}
+                        />
+                        <Button
+                          onClick={() => onModelChange(model.modelRuntimePath)}
+                          disabled={!model.modelRuntimePath}
+                        >
+                          预览
+                        </Button>
+                      </Space.Compact>
+                    </Form.Item>
+                    <Collapse size="small">
+                      <Collapse.Panel header="外观" key="exterior">
+                        <Form.Item label="外观名称" style={{ marginBottom: '8px' }}>
+                          <Input value={model.exteriorName} onChange={(e) => handleModelChange(index, 'exteriorName', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="外观描述" style={{ marginBottom: '8px' }}>
+                          <Input.TextArea rows={2} value={model.exteriorDescr} onChange={(e) => handleModelChange(index, 'exteriorDescr', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="外观加价" style={{ marginBottom: '8px' }}>
+                          <InputNumber value={model.exteriorAddedPrice} onChange={(value) => handleModelChange(index, 'exteriorAddedPrice', value)} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Collapse.Panel>
+                      <Collapse.Panel header="内饰" key="interior">
+                        <Form.Item label="内饰名称" style={{ marginBottom: '8px' }}>
+                          <Input value={model.interiorName} onChange={(e) => handleModelChange(index, 'interiorName', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="内饰描述" style={{ marginBottom: '8px' }}>
+                          <Input.TextArea rows={2} value={model.interiorDescr} onChange={(e) => handleModelChange(index, 'interiorDescr', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="内饰加价" style={{ marginBottom: '8px' }}>
+                          <InputNumber value={model.interiorAddedPrice} onChange={(value) => handleModelChange(index, 'interiorAddedPrice', value)} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Collapse.Panel>
+                      <Collapse.Panel header="甲板" key="deck">
+                        <Form.Item label="甲板名称" style={{ marginBottom: '8px' }}>
+                          <Input value={model.deckName} onChange={(e) => handleModelChange(index, 'deckName', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="甲板描述" style={{ marginBottom: '8px' }}>
+                          <Input.TextArea rows={2} value={model.deckDescr} onChange={(e) => handleModelChange(index, 'deckDescr', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="甲板加价" style={{ marginBottom: '8px' }}>
+                          <InputNumber value={model.deckAddedPrice} onChange={(value) => handleModelChange(index, 'deckAddedPrice', value)} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Collapse.Panel>
+                      <Collapse.Panel header="动力" key="power">
+                        <Form.Item label="动力名称" style={{ marginBottom: '8px' }}>
+                          <Input value={model.powerName} onChange={(e) => handleModelChange(index, 'powerName', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="动力描述" style={{ marginBottom: '8px' }}>
+                          <Input.TextArea rows={2} value={model.powerDescr} onChange={(e) => handleModelChange(index, 'powerDescr', e.target.value)} />
+                        </Form.Item>
+                        <Form.Item label="动力加价" style={{ marginBottom: '0px' }}>
+                          <InputNumber value={model.powerAddedPrice} onChange={(value) => handleModelChange(index, 'powerAddedPrice', value)} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Collapse.Panel>
+                    </Collapse>
+                  </Form>
+                </Card>
+              );
+            })}
+            <Button type="dashed" onClick={addDefaultStyleModel} icon={<PlusOutlined />} disabled={boatModels.length >= 4}>
+              添加默认样式
+            </Button>
+          </div>
         </Collapse.Panel>
       </Collapse>
     </div>

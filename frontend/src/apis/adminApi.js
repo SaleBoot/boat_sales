@@ -200,3 +200,12 @@ export const getAllCosModelPaths = () => {
 export const getDescendantFilesByPath = (path) => { 
   return api.get(`/admin/cos/descendant-files`, { params: { prefix: path } });
 };
+
+/**
+ * 根据船型英文名获取船型模型信息
+ * @param {string} boatEnName - 船型英文名
+ * @returns {Promise<any>}
+ */
+export const getModelsByBoatEnName = (boatEnName) => {
+  return api.get(`/admin/boat-model/${boatEnName}`);
+};
