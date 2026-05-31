@@ -16,12 +16,15 @@ type AdminModule struct {
 	boatCategoryH *apis.BoatCategoryHandler
 	boatH         *apis.BoatHandler
 	cosH          *apis.CosHandler
+	boatModelH    *apis.BoatModelHandler
 }
 
 func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 	aBoatCategoryDao *dao.SysBoatCategoryDao, // 依赖注入
 	aBoatDao *dao.SysBoatDao, // 依赖注入
-	aCosPathDao *dao.SysCosPathDao) (*AdminModule, error) { // aCosPathDao是 依赖注入
+	aCosPathDao *dao.SysCosPathDao, // 依赖注入
+	aBoatModelDao *dao.SysBoatModelDao, // 依赖注入
+) (*AdminModule, error) {
 
 	// 确保默认用户存在
 	if err := services.EnsureDefaultUserExists(aUserDao); err != nil {
@@ -44,7 +47,8 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		userH:         apis.NewUserHandler(aUserDao),
 		boatCategoryH: apis.NewBoatCategoryHandler(aBoatCategoryDao),
 		boatH:         apis.NewBoatHandler(aBoatDao),
-		cosH:          apis.NewCosHandler(cosPathSyncService), // 依赖注入
+		cosH:          apis.NewCosHandler(cosPathSyncService),  // 依赖注入
+		boatModelH:    apis.NewBoatModelHandler(aBoatModelDao), // 依赖注入
 	}
 
 	return adminM, nil
@@ -171,6 +175,20 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			cosRG.GET("/subfiles", a.cosH.HandleGetSubFiles)                   // 列出 COS 文件的接口
 			cosRG.GET("/descendant-files", a.cosH.HandleGetAllDescendantFiles) // 递归列出所有后代文件的接口
 			cosRG.GET("/tree", a.cosH.HandleListDirTree)
+		}
+
+		boatModelRG := aAdminRG.Group("/boat-model")
+		{
+			// api/admin/boat-model/:boatEnName
+			boatModelRG.GET("/:boatEnName", a.boatModelH.HandleGetModelsByBoatEnName)
+			//  api/admin/boat-model/:boatEnName
+			//
+			// **客户端需要：
+			//     向 POST /api/admin/models/{目标船型英文名}  发送请求。
+			//     设置  Content-Type: application/json  请求头。
+			//     在请求体中提供一个 JSON 数组，其中包含该船型所有新的模型定义。
+			//     数组中每个对象的boatEnName 必须与 URL 中的船型英文名匹配。
+			boatModelRG.POST("/:boatEnName", a.boatModelH.HandleUpdateModelWithBoatEnName)
 		}
 	}
 

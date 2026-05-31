@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"boatsales-backend/pkg/utils"
-	"errors"
 	"fmt"
 	"os"
 
@@ -19,31 +18,25 @@ type AppLv0 struct {
 }
 
 func NewApp() *AppLv0 {
+	// 添加子命令
+	var ginCmd = newPrjV1Command()
+	var dbMigrateCmd = newDbMigrateCommand()
+
 	app := &AppLv0{
 		rootCmd: &cobra.Command{
-			Use:          "boatsales-backend",
-			Short:        "boatsales-backend",
-			SilenceUsage: true,
-			Long:         `boatsales-backend`,
-			Args: func(cmd *cobra.Command, args []string) error {
-				if len(args) < 1 {
-					tip()
-					return errors.New(utils.Red("requires at least one arg"))
-				}
-				return nil
-			},
+			Use:               "boatsales-backend",
+			Short:             "boatsales-backend",
+			SilenceUsage:      true,
+			Long:              `boatsales-backend`,
 			PersistentPreRunE: func(*cobra.Command, []string) error { return nil },
 			Run: func(cmd *cobra.Command, args []string) {
-				tip()
+				// 默认执行 ginCmd
+				ginCmd.cmd.Run(ginCmd.cmd, args)
 			},
 		},
 	}
 
-	// 添加子命令
-	var ginCmd = newPrjV1Command()
 	app.rootCmd.AddCommand(ginCmd.cmd)
-
-	var dbMigrateCmd = newDbMigrateCommand()
 	app.rootCmd.AddCommand(dbMigrateCmd.cmd)
 
 	return app

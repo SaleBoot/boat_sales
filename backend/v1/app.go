@@ -3,12 +3,10 @@ package v1
 import (
 	"boatsales-backend/internal/app/admin"
 	"boatsales-backend/internal/db"
-	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/pkg/utils"
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -29,12 +27,9 @@ type app struct {
 	focusTargetsDir        string
 	orderDB                *sql.DB
 	mu                     sync.Mutex
-	// handlers
-	userDao         *dao.SysUserDao
-	boatCategoryDao *dao.SysBoatCategoryDao
-	boatDao         *dao.SysBoatDao
-	cosPathDao      *dao.SysCosPathDao
-	// modules
+	// DbManager
+	dbm *db.DbManager
+	// app modules
 	adminM *admin.AdminModule
 }
 
@@ -70,15 +65,18 @@ func NewApp() (*app, error) {
 		focusTargetsDir:        paths.focusTargetsDir,
 	}
 
-	err = application.initDb()
+	dbm, err := db.NewDbManager()
 	if err != nil {
 		return nil, fmt.Errorf("initialize database: %w", err)
 	}
+	application.dbm = dbm
 
-	adminModule, err := admin.NewAdminModule(application.userDao, // 依赖注入
-		application.boatCategoryDao, // 依赖注入
-		application.boatDao,         // 依赖注入
-		application.cosPathDao)      // 依赖注入
+	adminModule, err := admin.NewAdminModule(application.dbm.UserDao, // 依赖注入
+		application.dbm.BoatCategoryDao, // 依赖注入
+		application.dbm.BoatDao,         // 依赖注入
+		application.dbm.CosPathDao,      // 依赖注入
+		application.dbm.BoatModelDao,    // 依赖注入
+	)
 	if err != nil {
 		return nil, fmt.Errorf("initialize admin module: %w", err)
 	}
@@ -134,25 +132,6 @@ func discoverProjectPaths() (projectPaths, error) {
 	}
 
 	return projectPaths{}, errors.New("could not locate repository root containing gltf and frontend directories")
-}
-
-func (a *app) initDb() error {
-	// Initialize the database connection.
-	database, err := db.InitSqlite3DB()
-	if err != nil {
-		log.Fatalf("Failed to initialize sqlite3 database: %v", err)
-	}
-
-	// Initialize DAO instances.
-	a.userDao = dao.NewSysUserDao(database)
-	a.boatCategoryDao = dao.NewSysBoatCategoryDao(database)
-	a.boatDao = dao.NewSysBoatDao(database)
-	a.cosPathDao = dao.NewSysCosPathDao(database)
-	// TODO:  handler 可能用 几个dao，所以下一步app 只保存 dao实例，type DaoList struct { userDao *SysUserDao;... }
-	// AdminMgr 保存 handler 实例，type AdminMgr struct { userH *UserHandler;... }
-	// AdminMgr 中的dao 由 app 依赖注入
-
-	return nil
 }
 
 func (a *app) RegisterRoutes(r *gin.Engine) error {

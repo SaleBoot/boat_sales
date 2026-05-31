@@ -30,6 +30,7 @@ func InitSqlite3DB() (*gorm.DB, error) {
 		&models.SysBoatCategory{},
 		&models.SysBoat{},
 		&models.CosPathMeta{},
+		&models.SysBoatModel{},
 	)
 	if err != nil {
 		log.Fatalf("failed to auto migrate database: %v", err)
@@ -42,7 +43,7 @@ func InitSqlite3DB() (*gorm.DB, error) {
 }
 
 // GetDB returns the singleton database instance.
-func GetSqlite3DB() *gorm.DB {
+func getSqlite3DB() *gorm.DB {
 	if _db == nil {
 		log.Fatal("database is not initialized")
 	}

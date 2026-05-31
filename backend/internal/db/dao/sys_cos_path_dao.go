@@ -39,7 +39,9 @@ func (dao *SysCosPathDao) Create(ctx context.Context, record *models.CosPathMeta
 }
 
 // FindByPath 根据路径查询节点
-func (dao *SysCosPathDao) FindByPath(ctx context.Context, path string) (*models.CosPathMeta, error) {
+func (dao *SysCosPathDao) FindByPath(ctx context.Context,
+	path string,
+) (*models.CosPathMeta, error) {
 	var node models.CosPathMeta
 	err := dao.db.WithContext(ctx).Select("id").Where("path = ?", path).First(&node).Error
 	if err != nil {
@@ -52,7 +54,9 @@ func (dao *SysCosPathDao) FindByPath(ctx context.Context, path string) (*models.
 }
 
 // FindSubNodes 查询指定父节点下的所有子节点
-func (dao *SysCosPathDao) FindSubNodes(ctx context.Context, parentID int64) ([]models.CosPathMeta, error) {
+func (dao *SysCosPathDao) FindSubNodes(ctx context.Context,
+	parentID int64,
+) ([]models.CosPathMeta, error) {
 	var subNodes []models.CosPathMeta
 	err := dao.db.WithContext(ctx).
 		Where("parent_id = ?", parentID).
@@ -62,7 +66,9 @@ func (dao *SysCosPathDao) FindSubNodes(ctx context.Context, parentID int64) ([]m
 }
 
 // FindSubFiles 查询指定父节点下的所有子文件
-func (dao *SysCosPathDao) FindSubFiles(ctx context.Context, parentID int64) ([]models.CosPathMeta, error) {
+func (dao *SysCosPathDao) FindSubFiles(ctx context.Context,
+	parentID int64,
+) ([]models.CosPathMeta, error) {
 	var subFiles []models.CosPathMeta
 	err := dao.db.WithContext(ctx).
 		Where("parent_id = ? AND is_dir = ?", parentID, false).
@@ -72,7 +78,9 @@ func (dao *SysCosPathDao) FindSubFiles(ctx context.Context, parentID int64) ([]m
 }
 
 // FindSubDirs 查询指定父节点下的所有子目录
-func (dao *SysCosPathDao) FindSubDirs(ctx context.Context, parentID int64) ([]models.CosPathMeta, error) {
+func (dao *SysCosPathDao) FindSubDirs(ctx context.Context,
+	parentID int64,
+) ([]models.CosPathMeta, error) {
 	var subDirs []models.CosPathMeta
 	err := dao.db.WithContext(ctx).
 		Where("parent_id = ? AND is_dir = ?", parentID, true).
@@ -82,7 +90,9 @@ func (dao *SysCosPathDao) FindSubDirs(ctx context.Context, parentID int64) ([]mo
 }
 
 // FindAllDescendantFilesByPath 查询指定路径下的所有后代文件节点
-func (dao *SysCosPathDao) FindAllDescendantFilesByPath(ctx context.Context, pathPrefix string) ([]models.CosPathMeta, error) {
+func (dao *SysCosPathDao) FindAllDescendantFilesByPath(ctx context.Context,
+	pathPrefix string,
+) ([]models.CosPathMeta, error) {
 	var descendantFiles []models.CosPathMeta
 	// 使用 LIKE 查询来匹配所有以给定路径为前缀的记录
 	// pathPrefix 应该类似于 "/gltf/57sites/"
