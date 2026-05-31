@@ -39,7 +39,7 @@ const BoatListSider = ({
       <Card 
         title="船舶列表"
         style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-        bodyStyle={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        styles={{ body: { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' } }}
       >
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>

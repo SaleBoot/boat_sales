@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Descriptions, Input, Button, Empty, message as staticMessage, Select, Typography, App, Space, Collapse, Radio, Card, Form, InputNumber, Popconfirm } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { getModelsByBoatEnName } from '../../../apis/adminApi';
+import { getModelsByBoatEnName, updateModelsByBoatEnName } from '../../../apis/adminApi';
 
 const { Title } = Typography;
 
@@ -16,6 +16,7 @@ const ModelParametersPanel = ({ boat,
   const [files, setFiles] = useState([]);
   const [boatModels, setBoatModels] = useState([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
  
   useEffect(() => {
     if (!boat?.boatEnName) {
@@ -77,9 +78,22 @@ const ModelParametersPanel = ({ boat,
     }
   };
 
-  const handleSaveModel = () => {
-    // TODO: 实现调用 updateModel API 的逻辑
-    staticMessage.info('保存功能待实现');
+  const handleSaveModel = async () => {
+    if (!boat?.boatEnName) {
+      message.error('没有指定船型，无法保存');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateModelsByBoatEnName(boat.boatEnName, boatModels);
+      message.success('默认样式模型保存成功！');
+    } catch (error) {
+      message.error('保存失败，请检查控制台获取更多信息');
+      console.error('Failed to save boat models:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleModelChange = (index, field, value) => {
@@ -131,7 +145,7 @@ const ModelParametersPanel = ({ boat,
         <Title level={5} style={{ margin: 0 }}>
           {boat ? `船名: ${boat.boatName} (${boat.boatEnName})` : '模型参数配置'}
         </Title>
-        <Button type="primary" onClick={handleSaveModel} disabled={!boat}>
+        <Button type="primary" onClick={handleSaveModel} disabled={!boat} loading={isSaving}>
           保存
         </Button>
       </div>
@@ -186,7 +200,7 @@ const ModelParametersPanel = ({ boat,
 
                     return (
                       <>
-                        <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择运行时模型:</div>
+                        <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择模型进行预览:</div>
                         <Radio.Group
                           onChange={handleRuntimeModelChange}
                           value={runtimeModelPath || undefined}

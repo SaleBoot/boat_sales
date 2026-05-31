@@ -201,6 +201,9 @@ export const getDescendantFilesByPath = (path) => {
   return api.get(`/admin/cos/descendant-files`, { params: { prefix: path } });
 };
 
+// -------------------------------------------------------
+// boat-model
+// -------------------------------------------------------
 /**
  * 根据船型英文名获取船型模型信息
  * @param {string} boatEnName - 船型英文名
@@ -208,4 +211,14 @@ export const getDescendantFilesByPath = (path) => {
  */
 export const getModelsByBoatEnName = (boatEnName) => {
   return api.get(`/admin/boat-model/${boatEnName}`);
+};
+
+/**
+ * 根据船型英文名更新或批量创建其所有默认样式模型
+ * @param {string} boatEnName - 目标船型的英文名
+ * @param {Array<object>} modelsData - 包含所有新模型定义的数组
+ * @returns {Promise<any>}
+ */
+export const updateModelsByBoatEnName = (boatEnName, modelsData) => {
+  return api.post(`/admin/boat-model/${boatEnName}`, modelsData);
 };
