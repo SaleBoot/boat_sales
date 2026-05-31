@@ -210,6 +210,7 @@ export default function BoatModelsView() {
             isLoadingModelFolders={isLoadingModelFolders}
             onModelChange={handleRuntimeModelChange}
             runtimeModelPath={selectedRuntimeModelPath}
+            cosOrigin={remoteFBXOrigin}
           />
         </div>
       ),
