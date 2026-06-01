@@ -214,17 +214,7 @@ export default function BoatModelsView() {
           />
         </div>
       ),
-    },
-    {
-      key: '3',
-      label: 'Inspector',
-      children: <div className="admin-boat-model-tab-pane"><Inspector /></div>,
-    },
-    {
-      key: '4',
-      label: 'Inspector01',
-      children: <div className="admin-boat-model-tab-pane"><Inspector01 /></div>,
-    },
+    }, 
   ];
 
   return (

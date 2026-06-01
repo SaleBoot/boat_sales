@@ -2,7 +2,9 @@ package v1
 
 import (
 	"boatsales-backend/internal/app/admin"
+	"boatsales-backend/internal/app/front"
 	"boatsales-backend/internal/db"
+	"boatsales-backend/internal/services"
 	"boatsales-backend/pkg/utils"
 	"database/sql"
 	"errors"
@@ -30,7 +32,9 @@ type app struct {
 	// DbManager
 	dbm *db.DbManager
 	// app modules
-	adminM *admin.AdminModule
+	serviceM *services.ServiceManager
+	adminM   *admin.AdminModule
+	frontM   *front.FrontModule
 }
 
 type projectPaths struct {
@@ -71,16 +75,38 @@ func NewApp() (*app, error) {
 	}
 	application.dbm = dbm
 
-	adminModule, err := admin.NewAdminModule(application.dbm.UserDao, // 依赖注入
+	svcMtmp, err := services.NewServiceManager(
 		application.dbm.BoatCategoryDao, // 依赖注入
 		application.dbm.BoatDao,         // 依赖注入
 		application.dbm.CosPathDao,      // 依赖注入
 		application.dbm.BoatModelDao,    // 依赖注入
 	)
 	if err != nil {
+		return nil, fmt.Errorf("initialize service manager: %w", err)
+	}
+	application.serviceM = svcMtmp
+
+	adminMTmp, err := admin.NewAdminModule(application.dbm.UserDao,
+		svcMtmp.BoatCategorySvc,
+		svcMtmp.BoatSvc,
+		svcMtmp.CosPathSvc,
+		svcMtmp.BoatModelSvc,
+	) // 依赖注入
+	if err != nil {
 		return nil, fmt.Errorf("initialize admin module: %w", err)
 	}
-	application.adminM = adminModule
+	application.adminM = adminMTmp
+
+	frontMTmp, err := front.NewFrontModule(
+		svcMtmp.BoatCategorySvc, // 依赖注入
+		svcMtmp.BoatSvc,         // 依赖注入
+		svcMtmp.CosPathSvc,      // 依赖注入
+		svcMtmp.BoatModelSvc,    // 依赖注入
+	) // 依赖注入
+	if err != nil {
+		return nil, fmt.Errorf("initialize front module: %w", err)
+	}
+	application.frontM = frontMTmp
 
 	// 初始化订单数据库
 	if err := application.initializeSalesOrderDatabase(); err != nil {
@@ -145,6 +171,9 @@ func (a *app) RegisterRoutes(r *gin.Engine) error {
 	}
 	// 2. 业务模块路由（解耦设计）
 	a.RegisterAdminRoutes(api)
+
+	a.frontM.RegisterRoutes(api)
+
 	a.RegisterContentRoutes(api)
 	a.RegisterOrderRoutes(api)
 	a.RegisterStaticRscRoutes(r)

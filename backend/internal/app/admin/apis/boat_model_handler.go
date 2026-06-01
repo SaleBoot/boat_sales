@@ -1,8 +1,8 @@
 package apis
 
 import (
-	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/internal/db/models"
+	"boatsales-backend/internal/services"
 	"boatsales-backend/internal/types"
 	"fmt"
 	"net/http"
@@ -12,11 +12,15 @@ import (
 )
 
 type BoatModelHandler struct {
-	BoatModelDao *dao.SysBoatModelDao
+	boatModelSvc *services.BoatModelService
 }
 
-func NewBoatModelHandler(aBoatModelDao *dao.SysBoatModelDao) *BoatModelHandler {
-	return &BoatModelHandler{BoatModelDao: aBoatModelDao} // 依赖注入
+func NewBoatModelHandler(aSvc *services.BoatModelService) (*BoatModelHandler, error) {
+	if aSvc == nil {
+		return nil, fmt.Errorf("NewBoatModelHandler: aSvc cannot be nil")
+	}
+
+	return &BoatModelHandler{boatModelSvc: aSvc}, nil
 }
 
 func (aH *BoatModelHandler) HandleGetModelsByBoatEnName(c *gin.Context) {
@@ -30,7 +34,7 @@ func (aH *BoatModelHandler) HandleGetModelsByBoatEnName(c *gin.Context) {
 		return
 	}
 
-	models, err := aH.BoatModelDao.GetModelsByBoatEnName(boatEnName)
+	models, err := aH.boatModelSvc.GetModelsByBoatEnName(boatEnName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{Code: http.StatusInternalServerError,
@@ -40,7 +44,7 @@ func (aH *BoatModelHandler) HandleGetModelsByBoatEnName(c *gin.Context) {
 
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Successfully retrieved users",
+		Message: "Successfully got models",
 		Data:    models,
 	})
 }
@@ -76,7 +80,7 @@ func (aH *BoatModelHandler) HandleUpdateModelWithBoatEnName(c *gin.Context) {
 		}
 	}
 
-	if err := aH.BoatModelDao.ReplaceModelsByBoatEnName(boatEnName, modelsToUpdate); err != nil {
+	if err := aH.boatModelSvc.ReplaceModelsByBoatEnName(boatEnName, modelsToUpdate); err != nil {
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: fmt.Sprintf("Failed to update boat (%s) models: %s ", boatEnName, err.Error()),
@@ -87,5 +91,6 @@ func (aH *BoatModelHandler) HandleUpdateModelWithBoatEnName(c *gin.Context) {
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Models updated successfully",
+		Data:    nil,
 	})
 }

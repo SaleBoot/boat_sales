@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type CosPathSyncerService struct {
+type CosPathService struct {
 	cosPathDao *dao.SysCosPathDao
 	/*
 		s.pathCache = map[string]int64{
@@ -35,17 +35,21 @@ type CosPathSyncerService struct {
 	cacheMu   sync.RWMutex
 }
 
-func NewCosPathSyncerService(dao *dao.SysCosPathDao) *CosPathSyncerService {
-	return &CosPathSyncerService{
+func NewCosPathSyncerService(dao *dao.SysCosPathDao) (*CosPathService, error) {
+	if dao == nil {
+		return nil, fmt.Errorf("NewCosPathSyncerService: dao is required")
+	}
+
+	return &CosPathService{
 		cosPathDao: dao,
 		pathCache:  make(map[string]int64, 512),
-	}
+	}, nil
 }
 
 // SyncCosDirTree 接收从COS列出的文件列表，然后执行一次高效、原子的全量同步。
 // 这个过程包括：1. 清空旧表 -> 2. 批量插入新数据 -> 3. 重建缓存。
 // 它旨在替换掉逐条同步的低效循环，是全量同步功能的核心。
-func (s *CosPathSyncerService) SyncCosDirTree(ctx context.Context) (int, error) {
+func (s *CosPathService) SyncCosDirTree(ctx context.Context) (int, error) {
 	cosFiles, err := ListCosFiles(GetModelsCosRootPrefix())
 	if err != nil {
 		log.Printf("SyncCosDirTree():Error listing COS files: %v", err)
@@ -148,7 +152,7 @@ func getParentPath(path string) string {
 	return path[:lastSlash+1]
 }
 
-func (s *CosPathSyncerService) WarmUpCache(ctx context.Context) error {
+func (s *CosPathService) WarmUpCache(ctx context.Context) error {
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
 
@@ -172,7 +176,7 @@ func (s *CosPathSyncerService) WarmUpCache(ctx context.Context) error {
 // 场景：SyncSinglePath (增量、高并发同步)
 // 目标：当一个新文件上传到 COS 时，实时、安全地将其路径信息补充到现有的数据库和缓存中。
 // 环境：在它运行时，可能有成百上千个其他的文件上传操作正在同时调用 SyncSinglePath。
-func (s *CosPathSyncerService) SyncSinglePath(ctx context.Context,
+func (s *CosPathService) SyncSinglePath(ctx context.Context,
 	aCosPath string,
 	aFileSize int64) error {
 	cleanedPath := strings.Trim(aCosPath, "/")
@@ -245,7 +249,7 @@ func (s *CosPathSyncerService) SyncSinglePath(ctx context.Context,
 }
 
 // GetSubNodes 毫秒级获取某一层路径下的子节点树列表（完全平替 COS ListObjects 慢查询）
-func (s *CosPathSyncerService) GetSubNodes(ctx context.Context, currentPath string) (
+func (s *CosPathService) GetSubNodes(ctx context.Context, currentPath string) (
 	[]models.CosPathMeta, error) {
 
 	if currentPath == "" || currentPath == "/" {
@@ -296,7 +300,7 @@ func (s *CosPathSyncerService) GetSubNodes(ctx context.Context, currentPath stri
 }
 
 // GetSubFiles 毫秒级获取某一层路径下的子文件列表
-func (s *CosPathSyncerService) GetSubFiles(ctx context.Context,
+func (s *CosPathService) GetSubFiles(ctx context.Context,
 	currentPath string) ([]models.CosPathMeta, error) {
 	if currentPath == "" || currentPath == "/" {
 		currentPath = "/"
@@ -346,7 +350,7 @@ func (s *CosPathSyncerService) GetSubFiles(ctx context.Context,
 }
 
 // GetAllDescendantFiles 递归获取指定路径下的所有后代文件
-func (s *CosPathSyncerService) GetAllDescendantFiles(ctx context.Context, currentPath string) ([]models.CosPathMeta, error) {
+func (s *CosPathService) GetAllDescendantFiles(ctx context.Context, currentPath string) ([]models.CosPathMeta, error) {
 	if currentPath == "" || currentPath == "/" {
 		currentPath = "/"
 	} else {
@@ -364,7 +368,7 @@ func (s *CosPathSyncerService) GetAllDescendantFiles(ctx context.Context, curren
 }
 
 // GetSubDirPaths 毫秒级获取某一层路径下的子目录的路径列表
-func (s *CosPathSyncerService) GetSubDirPaths(ctx context.Context,
+func (s *CosPathService) GetSubDirPaths(ctx context.Context,
 	currentPath string) ([]string, error) {
 	if currentPath == "" || currentPath == "/" {
 		currentPath = "/"
@@ -422,7 +426,7 @@ func (s *CosPathSyncerService) GetSubDirPaths(ctx context.Context,
 	return dirNames, nil
 }
 
-func (s *CosPathSyncerService) GetAllModelFoldersWithFiles(ctx context.Context) (map[string][]string, error) {
+func (s *CosPathService) GetAllModelFoldersWithFiles(ctx context.Context) (map[string][]string, error) {
 	modelsRoot := GetModelsCosRootPrefix()
 	// 确保 modelsRoot 以 / 结尾，以便 GetSubDirPaths 正确工作
 	if !strings.HasSuffix(modelsRoot, "/") {
@@ -455,4 +459,21 @@ func (s *CosPathSyncerService) GetAllModelFoldersWithFiles(ctx context.Context) 
 	}
 
 	return result, nil
+}
+
+func (s *CosPathService) GetAllFilePaths(ctx context.Context) ([]models.CosPathMeta, error) {
+	modelsRoot := GetModelsCosRootPrefix()
+	// 确保 modelsRoot 以 / 结尾，以便 GetSubDirPaths 正确工作
+	if !strings.HasSuffix(modelsRoot, "/") {
+		modelsRoot += "/"
+	}
+
+	descendantFiles, err := s.GetAllDescendantFiles(ctx, modelsRoot)
+	if err != nil {
+		// 打印日志或根据需要处理错误，但继续处理其他文件夹
+		log.Printf("Error getting descendant files for %s: %v", modelsRoot, err)
+		return nil, err
+	}
+
+	return descendantFiles, nil
 }

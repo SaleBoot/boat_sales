@@ -1,6 +1,7 @@
 package apis
 
 import (
+	adminSvc "boatsales-backend/internal/app/admin/services"
 	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/internal/db/models"
 	"boatsales-backend/internal/types"
@@ -17,16 +18,32 @@ import (
 )
 
 type UserHandler struct {
+	// sessions、dao应该放到services层，但是这里为了简单，直接放到UserHandler中
+	// 将来可以根据需要，将这些移到services层，并建立相应的UserService结构体进行管理
+	// 包括 user_auth_handler.go中的代码，应该也放到services层
 	sessionMu sync.Mutex
 	sessions  map[string]adminSession
 
 	userDao *dao.SysUserDao
 }
 
-func NewUserHandler(aUserDao *dao.SysUserDao) *UserHandler {
-	return &UserHandler{userDao: aUserDao, // 依赖注入
+func NewUserHandler(aUserDao *dao.SysUserDao) (*UserHandler, error) {
+	// 1. 检查依赖是否为 nil (防御性编程)
+	if aUserDao == nil {
+		// 使用 fmt.Errorf 创建并返回错误
+		return nil, fmt.Errorf("NewUserHandler: aUserDao cannot be nil")
+	}
+
+	// 确保默认用户存在
+	if err := adminSvc.EnsureDefaultUserExists(aUserDao); err != nil {
+		return nil, fmt.Errorf("failed to initialize admin module: %w", err)
+	}
+
+	handler := &UserHandler{userDao: aUserDao, // 依赖注入
 		sessions: make(map[string]adminSession),
 	}
+
+	return handler, nil
 }
 
 // --- User Handlers ---

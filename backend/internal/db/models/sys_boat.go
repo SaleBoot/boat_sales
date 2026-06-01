@@ -16,7 +16,7 @@ type SysBoat struct {
 	gorm.Model
 	BoatName        string  `json:"boatName" gorm:"type:varchar(128);comment:船舶名称"`
 	BoatEnName      string  `json:"boatEnName" gorm:"type:varchar(128);comment:无空格英文名，也是模型文件夹名;unique"`
-	Category        string  `json:"category" gorm:"type:varchar(64);comment:船舶类型"`
+	Category        string  `json:"category" gorm:"type:varchar(64);comment:船舶类型英文名"`
 	Price           int     `json:"price" gorm:"type:int;comment:价格" `
 	Description     string  `json:"description" gorm:"type:text;comment:简介"`
 	OverallLength   float64 `json:"overallLength" gorm:"comment:总长"`

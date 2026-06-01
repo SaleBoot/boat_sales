@@ -1,30 +1,37 @@
 package apis
 
 import (
-	"boatsales-backend/internal/db/dao"
-	"boatsales-backend/internal/db/models"
+	"boatsales-backend/internal/services"
 	"boatsales-backend/internal/types"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // --- Boat Category Handlers ---
 type BoatCategoryHandler struct {
-	boatCategoryDao *dao.SysBoatCategoryDao
+	boatCategorySvc *services.BoatCategoryService
 }
 
-func NewBoatCategoryHandler(aBoatCategoryDao *dao.SysBoatCategoryDao) *BoatCategoryHandler {
-	return &BoatCategoryHandler{boatCategoryDao: aBoatCategoryDao} // 依赖注入
+func NewBoatCategoryHandler(aSvc *services.BoatCategoryService,
+) (*BoatCategoryHandler, error) {
+	if aSvc == nil {
+		return nil, fmt.Errorf("NewBoatCategoryHandler: aSvc cannot be nil")
+	}
+
+	err := aSvc.EnsureDefaultBoatCategoriesExist()
+	if err != nil {
+		return nil, fmt.Errorf("NewBoatCategoryHandler:failed to ensure default boat categories exist: %w", err)
+	}
+
+	return &BoatCategoryHandler{boatCategorySvc: aSvc}, nil
 }
 
 func (aH *BoatCategoryHandler) HandleGetBoatCategories(c *gin.Context) {
-	categories, err := aH.boatCategoryDao.GetAllBoatCategories()
+	categories, err := aH.boatCategorySvc.GetBoatCategories()
 	if err != nil {
 		log.Printf("failed to get boat categories: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -49,6 +56,7 @@ type BoatCategoryInput struct {
 func (aH *BoatCategoryHandler) HandleAddBoatCategory(c *gin.Context) {
 	log.Println("HandleAddBoatCategory,start")
 	defer log.Println("HandleAddBoatCategory,end")
+
 	var input BoatCategoryInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
@@ -58,12 +66,8 @@ func (aH *BoatCategoryHandler) HandleAddBoatCategory(c *gin.Context) {
 		return
 	}
 
-	category := models.SysBoatCategory{
-		EnglishName: input.EnglishName,
-		ChineseName: input.ChineseName,
-	}
-
-	if err := aH.boatCategoryDao.CreateBoatCategory(&category); err != nil {
+	err := aH.boatCategorySvc.AddBoatCategory(input.EnglishName, input.ChineseName)
+	if err != nil {
 		log.Printf("failed to create boat category: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -75,7 +79,7 @@ func (aH *BoatCategoryHandler) HandleAddBoatCategory(c *gin.Context) {
 	c.JSON(http.StatusCreated, types.ApiResponse{
 		Code:    http.StatusCreated,
 		Message: "Successfully created boat category",
-		Data:    category,
+		Data:    nil,
 	})
 }
 
@@ -98,33 +102,20 @@ func (aH *BoatCategoryHandler) HandleUpdateBoatCategory(c *gin.Context) {
 		return
 	}
 
-	category, err := aH.boatCategoryDao.GetBoatCategoryByID(uint(id))
+	err = aH.boatCategorySvc.UpdateBoatCategory(int(id),
+		input.EnglishName, input.ChineseName)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound,
-				types.ApiResponse{Code: http.StatusNotFound, Message: "category not found"})
-			return
-		}
-		log.Printf("failed to find boat category for update: %v", err)
-		c.JSON(http.StatusInternalServerError,
-			types.ApiResponse{Code: http.StatusInternalServerError, Message: "failed to find category"})
-		return
-	}
-
-	category.EnglishName = input.EnglishName
-	category.ChineseName = input.ChineseName
-
-	if err := aH.boatCategoryDao.UpdateBoatCategory(category); err != nil {
 		log.Printf("failed to update boat category: %v", err)
 		c.JSON(http.StatusInternalServerError,
-			types.ApiResponse{Code: http.StatusInternalServerError, Message: "failed to update category"})
+			types.ApiResponse{Code: http.StatusInternalServerError,
+				Message: "failed to update category"})
 		return
 	}
 
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Successfully updated boat category",
-		Data:    category,
+		Data:    nil,
 	})
 }
 
@@ -150,7 +141,7 @@ func (aH *BoatCategoryHandler) HandleDeleteBoatCategories(c *gin.Context) {
 		return
 	}
 
-	if err := aH.boatCategoryDao.DeleteBoatCategories(input.IDs); err != nil {
+	if err := aH.boatCategorySvc.DeleteBoatCategories(input.IDs); err != nil {
 		log.Printf("failed to delete boat categories: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,

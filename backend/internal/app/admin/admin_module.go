@@ -2,9 +2,8 @@ package admin
 
 import (
 	"boatsales-backend/internal/app/admin/apis"
-	"boatsales-backend/internal/app/admin/services"
 	"boatsales-backend/internal/db/dao"
-	"context"
+	"boatsales-backend/internal/services"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -20,35 +19,44 @@ type AdminModule struct {
 }
 
 func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
-	aBoatCategoryDao *dao.SysBoatCategoryDao, // 依赖注入
-	aBoatDao *dao.SysBoatDao, // 依赖注入
-	aCosPathDao *dao.SysCosPathDao, // 依赖注入
-	aBoatModelDao *dao.SysBoatModelDao, // 依赖注入
+	aBoatCategorySvc *services.BoatCategoryService, // 依赖注入
+	aBoatSvc *services.BoatService, // 依赖注入
+	aCosPathSyncSvc *services.CosPathService, // 依赖注入
+	aBoatModelSvc *services.BoatModelService, // 依赖注入
 ) (*AdminModule, error) {
 
-	// 确保默认用户存在
-	if err := services.EnsureDefaultUserExists(aUserDao); err != nil {
-		return nil, fmt.Errorf("failed to initialize admin module: %w", err)
+	uH, err := apis.NewUserHandler(aUserDao)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewUserHandler: %w", err)
 	}
 
-	// 确保默认船只分类存在
-	if err := services.EnsureDefaultBoatCategoriesExist(aBoatCategoryDao); err != nil {
-		return nil, fmt.Errorf("failed to initialize admin module: %w", err)
+	bcH, err := apis.NewBoatCategoryHandler(aBoatCategorySvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewBoatCategoryHandler: %w", err)
 	}
 
-	// 初始化COS目录树
-	cosPathSyncService := services.NewCosPathSyncerService(aCosPathDao)
-	if _, err := cosPathSyncService.SyncCosDirTree(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to initialize COS directory tree: %w", err)
+	cosHTmp, err := apis.NewCosHandler(aCosPathSyncSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewCosHandler: %w", err)
+	}
+
+	bH, err := apis.NewBoatHandler(aBoatSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewBoatHandler: %w", err)
+	}
+
+	bmH, err := apis.NewBoatModelHandler(aBoatModelSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewBoatModelHandler: %w", err)
 	}
 
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &AdminModule{
-		userH:         apis.NewUserHandler(aUserDao),
-		boatCategoryH: apis.NewBoatCategoryHandler(aBoatCategoryDao),
-		boatH:         apis.NewBoatHandler(aBoatDao),
-		cosH:          apis.NewCosHandler(cosPathSyncService),  // 依赖注入
-		boatModelH:    apis.NewBoatModelHandler(aBoatModelDao), // 依赖注入
+		userH:         uH,
+		boatCategoryH: bcH,
+		boatH:         bH,
+		cosH:          cosHTmp, // 依赖注入
+		boatModelH:    bmH,     // 依赖注入
 	}
 
 	return adminM, nil

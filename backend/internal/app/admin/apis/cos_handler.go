@@ -1,8 +1,9 @@
 package apis
 
 import (
-	"boatsales-backend/internal/app/admin/services"
+	"boatsales-backend/internal/services"
 	"boatsales-backend/internal/types"
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,15 +13,24 @@ import (
 )
 
 type CosHandler struct {
-	cosPathSyncService *services.CosPathSyncerService
+	cosPathSyncSvc *services.CosPathService
 }
 
-func NewCosHandler(cosPathSyncService *services.CosPathSyncerService) *CosHandler {
-	return &CosHandler{cosPathSyncService: cosPathSyncService}
+func NewCosHandler(aCosPathSyncSvc *services.CosPathService) (*CosHandler, error) {
+	if aCosPathSyncSvc == nil {
+		return nil, fmt.Errorf("NewCosHandler: aCosPathSyncSvc cannot be nil")
+	}
+
+	_, err := aCosPathSyncSvc.SyncCosDirTree(context.Background())
+	if err != nil {
+		log.Printf("NewCosHandler():Error syncing cos dir tree: %v", err)
+	}
+
+	return &CosHandler{cosPathSyncSvc: aCosPathSyncSvc}, nil
 }
 
 func (h *CosHandler) HandleSyncCosDirTree(c *gin.Context) {
-	syncCount, err := h.cosPathSyncService.SyncCosDirTree(c.Request.Context())
+	syncCount, err := h.cosPathSyncSvc.SyncCosDirTree(c.Request.Context())
 	if err != nil {
 		log.Printf("HandleSyncCosDirTree():Error syncing cos dir tree: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -156,7 +166,7 @@ func (h *CosHandler) HandleGetSubFiles(c *gin.Context) {
 		req.Prefix += "/"
 	}
 
-	dbNodes, err := h.cosPathSyncService.GetSubFiles(c.Request.Context(), req.Prefix)
+	dbNodes, err := h.cosPathSyncSvc.GetSubFiles(c.Request.Context(), req.Prefix)
 	if err != nil {
 		log.Printf("HandleGetSubFiles():Error getting sub files for prefix '%s': %v", req.Prefix, err)
 		c.JSON(http.StatusInternalServerError,
@@ -239,7 +249,7 @@ func (h *CosHandler) HandleGetAllDescendantFiles(c *gin.Context) {
 		req.Prefix += "/"
 	}
 
-	dbNodes, err := h.cosPathSyncService.GetAllDescendantFiles(c.Request.Context(), req.Prefix)
+	dbNodes, err := h.cosPathSyncSvc.GetAllDescendantFiles(c.Request.Context(), req.Prefix)
 	if err != nil {
 		log.Printf("HandleGetAllDescendantFiles(): Error getting descendant files for prefix '%s': %v", req.Prefix, err)
 		c.JSON(http.StatusInternalServerError,
@@ -285,12 +295,12 @@ type ListModelFoldersResponse struct {
 }
 
 type ModelFolder struct {
-	ModelFolderName string   `json:"modelFolderName"`
+	ModelFolderName string   `json:"modelFolderName"` // 模型文件夹，内含多个样式模型文件夹
 	DescendantFiles []string `json:"descendantFiles"`
 }
 
 func (h *CosHandler) HandleGetAllModelPaths(c *gin.Context) {
-	modelFolders, err := h.cosPathSyncService.GetAllModelFoldersWithFiles(c.Request.Context())
+	modelFolders, err := h.cosPathSyncSvc.GetAllModelFoldersWithFiles(c.Request.Context())
 	if err != nil {
 		log.Printf("HandleGetAllModelPaths(): Error getting all model folders with files: %v", err)
 		c.JSON(http.StatusInternalServerError,

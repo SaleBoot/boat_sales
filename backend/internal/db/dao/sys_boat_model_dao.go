@@ -59,3 +59,13 @@ func (s *SysBoatModelDao) ReplaceModelsByBoatEnName(boatEnName string, aModels [
 		return nil
 	})
 }
+
+func (s *SysBoatModelDao) GetAllModels() ([]*models.SysBoatModel, error) {
+
+	var models []*models.SysBoatModel
+	err := s.db.Find(&models).Error
+	if err != nil {
+		return nil, err
+	}
+	return models, nil
+}

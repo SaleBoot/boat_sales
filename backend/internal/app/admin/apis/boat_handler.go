@@ -1,8 +1,8 @@
 package apis
 
 import (
-	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/internal/db/models"
+	"boatsales-backend/internal/services"
 	"boatsales-backend/internal/types"
 	"fmt"
 	"log"
@@ -12,11 +12,14 @@ import (
 )
 
 type BoatHandler struct {
-	boatDao *dao.SysBoatDao
+	boatSvc *services.BoatService
 }
 
-func NewBoatHandler(aBoatDao *dao.SysBoatDao) *BoatHandler {
-	return &BoatHandler{boatDao: aBoatDao} // 依赖注入
+func NewBoatHandler(aBoSvc *services.BoatService) (*BoatHandler, error) {
+	if aBoSvc == nil {
+		return nil, fmt.Errorf("NewBoatHandler: aBoSvc cannot be nil")
+	}
+	return &BoatHandler{boatSvc: aBoSvc}, nil
 }
 
 func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
@@ -24,12 +27,7 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 	var boats []models.SysBoat
 	var err error
 
-	if category != "" {
-		boats, err = aH.boatDao.GetBoatsByCategory(category)
-	} else {
-		boats, err = aH.boatDao.GetAllBoats()
-	}
-
+	boats, err = aH.boatSvc.GetBoatsByCategory(category)
 	if err != nil {
 		log.Printf("failed to get boats: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -38,9 +36,8 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 		})
 		return
 	}
-	log.Printf("HandleGetBoats():Successfully retrieved %d boats", len(boats))
 
-	log.Printf("Successfully retrieved %d boats", len(boats))
+	log.Printf("HandleGetBoats():Successfully retrieved %d boats", len(boats))
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
 		Message: fmt.Sprintf("Successfully retrieved %d boats", len(boats)),
@@ -123,50 +120,16 @@ func (aH *BoatHandler) HandleAddBoat(c *gin.Context) {
 		return
 	}
 	log.Printf("Received AddBoat request: %+v", input)
+
 	boat := input.toModel()
 	log.Printf("Converted to SysBoat model: %+v", boat)
 
 	// Check for uniqueness of BoatName
-	existingBoat, err := aH.boatDao.FindByName(boat.BoatName)
-	if err != nil {
-		log.Printf("failed to check for existing boat by name: %v", err)
+	if err := aH.boatSvc.AddBoat(boat); err != nil {
+		log.Printf("failed to add boat: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "failed to check for existing boat",
-		})
-		return
-	}
-	if existingBoat != nil {
-		c.JSON(http.StatusConflict, types.ApiResponse{
-			Code:    http.StatusConflict,
-			Message: "a boat with this BoatName already exists",
-		})
-		return
-	}
-
-	// Check for uniqueness of BoatEnName
-	existingBoat, err = aH.boatDao.FindByBoatEnName(boat.BoatEnName)
-	if err != nil {
-		log.Printf("failed to check for existing boat by boatEnName: %v", err)
-		c.JSON(http.StatusInternalServerError, types.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "failed to check for existing boat",
-		})
-		return
-	}
-	if existingBoat != nil {
-		c.JSON(http.StatusConflict, types.ApiResponse{
-			Code:    http.StatusConflict,
-			Message: "a boat with this BoatEnName already exists",
-		})
-		return
-	}
-
-	if err := aH.boatDao.CreateBoat(boat); err != nil {
-		log.Printf("failed to create boat: %v", err)
-		c.JSON(http.StatusInternalServerError, types.ApiResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "failed to create boat",
+			Message: "failed to add boat",
 		})
 		return
 	}
@@ -200,7 +163,7 @@ func (aH *BoatHandler) HandleDeleteBoats(c *gin.Context) {
 		return
 	}
 
-	if err := aH.boatDao.DeleteBoats(input.BoatIDs); err != nil {
+	if err := aH.boatSvc.DeleteBoats(input.BoatIDs); err != nil {
 		log.Printf("failed to delete boats: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -241,7 +204,7 @@ func (aH *BoatHandler) HandleUpdateBoat(c *gin.Context) {
 	}
 	boat.ID = boatID
 
-	if err := aH.boatDao.UpdateBoat(boat); err != nil {
+	if err := aH.boatSvc.UpdateBoat(boat); err != nil {
 		log.Printf("failed to update boat: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
