@@ -32,19 +32,19 @@ export function getModelDisplayLabel(model) {
 export function getCategoryIdForModel(model) {
   const explicitType = `${model?.type ?? ''}`.trim()
   if (explicitType === '\u65b0\u80fd\u6e90\u8239') { // 新能源船  
-    return 'new-energy'
+    return 'NewEnergyShip'
   }
 
   if (explicitType === '\u5e94\u6025\u6551\u63f4\u8239') {//---  应急救援船  
-    return 'rescue'
+    return 'EmergencyRescueShip'
   }
 
   if (explicitType === '\u516c\u52a1\u6267\u6cd5\u8247') {//---  公务执法艇 
-    return 'duty'
+    return 'OfficialLawEnforcementBoat'
   }
 
   if (explicitType === '\u6e38\u8247') {// ---  游艇
-    return 'yacht'
+    return 'Yacht'
   }
 
   const rawLabel = `${model?.label ?? model?.id ?? ''}`.toLowerCase()
@@ -405,3 +405,23 @@ export function getRuntimeBasePath() {
 
   return normalizeBaseUrl(basePath || '/')
 }
+
+export  const resolveManifestPath = (assetPath) => {
+    if (!assetPath) {
+      return ''
+    }
+    // 绝对地址检查（网络路径）
+    // 正则表达式：^https?:\/\/ 匹配以 http:// 或 https:// 开头的字符串（不区分大小写）。
+    // 逻辑：如果这个资源已经是完整的网络地址了（比如已经在 CDN 上或引用的是外部图片），那就原样返回，不要再折腾它。
+    if (/^https?:\/\//i.test(assetPath)) {
+      return assetPath
+    }
+
+    // 
+    if (assetPath.startsWith('/')) {
+      // 为了拼接到 assetBaseUrl（通常以 / 结尾）后面，代码使用 slice(1) 删掉了 assetPath 开头的斜杠。
+      return `${assetBaseUrl}${assetPath.slice(1)}`
+    }
+
+    return `${assetBaseUrl}${assetPath}`
+  }

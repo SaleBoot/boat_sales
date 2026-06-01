@@ -1,117 +1,117 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getFrontBoatModels } from '../apis/frontApi';
 import {
-  MODEL_STORAGE_KEY,
-  DEFAULT_HERO_CONTENT,
-  DEFAULT_SITE_SETTINGS,
-  PREFERRED_MODEL_ID,
-} from '../constants/constants_front_homepage';
-import {
-  isVesselModel,
   getRequestedModelId,
-} from '../utils/utils_homepage';
+  resolveManifestPath
+} from '../utils/utils_homepage'; 
 
-/**
- * 一个自定义 Hook，用于加载和管理应用所需的核心展示数据。
- *
- * @param {string} route - 当前的应用路由。
- * @param {string} runtimeBasePath - API 的基础路径。
- * @param {string} staticAssetBaseUrl - 静态资源的基础 URL。
- * @returns {{
- *   modelManifest: object | null,
- *   siteContent: object,
- *   selectedModelId: string,
- *   setSelectedModelId: Function
- * }} - 返回数据状态和相关的状态设置函数。
- */
-export function useShowcaseData(route, runtimeBasePath, staticAssetBaseUrl) {
-  const [modelManifest, setModelManifest] = useState(null);
-  const [siteContent, setSiteContent] = useState({
-    settings: DEFAULT_SITE_SETTINGS,
-    hero: DEFAULT_HERO_CONTENT,
-    videos: [],
-    models: {},
-  });
-  //  (当前选中的船型),
-  const [selectedModelId, setSelectedModelId] = useState('');
+// Helper to create a deep copy
+const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
-  const resolveStaticPath = (relativePath) => `${staticAssetBaseUrl}${relativePath}`;
-  const resolveApiPath = (relativePath) => `${runtimeBasePath}${relativePath}`;
+export const useShowcaseData = (
+  route,
+  runtimeBasePath,
+  staticAssetBaseUrl
+) => {
+  const [internalModelManifest, setInternalModelManifest] = useState(null);
+  const [internalSiteContent, setInternalSiteContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedModelId, setSelectedModelId] = useState(() => getRequestedModelId());
 
   useEffect(() => {
-    if (route === 'admin') {
-      return undefined;
-    }
-
-    let isCancelled = false;
-
-    const loadShowcaseData = async () => {
+    const fetchDataAndMerge = async () => {
       try {
-        const manifestUrl = resolveStaticPath('gltf/asset-manifest.json');
-        const contentUrl = resolveApiPath('api/site-content');
+        setLoading(true);
 
-        const [manifestResponse, contentResponse] = await Promise.all([
-          fetch(manifestUrl, { cache: 'no-store' }),
-          fetch(contentUrl, { cache: 'no-store' }).catch(() => null),
-        ]);
+        // 1. Fetch local JSON files from the public directory
+        const manifestResponse = await fetch('/app-json/model-manifest.json');
+        const siteContentResponse = await fetch('/app-json/site-content.json');
 
-        if (!manifestResponse.ok) {
-          throw new Error(`Failed to fetch asset-manifest.json: ${manifestResponse.status}`);
+        if (!manifestResponse.ok || !siteContentResponse.ok) {
+          throw new Error('Failed to fetch local data files.');
         }
 
-        const manifest = await manifestResponse.json();
-        const content = contentResponse?.ok
-          ? await contentResponse.json()
-          : { settings: DEFAULT_SITE_SETTINGS, 
-              hero: DEFAULT_HERO_CONTENT, 
-              videos: [], 
-              models: {} 
-              };
+        const localModelManifest = await manifestResponse.json();
+        const localSiteContent = await siteContentResponse.json();
+        
+        // Initialize selectedModelId once local manifest is loaded
+        const initialId = getRequestedModelId();
+        if (initialId && localModelManifest.models.some(m => m.id === initialId)) {
+          setSelectedModelId(initialId);
+        } else if (route !== 'showcase') {
+          setSelectedModelId(null);
+        } else {
+          // Fallback to the first model if no specific one is requested
+          setSelectedModelId(localModelManifest.models[0]?.id || null);
+        }
+        
 
-        if (isCancelled) {
+        // 2. Fetch remote API data
+        const allBoats = await getFrontBoatModels();
+        if (!allBoats || !Array.isArray(allBoats.content)) {
+          console.warn("API did not return valid boat data.");
+          // If API fails, still proceed with local data
+          setInternalModelManifest(localModelManifest);
+          setInternalSiteContent(localSiteContent);
           return;
         }
+        const allBoatsFlat = allBoats.content.flatMap(category => category.boats);
 
-        setModelManifest(manifest);
-        setSiteContent(content ?? { settings: DEFAULT_SITE_SETTINGS, 
-          hero: DEFAULT_HERO_CONTENT, 
-          videos: [], 
-          models: {} });
+        // 3. Merge data (create copies to avoid mutation)
+        const newManifest = deepClone(localModelManifest);
+        const newSiteContent = deepClone(localSiteContent);
 
-        const vesselManifestModels = (manifest.models ?? []).filter(isVesselModel);
-        const availableIds = new Set(vesselManifestModels.map((model) => model.id));
-        const requestedModelId = getRequestedModelId();
-        const storedModelId = window.localStorage.getItem(MODEL_STORAGE_KEY);
-        const persistedModelId = storedModelId && availableIds.has(storedModelId) 
-         ? storedModelId 
-         : '';
-        const queryModelId = requestedModelId && availableIds.has(requestedModelId) 
-            ? requestedModelId 
-            : '';
-        const configuredPrimaryModelId = `${content?.settings?.primaryModelId ?? ''}`.trim();
-        const defaultModelId = configuredPrimaryModelId && availableIds.has(configuredPrimaryModelId)
-          ? configuredPrimaryModelId
-          : availableIds.has(manifest.primaryModelId)
-          ? manifest.primaryModelId
-          : vesselManifestModels[0]?.id ?? '';
-        const preferredModelId = availableIds.has(PREFERRED_MODEL_ID) ? PREFERRED_MODEL_ID : '';
-        const initialModelId = queryModelId || persistedModelId || defaultModelId || preferredModelId;
+        // Enhance manifest models
+        newManifest.models = newManifest.models.map((model) => {
+          const boat = allBoatsFlat.find(b => b.boatEnName?.toLowerCase() === model.id?.toLowerCase());
+          if (boat) {
+            return { ...model, ...boat, id: model.id, path: boat.modelRuntimePath || model.path };
+          }
+          return model;
+        });
 
-        setSelectedModelId(initialModelId);
+        // DO NOT merge API data into siteContent. It breaks the menu structure.
+        // The menu relies on the original structure from site-content.json.
+        // if (newSiteContent.models?.boats) {
+        //   for (const category in newSiteContent.models.boats) {
+        //     newSiteContent.models.boats[category] = newSiteContent.models.boats[category].map(model => {
+        //       const boat = allBoatsFlat.find(b => b.boatEnName?.toLowerCase() === model.id?.toLowerCase());
+        //       if (boat) {
+        //         return { ...model, ...boat, id: model.id };
+        //       }
+        //       return model;
+        //     });
+        //   }
+        // }
+        
+        // Resolve paths using the newly centralized function
+        newManifest.models.forEach(
+          (m) => (m.path = resolveManifestPath(m.path, staticAssetBaseUrl))
+        );
 
-        if (initialModelId) {
-          window.localStorage.setItem(MODEL_STORAGE_KEY, initialModelId);
-        }
-      } catch (error) {
-        console.error('Failed to load showcase data:', error);
+        // 4. Update state with the new, merged data
+        setInternalModelManifest(newManifest);
+        setInternalSiteContent(newSiteContent);
+
+      } catch (err) {
+        setError(err);
+        console.error("Failed to fetch and merge showcase data:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadShowcaseData();
+    fetchDataAndMerge();
+  }, [route, runtimeBasePath]); // Add route to dependency array
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [route, runtimeBasePath, staticAssetBaseUrl]); // 依赖项现在是传递给 Hook 的参数
-
-  return { modelManifest, siteContent, selectedModelId, setSelectedModelId };
-}
+  // Return a consistent shape, even while loading
+  return {
+    modelManifest: internalModelManifest,
+    siteContent: internalSiteContent,
+    selectedModelId,
+    setSelectedModelId,
+    loading,
+    error,
+  };
+};

@@ -153,6 +153,11 @@ func getMatSlot(p string) string {
 	// 1. 无论路径多深，先拿到文件名（例如: "mat_xx01_xx.png" 或 "mat_special_cover_02_v2.png"）
 	fileName := filepath.Base(p)
 
+	if !strings.HasPrefix(fileName, "mat_") {
+		// log.Printf("getMatSlot(): fileName does not start with 'mat_': %s", fileName)
+		return ""
+	}
+
 	// 2. 从后往前，找出【最后一个】下划线 "_" 的位置
 	lastUnderscore := strings.LastIndex(fileName, "_")
 
@@ -226,7 +231,7 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 		boatFrontOut := BoatFrontOut{}
 		boatFrontOut.fromModel(&boat)
 
-		boatFrontOut.Models = make([]ModelFrontOut, 6)
+		boatFrontOut.Models = make([]ModelFrontOut, 0)
 		for _, model := range allModels {
 
 			if model.BoatEnName == boat.BoatEnName {
@@ -237,12 +242,14 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 
 				modelDirPath := filepath.Dir(model.ModelRuntimePath)
 				for _, path := range cosFilePaths {
-					if strings.HasPrefix(path.Path, modelDirPath) {
+					if strings.HasPrefix(path.Path, modelDirPath) &&
+						strings.HasPrefix(filepath.Base(path.Path), "mat_") {
 						// path.Path is like "/gltf01/boatA/model01/mat_xx01_xx.png"
 						// matSlot is like "mat_xx01"
 						log.Printf("HandleGetModels(): modelDirPath: %s,path.Path: %s",
 							modelDirPath, path.Path)
 						matSlot := getMatSlot(path.Path)
+
 						modelFrontOut.ModelMatSlots[matSlot] = append(modelFrontOut.ModelMatSlots[matSlot], path.Path)
 					}
 				}

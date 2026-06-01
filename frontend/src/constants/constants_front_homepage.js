@@ -103,8 +103,8 @@ export const vesselCategories = [
 ]
 // 定义了船只的分类菜单。
 export const vesselCategoryMenus = [
-  { id: 'new-energy', label: '\u65b0\u80fd\u6e90\u8239' },// 新能源船
-  { id: 'rescue', label: '\u5e94\u6025\u6551\u63f4\u8239' },// 应急救援船 
-  { id: 'duty', label: '\u516c\u52a1\u6267\u6cd5\u8247' },// 公务执法艇  
-  { id: 'yacht', label: '\u6e38\u8247' }//---  游艇
+  { id: 'NewEnergyShip', label: '\u65b0\u80fd\u6e90\u8239' },// 新能源船
+  { id: 'EmergencyRescueShip', label: '\u5e94\u6025\u6551\u63f4\u8239' },// 应急救援船 
+  { id: 'OfficialLawEnforcementBoat', label: '\u516c\u52a1\u6267\u6cd5\u8247' },// 公务执法艇  
+  { id: 'Yacht', label: '\u6e38\u8247' }//---  游艇
 ]

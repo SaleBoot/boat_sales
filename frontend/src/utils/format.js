@@ -62,3 +62,19 @@ export function formatDateTime(value) {
     minute: '2-digit',
   }).format(date);
 }
+
+
+
+function getParentDirName(path) {
+  // const modelRuntimePath = "/gltf01/firefighting/firefighting01/13.fbx";
+  // console.log(getParentDirName(modelRuntimePath)); // 输出: firefighting01
+  // 1. 按斜杠分割成数组
+  const parts = path.split('/'); 
+  // parts 结果为: ["", "gltf01", "firefighting", "firefighting01", "13.fbx"]
+
+  // 2. 数组最后一个是文件名 (13.fbx)，倒数第二个就是父目录
+  // 使用 slice(-2, -1) 可以安全地获取倒数第二个元素
+  
+  return parts[parts.length - 2];
+}
+

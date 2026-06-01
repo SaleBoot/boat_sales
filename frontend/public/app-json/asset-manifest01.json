@@ -1,0 +1,501 @@
+{
+  "version": 1,
+  "generatedAt": "2026-05-13T11:55:33.487Z", 
+  "primaryModelId": "40mijianchuan",
+  "models": [
+    {
+      "id": "40mijianchuan",
+      "label": "ExteriorName +  + InteriorName", 
+      "defaultUvSetId": "cc",
+      "uvSets": [
+        {  
+          "textures": {
+            "baseColor": "/gltf/40mijianchuan/cc/ccuv_01 - Default_BaseColor.png",
+            "normal": "/gltf/40mijianchuan/cc/ccuv_01 - Default_Normal.png",
+            "rmao": "/gltf/40mijianchuan/cc/ccuv_01 - Default_R+M+AO.png"
+          },
+          "textureOptions": {
+            "baseColor": {
+              "useAlphaAsOpacity": true
+            }
+          },
+          "renderProfile": {
+            "alphaMode": "blend",
+            "side": "double",
+            "depthWrite": "on",
+            "depthTest": "on",
+            "alphaCutoff": 0.02,
+            "renderOrder": 20
+          }
+        },
+        {   
+          "textures": {
+            "baseColor": "/gltf/40mijianchuan/qt/qtuv_02 - Default_BaseColor.png",
+            "normal": "/gltf/40mijianchuan/qt/qtuv_02 - Default_Normal.png",
+            "rmao": "/gltf/40mijianchuan/qt/qtuv_02 - Default_R+M+AO.png"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "57sites",
+      "label": "57sites",
+      "model": { 
+        "path": "/gltf/57sites/57.fbx"
+      }, 
+      "uvSets": [
+        {
+          "id": "cc",
+          "label": "UV cc",
+          "directory": "/gltf/57sites/cc",
+          "materialNameHint": "02 - Default",
+          "materialHintSource": "manual",
+          "textures": {
+            "baseColor": "/gltf/57sites/cc/ccUV_01 - Default_BaseColor.png",
+            "normal": "/gltf/57sites/cc/ccUV_01 - Default_Normal.png",
+            "rmao": "/gltf/57sites/cc/ccUV_01 - Default_R+M+AO.png"
+          }
+        },
+        {
+          "id": "mt",
+          "label": "UV mt", 
+          "textures": {
+            "baseColor": "/gltf/57sites/mt/mtUV_01 - Default_BaseColor.png",
+            "normal": "/gltf/57sites/mt/mtUV_01 - Default_Normal.png",
+            "rmao": "/gltf/57sites/mt/mtUV_01 - Default_R+M+AO.png"
+          },
+          "textureOptions": {
+            "baseColor": {
+              "useAlphaAsOpacity": true
+            }
+          }
+        }
+      ] 
+    },
+    {
+      "id": "951",
+      "label": "951",
+      "model": { 
+        "path": "/gltf/951/951NS/950ns.fbx"
+      },
+      "defaultUvSetId": "cc",
+      "uvSets": [
+        {
+          "id": "cc",
+          "label": "UV cc", 
+          "textures": {
+            "ao": "/gltf/951/951NS/cc/AO.png",
+            "baseColor": "/gltf/951/951NS/cc/ccuv_01 - Default_BaseColor.png",
+            "emissive": "/gltf/951/951NS/cc/ccuv_01 - Default_Emissive.png",
+            "metalness": "/gltf/951/951NS/cc/ccuv_01 - Default_Metallic.png",
+            "normal": "/gltf/951/951NS/cc/ccuv_01 - Default_Normal.png",
+            "rmao": "/gltf/951/951NS/cc/ccuv_01 - Default_R+M+AO.png",
+            "roughness": "/gltf/951/951NS/cc/ccuv_01 - Default_Roughness.png"
+          }
+        },
+        {
+          "id": "ns1",
+          "label": "UV ns1", 
+          "textures": {
+            "ao": "/gltf/951/951NS/ns1/AO.png",
+            "baseColor": "/gltf/951/951NS/ns1/nsuv1_02 - Default_BaseColor.png",
+            "emissive": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Emissive.png",
+            "metalness": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Metallic.png",
+            "normal": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Normal.png",
+            "rmao": "/gltf/951/951NS/ns1/nsuv1_02 - Default_R+M+AO.png",
+            "roughness": "/gltf/951/951NS/ns1/nsuv1_02 - Default_Roughness.png"
+          }
+        },
+        {
+          "id": "ns2",
+          "label": "UV ns2", 
+          "textures": {
+            "ao": "/gltf/951/951NS/ns2/AO.png",
+            "baseColor": "/gltf/951/951NS/ns2/nsuv2_03 - Default_BaseColor.png",
+            "emissive": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Emissive.png",
+            "metalness": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Metallic.png",
+            "normal": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Normal.png",
+            "rmao": "/gltf/951/951NS/ns2/nsuv2_03 - Default_R+M+AO.png",
+            "roughness": "/gltf/951/951NS/ns2/nsuv2_03 - Default_Roughness.png"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "Cabnet",
+      "label": "Cabnet",
+      "model": {
+        "format": "fbx",
+        "path": "/gltf/Cabnet/119B.fbx"
+      },
+      "defaultUvSetId": "tt",
+      "uvSets": [
+        {
+          "id": "tt",
+          "label": "UV tt",
+          "directory": "/gltf/Cabnet/tt",
+          "materialNameHint": "01 - Default",
+          "materialHintSource": "manual-runtime",
+          "textures": {
+            "baseColor": "/gltf/Cabnet/tt/119_01 - Default_BaseColor.png",
+            "emissive": "/gltf/Cabnet/tt/119_01 - Default_Emissive.png",
+            "metalness": "/gltf/Cabnet/tt/119_01 - Default_Metallic.png",
+            "normal": "/gltf/Cabnet/tt/119_01 - Default_Normal.png",
+            "roughness": "/gltf/Cabnet/tt/119_01 - Default_Roughness.png",
+            "ao": "/gltf/Cabnet/tt/ao.png"
+          },
+          "textureOptions": {
+            "baseColor": {
+              "useAlphaAsOpacity": true
+            }
+          },
+          "renderProfile": {
+            "alphaMode": "opaque",
+            "side": "double",
+            "depthWrite": "on"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "Dabao",
+      "label": "Dabao", 
+      "uvSets": [
+        {
+          "id": "Texture",
+          "label": "UV Texture", 
+          "textures": {
+            "baseColor": "/gltf/Dabao/Texture/diandong_19 - Default_BaseColor.png",
+            "normal": "/gltf/Dabao/Texture/diandong_19 - Default_Normal.png",
+            "rmao": "/gltf/Dabao/Texture/diandong_19 - Default_R+M+AO.png"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "FireFighting",
+      "label": "FireFighting",
+      "model": { 
+        "path": "/gltf/FireFighting/13.fbx"
+      },
+      "defaultUvSetId": "tt/cc",
+      "uvSets": [
+        {
+          "id": "tt/cc", 
+          "textures": {
+            "ao": "/gltf/FireFighting/tt/cc/ao.png",
+            "baseColor": "/gltf/FireFighting/tt/cc/cc_01 - Default_BaseColor.png",
+            "metalness": "/gltf/FireFighting/tt/cc/cc_01 - Default_Metallic.png",
+            "normal": "/gltf/FireFighting/tt/cc/cc_01 - Default_Normal.png",
+            "roughness": "/gltf/FireFighting/tt/cc/cc_01 - Default_Roughness.png"
+          },
+          "renderProfile": {
+            "alphaMode": "opaque",
+            "side": "double",
+            "depthWrite": "on"
+          }
+        },
+        {
+          "id": "tt/diban", 
+          "directory": "/gltf/FireFighting/tt/diban", 
+          "textures": {
+            "ao": "/gltf/FireFighting/tt/diban/ao.png",
+            "baseColor": "/gltf/FireFighting/tt/diban/diban_03 - Default_BaseColor.png",
+            "metalness": "/gltf/FireFighting/tt/diban/diban_03 - Default_Metallic.png",
+            "normal": "/gltf/FireFighting/tt/diban/diban_03 - Default_Normal.png",
+            "roughness": "/gltf/FireFighting/tt/diban/diban_03 - Default_Roughness.png"
+          }
+        },
+        {
+          "id": "tt/langan", 
+          "textures": {
+            "baseColor": "/gltf/FireFighting/tt/langan/alngan_02 - Default_BaseColor.png",
+            "emissive": "/gltf/FireFighting/tt/langan/alngan_02 - Default_Emissive.png",
+            "metalness": "/gltf/FireFighting/tt/langan/alngan_02 - Default_Metallic.png",
+            "normal": "/gltf/FireFighting/tt/langan/alngan_02 - Default_Normal.png",
+            "roughness": "/gltf/FireFighting/tt/langan/alngan_02 - Default_Roughness.png",
+            "ao": "/gltf/FireFighting/tt/langan/ao.png"
+          },
+          "renderProfile": {
+            "alphaMode": "opaque",
+            "side": "double",
+            "depthWrite": "on"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "JS13",
+      "label": "JS13",
+      "model": {
+        "format": "fbx",
+        "path": "/gltf/JS13/13.fbx"
+      },
+      "defaultUvSetId": "cc",
+      "uvSets": [
+        {
+          "id": "cc", 
+          "textures": {
+            "baseColor": "/gltf/JS13/cc/ccuv_01 - Default_BaseColor.png",
+            "normal": "/gltf/JS13/cc/ccuv_01 - Default_Normal.png",
+            "rmao": "/gltf/JS13/cc/ccuv_01 - Default_R+M+AO.png"
+          }
+        },
+        {
+          "id": "ns", 
+          "textures": {
+            "baseColor": "/gltf/JS13/ns/nsuv_03 - Default_BaseColor.png",
+            "normal": "/gltf/JS13/ns/nsuv_03 - Default_Normal.png",
+            "rmao": "/gltf/JS13/ns/nsuv_03 - Default_R+M+AO.png"
+          }
+        },
+        {
+          "id": "qt", 
+          "textures": {
+            "baseColor": "/gltf/JS13/qt/Untitled_02 - Default_BaseColor.png",
+            "normal": "/gltf/JS13/qt/Untitled_02 - Default_Normal.png",
+            "rmao": "/gltf/JS13/qt/Untitled_02 - Default_R+M+AO.png"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "LiuYun",
+      "label": "LiuYun",
+      "model": { 
+        "path": "/gltf/LiuYun/1198.fbx"
+      },
+      "defaultUvSetId": "cc",
+      "uvSets": [
+        {
+          "id": "cc", 
+          "textures": {
+            "ao": "/gltf/LiuYun/cc/ao.optimized.webp",
+            "baseColor": "/gltf/LiuYun/cc/CCuv_01 - Default_BaseColor.optimized.webp",
+            "metalness": "/gltf/LiuYun/cc/CCuv_01 - Default_Metallic.png",
+            "normal": "/gltf/LiuYun/cc/CCuv_01 - Default_Normal.optimized.webp",
+            "roughness": "/gltf/LiuYun/cc/CCuv_01 - Default_Roughness.png"
+          },
+          "renderProfile": {
+            "alphaMode": "opaque",
+            "side": "double",
+            "depthWrite": "on"
+          }
+        },
+        {
+          "id": "mt", 
+          "textures": {
+            "ao": "/gltf/LiuYun/mt/ao.optimized.webp",
+            "baseColor": "/gltf/LiuYun/mt/MUTOUuv_01 - Default_BaseColor.optimized.webp",
+            "metalness": "/gltf/LiuYun/mt/MUTOUuv_01 - Default_Metallic.png",
+            "normal": "/gltf/LiuYun/mt/MUTOUuv_01 - Default_Normal.optimized.webp",
+            "roughness": "/gltf/LiuYun/mt/MUTOUuv_01 - Default_Roughness.optimized.webp"
+          },
+          "renderProfile": {
+            "alphaMode": "opaque",
+            "side": "double",
+            "depthWrite": "on"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "PleasureBoat", 
+      "model": { 
+        "path": "/gltf/PleasureBoat/PleasureBoat.glb"
+      },
+      "defaultUvSetId": "tietu",
+      "uvSets": [
+        {
+          "id": "tietu", 
+          "textures": {
+            "baseColor": "/gltf/PleasureBoat/tietu/316-2_01 - Default_BaseColor.png",
+            "emissive": "/gltf/PleasureBoat/tietu/316-2_01 - Default_Emissive.png",
+            "normal": "/gltf/PleasureBoat/tietu/316-2_01 - Default_Normal.png",
+            "ao": "/gltf/PleasureBoat/tietu/ao.png",
+            "metalness": "/gltf/PleasureBoat/tietu/metallic.png"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "PleasureBoat1",
+      "label": "PleasureBoat1",
+      "model": { 
+        "path": "/gltf/PleasureBoat1/11.fbx"
+      },
+      "defaultUvSetId": "tt",
+      "uvSets": [
+        {
+          "id": "tt", 
+          "textures": {
+            "baseColor": "/gltf/PleasureBoat1/tt/11_01 - Default_BaseColor.png",
+            "emissive": "/gltf/PleasureBoat1/tt/11_01 - Default_Emissive.png",
+            "metalness": "/gltf/PleasureBoat1/tt/11_01 - Default_Metallic.png",
+            "normal": "/gltf/PleasureBoat1/tt/11_01 - Default_Normal.png",
+            "roughness": "/gltf/PleasureBoat1/tt/11_01 - Default_Roughness.png",
+            "ao": "/gltf/PleasureBoat1/tt/ao.png"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "TestHigh",
+      "label": "TestHigh",
+      "model": { 
+        "path": "/gltf/TestHigh/灯带+控制台（1024）/灯带+控制台（完整）.fbx"
+      },
+      "defaultUvSetId": null,
+      "uvSets": [],
+      "parts": [
+        {
+          "id": "灯带+控制台（1024）",
+          "label": "灯带+控制台（1024）",
+          "model": { 
+            "path": "/gltf/TestHigh/灯带+控制台（1024）/灯带+控制台（完整）.fbx"
+          },
+          "defaultUvSetId": "TT",
+          "uvSets": [
+            {
+              "id": "TT",
+              "label": "UV TT", 
+              "textures": {
+                "ao": "/gltf/TestHigh/灯带+控制台（1024）/TT/AO.png",
+                "baseColor": "/gltf/TestHigh/灯带+控制台（1024）/TT/灯带+控制台（UV）_01 - Default_BaseColor.png",
+                "emissive": "/gltf/TestHigh/灯带+控制台（1024）/TT/灯带+控制台（UV）_01 - Default_Emissive.png",
+                "metalness": "/gltf/TestHigh/灯带+控制台（1024）/TT/灯带+控制台（UV）_01 - Default_Metallic.png",
+                "normal": "/gltf/TestHigh/灯带+控制台（1024）/TT/灯带+控制台（UV）_01 - Default_Normal.png",
+                "roughness": "/gltf/TestHigh/灯带+控制台（1024）/TT/灯带+控制台（UV）_01 - Default_Roughness.png"
+              }
+            }
+          ] 
+        },
+        {
+          "id": "船体+顶棚（2048）",
+          "label": "船体+顶棚（2048）",
+          "model": { 
+            "path": "/gltf/TestHigh/船体+顶棚（2048）/船体+顶棚(整体).fbx"
+          },
+          "defaultUvSetId": "tt",
+          "uvSets": [
+            {
+              "id": "tt", 
+              "textures": {
+                "ao": "/gltf/TestHigh/船体+顶棚（2048）/tt/AO.png",
+                "baseColor": "/gltf/TestHigh/船体+顶棚（2048）/tt/船体+顶棚(UV)_01 - Default_BaseColor.png",
+                "metalness": "/gltf/TestHigh/船体+顶棚（2048）/tt/船体+顶棚(UV)_01 - Default_Metallic.png",
+                "normal": "/gltf/TestHigh/船体+顶棚（2048）/tt/船体+顶棚(UV)_01 - Default_Normal.png",
+                "roughness": "/gltf/TestHigh/船体+顶棚（2048）/tt/船体+顶棚(UV)_01 - Default_Roughness.png"
+              }
+            }
+          ] 
+        },
+        {
+          "id": "船舱+栏杆+沙发（2048）",
+          "label": "船舱+栏杆+沙发（2048）",
+          "model": { 
+            "path": "/gltf/TestHigh/船舱+栏杆+沙发（2048）/船舱+栏杆+沙发（完整）.fbx"
+          },
+          "defaultUvSetId": "tt",
+          "uvSets": [
+            {
+              "id": "tt",
+              "label": "UV tt", 
+              "textures": {
+                "baseColor": "/gltf/TestHigh/船舱+栏杆+沙发（2048）/tt/1_01 - Default_BaseColor.png",
+                "metalness": "/gltf/TestHigh/船舱+栏杆+沙发（2048）/tt/1_01 - Default_Metallic.png",
+                "normal": "/gltf/TestHigh/船舱+栏杆+沙发（2048）/tt/1_01 - Default_Normal.png",
+                "roughness": "/gltf/TestHigh/船舱+栏杆+沙发（2048）/tt/1_01 - Default_Roughness.png",
+                "ao": "/gltf/TestHigh/船舱+栏杆+沙发（2048）/tt/AO.png"
+              },
+              "renderProfile": {
+                "alphaMode": "opaque",
+                "side": "double",
+                "depthWrite": "on",
+                "depthTest": "on",
+                "renderOrder": 5
+              }
+            }
+          ] 
+        },
+        {
+          "id": "马达（2048）",
+          "label": "马达（2048）",
+          "model": { 
+            "path": "/gltf/TestHigh/马达（2048）/马达.fbx"
+          },
+          "defaultUvSetId": "tt",
+          "uvSets": [
+            {
+              "id": "tt",
+              "label": "UV tt", 
+              "textures": {
+                "baseColor": "/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_BaseColor.png",
+                "metalness": "/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Metallic.png",
+                "normal": "/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Normal.png",
+                "roughness": "/gltf/TestHigh/马达（2048）/tt/WG_07 - Default_Roughness.png"
+              }
+            }
+          ] 
+        }
+      ] 
+    },
+    {
+      "id": "TwoLayerBoat",
+      "label": "TwoLayerBoat",
+      "model": { 
+        "path": "/gltf/TwoLayerBoat/TwoLayerBoat.glb"
+      },
+      "defaultUvSetId": "1",
+      "uvSets": [
+        {
+          "id": "1",
+          "label": "UV 1", 
+          "textures": {
+            "baseColor": "/gltf/TwoLayerBoat/1/1_01 - Default_BaseColor.png",
+            "emissive": "/gltf/TwoLayerBoat/1/1_01 - Default_Emissive.png",
+            "normal": "/gltf/TwoLayerBoat/1/1_01 - Default_Normal.png",
+            "ao": "/gltf/TwoLayerBoat/1/AO.png"
+          }
+        },
+        {
+          "id": "2",
+          "label": "UV 2", 
+          "textures": {
+            "baseColor": "/gltf/TwoLayerBoat/2/1_02 - Default_BaseColor.png",
+            "normal": "/gltf/TwoLayerBoat/2/1_02 - Default_Normal.png",
+            "ao": "/gltf/TwoLayerBoat/2/AO_3.png"
+          }
+        }
+      ] 
+    },
+    {
+      "id": "Yacht",
+      "label": "Yacht",
+      "model": { 
+        "path": "/gltf/Yacht/950.fbx"
+      },
+      "defaultUvSetId": "cc",
+      "uvSets": [
+        {
+          "id": "cc",
+          "label": "UV cc", 
+          "textures": {
+            "baseColor": "/gltf/Yacht/cc/ccuv_01 - Default_BaseColor.png",
+            "normal": "/gltf/Yacht/cc/ccuv_01 - Default_Normal.png",
+            "rmao": "/gltf/Yacht/cc/ccuv_01 - Default_R+M+AO.png"
+          }
+        },
+        {
+          "id": "qt",
+          "label": "UV qt", 
+          "textures": {
+            "baseColor": "/gltf/Yacht/qt/qtuv_02 - Default_BaseColor.png",
+            "normal": "/gltf/Yacht/qt/qtuv_02 - Default_Normal.png",
+            "rmao": "/gltf/Yacht/qt/qtuv_02 - Default_R+M+AO.png"
+          }
+        }
+      ] 
+    }
+  ]
+}

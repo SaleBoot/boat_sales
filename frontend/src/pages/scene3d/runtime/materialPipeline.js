@@ -817,56 +817,94 @@ export function createMaterialPipeline({
   }
   // ===== TwoLayerBoat Locked Block END =====
 
+  /**
+   * 材质处理流程的绝对核心函数。
+   * 负责根据指定的UV Set配置，异步加载纹理，并将它们应用到3D模型对象(rootObject)上。
+   * 它将一个“素胚”模型转变为具有丰富细节和真实质感的最终成品。
+   *
+   * @param {THREE.Object3D} rootObject - 需要应用材质的根3D对象。
+   * @param {Array} targetUvSets - 一个UV Set配置对象数组，通常来自 asset-manifest.json。
+   *                               每个对象都描述了一套纹理以及如何应用它们。
+   * @param {string} targetModelFormat - 目标模型的格式 (如 'fbx', 'glb')，用于辅助决策。
+   * @param {string} targetLabel - 用于调试和日志记录的标签，通常是模型ID或部件ID。
+   */
   const loadAndApplyUvMaps = async (rootObject, targetUvSets, targetModelFormat, targetLabel) => {
+    // 根据模型格式决定是否需要垂直翻转Y轴。FBX格式通常不需要翻转。
     const shouldFlipY = targetModelFormat !== 'fbx'
+    // 计算有多少个UV set是真正带有纹理的，这用于后续的“单一材质回退”逻辑。
     const texturedUvSetCount = targetUvSets
       .filter((uvSet) => Object.keys(uvSet.textures ?? {}).some((textureType) => Boolean(uvSet.textures?.[textureType])))
       .length
 
+    // --- 步骤一：遍历每个UV Set配置，逐个加载并应用 ---
+    // 与旧版一次性加载所有纹理不同，新策略是按UV Set的顺序，加载一个，应用一个。
+    // 这样可以更好地处理复杂的材质覆盖和转换逻辑。
     for (const uvSet of targetUvSets) {
+      // 提取当前UV Set中所有有效的纹理路径。
       const textureEntries = Object.entries(uvSet.textures ?? {}).filter(([, path]) => Boolean(path))
+      // 如果当前UV Set没有任何纹理，则直接跳到下一个。
       if (textureEntries.length === 0) {
         continue
       }
 
+      // 提取出纹理选项和渲染配置，方便后续使用。
       const textureOptions = uvSet.textureOptions ?? {}
       const renderProfile = uvSet.renderProfile ?? {}
 
+      // --- 步骤二：并行加载当前UV Set的所有纹理 ---
+      // 使用 Promise.all 并行加载当前UV Set所需的所有纹理，提高效率。
       const loadedTextures = await Promise.all(
         textureEntries.map(async ([type, path]) => {
+          // 异步加载纹理图片。
           const texture = await loadTextureAsync(resolveManifestPath(path))
+          // 根据模型格式设置Y轴翻转。
           texture.flipY = shouldFlipY ? false : true
+          // 对颜色和自发光贴图设置正确的色彩空间（SRGB），确保颜色显示正确。
           if (type === 'baseColor' || type === 'emissive') {
             texture.colorSpace = THREE.SRGBColorSpace
           }
           texture.needsUpdate = true
+          // 将加载的纹理存入外部数组，以便统一管理和释放。
           externalTextures.push(texture)
           return [type, texture]
         })
       )
 
+      // 将加载好的纹理数组转换为一个以类型为键的对象（如 { baseColor: texture, normal: texture }）。
       const textureMap = Object.fromEntries(loadedTextures)
-      const hasExplicitRenderProfile = Object.values(uvSet.renderProfile ?? {}).some((value) => value !== '' && value !== 0 && value !== null)
+
+      // --- 步骤三：准备材质转换逻辑和应用贴图 ---
+      // 检查UV Set是否包含明确的渲染配置。
+      const hasExplicitRenderProfile = Object.values(uvSet.renderProfile ?? {})
+                          .some((value) => value !== '' && value !== 0 && value !== null)
+      // **核心转换逻辑**：根据模型ID和UV Set ID，决定是否应用特殊的材质转换函数。
+      // 如果有明确的渲染配置，则不应用这些硬编码的转换。
       const materialTransform = hasExplicitRenderProfile
-        ? null
-        : modelId === 'FireFighting'
-          ? (
+        ? null // 有显式配置，不使用硬编码转换
+        : modelId === 'FireFighting' // 如果是消防船模型
+          ? ( // 且UV Set ID是 'tt/cc'
               uvSet.id === 'tt/cc'
-                ? applyFireFightingCcClearcoat
-                : uvSet.id === 'tt/langan'
-                  ? applyFireFightingRailingTransparency
+                ? applyFireFightingCcClearcoat // 应用消防船清漆效果
+                : uvSet.id === 'tt/langan' // 且UV Set ID是 'tt/langan'
+                  ? applyFireFightingRailingTransparency // 应用消防船栏杆透明效果
                   : null
             )
-          : modelId === 'LiuYun' && uvSet.id === 'mt'
-            ? applyLiuYunOpaqueFinish
+          : modelId === 'LiuYun' && uvSet.id === 'mt' // 如果是流云模型且ID是'mt'
+            ? applyLiuYunOpaqueFinish // 应用流云不透明材质效果
             : null
+
+      // **最终应用**：调用 applyUvSetMaps 函数，将加载好的纹理和转换逻辑应用到场景中匹配的材质上。
       const initialResult = applyUvSetMaps(rootObject, uvSet, textureMap, {
-        preferPbrFinish: targetModelFormat === 'fbx',
-        materialTransform,
+        preferPbrFinish: targetModelFormat === 'fbx', // FBX模型优先使用PBR材质
+        materialTransform, // 传入上面决定的材质转换函数
         textureOptions,
         renderProfile,
+        // 如果整个模型只有一个带纹理的UV Set，则允许在材质名称不匹配时也应用贴图，作为一种容错机制。
         allowSingleMaterialFallback: texturedUvSetCount === 1
       })
+
+      // --- 步骤四：处理应用结果，输出警告信息 ---
+      // 如果应用计数为0，说明没有一个材质被成功应用贴图，需要发出警告。
       if (initialResult.appliedCount === 0) {
         // 多材质模型如果提示未命中，宁可保留原材质，也不要把整套贴图错误铺满整船。
         if (initialResult.skippedMeshCount > 0) {
@@ -875,6 +913,7 @@ export function createMaterialPipeline({
           console.warn(`Skipped UV texture application for ${targetLabel}/${uvSet.id}: material name hint did not match any runtime material slot.`)
         }
       } else if (initialResult.skippedMeshCount > 0) {
+        // 如果部分网格因缺少UV坐标而跳过，也发出警告。
         console.warn(`Partially skipped UV texture application for ${targetLabel}/${uvSet.id}: some meshes do not contain UV coordinates.`)
       }
     }

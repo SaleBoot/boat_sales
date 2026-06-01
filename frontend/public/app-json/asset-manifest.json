@@ -66,63 +66,7 @@
             "normalizedName": "02default",
             "meshCount": 2173
           }
-        ],
-        "meshCount": 2174,
-        "meshWithUvCount": 2174,
-        "meshWithUv2Count": 0,
-        "uvCoverage": 1,
-        "uv2Coverage": 0,
-        "inspectionError": "",
-        "candidates": [
-          {
-            "fileName": "40.fbx",
-            "format": "fbx",
-            "path": "/gltf/40mijianchuan/40.fbx",
-            "score": 1206,
-            "materialSlots": [
-              {
-                "name": "01 - Default",
-                "normalizedName": "01default",
-                "meshCount": 1
-              },
-              {
-                "name": "02 - Default",
-                "normalizedName": "02default",
-                "meshCount": 2173
-              }
-            ],
-            "meshCount": 2174,
-            "meshWithUvCount": 2174,
-            "meshWithUv2Count": 0,
-            "uvCoverage": 1,
-            "uv2Coverage": 0,
-            "inspectionError": ""
-          },
-          {
-            "fileName": "40.glb",
-            "format": "glb",
-            "path": "/gltf/40mijianchuan/40.glb",
-            "score": 205,
-            "materialSlots": [
-              {
-                "name": "M_01___Default",
-                "normalizedName": "01default",
-                "meshCount": 1
-              },
-              {
-                "name": "M_02___Default",
-                "normalizedName": "02default",
-                "meshCount": 2173
-              }
-            ],
-            "meshCount": 2174,
-            "meshWithUvCount": 0,
-            "meshWithUv2Count": 0,
-            "uvCoverage": 0,
-            "uv2Coverage": 0,
-            "inspectionError": ""
-          }
-        ]
+        ] 
       }
     },
     {

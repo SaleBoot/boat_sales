@@ -78,6 +78,7 @@ function setupTransformControls(scene,
 
 // --------------------------------------------------------------
 export default function ShipScene({
+  primaryModel,
   modelConfig,
   focusTarget = 'exterior',
   focusTargetPresets = null,
@@ -144,12 +145,12 @@ export default function ShipScene({
   const effectiveUvSets = shouldUseSinglePartCompositeFallback
     ? compositeParts[0]?.uvSets ?? EMPTY_ARRAY
     : modelConfig?.uvSets ?? EMPTY_ARRAY
-  const hasRenderableModel = Boolean(effectiveModelConfig?.path || hasCompositeParts)
+  const hasRenderableModel = Boolean(primaryModel?.url || effectiveModelConfig?.path || hasCompositeParts)
   // 模型格式
   const modelFormat = (effectiveModelConfig?.format ?? 'glb').toLowerCase()
-  const modelPath = effectiveModelConfig?.path
+  const modelPath = primaryModel?.url ?? (effectiveModelConfig?.path
     ? resolveManifestPath(effectiveModelConfig.path)
-    : ''
+    : '')
   // 是否是双层船
   const isTwoLayerBoat = modelId === 'TwoLayerBoat'
   // 是否是工作室模式;;默认的室外真实感渲染和工作室风格的预览渲染。
@@ -257,9 +258,7 @@ export default function ShipScene({
   const shouldShowWaterSurface = (waterConfig.enabled ?? WATER_SURFACE_ENABLED) && !isStudioLook
   // ===== TwoLayerBoat Locked Block START =====
   // TwoLayerBoat 维持固定 GLB 入口，避免被自动配置改动影响贴图稳定性。
-  const effectiveModelPath = isTwoLayerBoat
-    ? resolveAssetPath('gltf/TwoLayerBoat/TwoLayerBoat.glb')
-    : modelPath
+  const effectiveModelPath = modelPath
   const effectiveModelFormat = isTwoLayerBoat ? 'glb' : modelFormat
   // ===== TwoLayerBoat Locked Block END =====
   const uvSets = effectiveUvSets

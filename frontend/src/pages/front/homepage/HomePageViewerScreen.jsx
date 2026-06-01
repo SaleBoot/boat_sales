@@ -52,7 +52,7 @@ export default function HomePageViewerScreen({
         </div>
 
         <ShipScene
-          modelConfig={primaryModel}
+          primaryModel={primaryModel}
           viewTogglePortalTarget={sceneViewToggleTarget}
           focusTarget={viewerFocusTarget}
           focusTargetPresets={viewerFocusTargets}

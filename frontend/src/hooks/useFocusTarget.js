@@ -28,36 +28,29 @@ export function useFocusTarget(selectedModelId,
 
   // 当选中的模型 ID 或其配置变化时，异步加载该模型的焦点目标列表
   useEffect(() => {
-    // 1. 处理空 ID 情况
     if (!selectedModelId) {
       setViewerFocusTargets({});
-    //   setViewerFocusTarget('exterior'); // 同步重置 ??
       return;
     }
 
     let cancelled = false;
-    // 2. 立即重置 UI 状态
-    // setViewerFocusTarget('exterior'); //???
 
     const loadFocusTargets = async () => {
       try {
-        const url = buildApiUrl(runtimeBasePath, 
-            `api/models/${encodeURIComponent(selectedModelId)}/focus-targets`) 
-        console.log(`Fetching focus targets from: ${url}`);
-        const response = await fetch( url );
+        // 优先尝试从 API 加载焦点数据
+        const url = buildApiUrl(runtimeBasePath, `api/models/${encodeURIComponent(selectedModelId)}/focus-targets`);
+        const response = await fetch(url);
+
         if (!response.ok) {
-          throw new Error(`Failed to load focus targets: ${response.status}`);
+          throw new Error(`HTTP status ${response.status}`);
         }
 
         const payload = await response.json();
         if (!cancelled) {
-            setViewerFocusTargets(payload?.focusTargets ?? {});
-            //   // 如果后端返回了有效的 targets 则使用，否则尝试使用备选配置
-            //   const targets = payload?.focusTargets || primaryModel?.orderConfig?.focusTargets || {};
-            //   setViewerFocusTargets(targets); ///？？？         
+          setViewerFocusTargets(payload?.focusTargets ?? {});
         }
       } catch (error) {
-        console.error(`Failed to load focus targets for ${selectedModelId}:`, error);
+        console.warn(`Could not fetch focus targets for model '${selectedModelId}' from API: ${error.message}. Falling back to local config.`);
         // 如果 API 请求失败，则回退到使用模型配置中的默认焦点目标
         if (!cancelled) {
           setViewerFocusTargets(primaryModel?.orderConfig?.focusTargets ?? {});
@@ -71,7 +64,7 @@ export function useFocusTarget(selectedModelId,
     return () => {
       cancelled = true;
     };
-  }, [primaryModel?.orderConfig?.focusTargets, runtimeBasePath, selectedModelId]);
+  }, [selectedModelId, runtimeBasePath, primaryModel?.orderConfig?.focusTargets]);
 
   return { viewerFocusTarget, setViewerFocusTarget, viewerFocusTargets };
 }
