@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getModelDisplayLabel } from '../../../utils/utils_homepage';
 
 export default function HomepageHeader({
-  modelsByCategory,
+  modelsByCategory = [],
   activeCategoryId,
   openCategoryId,
   setOpenCategoryId,
@@ -34,8 +34,8 @@ export default function HomepageHeader({
       return
     }
 
-    if (category.models.length === 1) {
-      handleModelSelect(category.models[0].id)
+    if (category.boats.length === 1) {
+      handleModelSelect(category.boats[0].id)
       setOpenCategoryId(null)
       scrollToExperience()
       return
@@ -80,7 +80,7 @@ export default function HomepageHeader({
                   </button>
 
                   <div className="site-category-dropdown" role="menu" aria-label={category.label}>
-                    {category.models.map((model) => {
+                    {category.boats?.map((model) => {
                       const isActiveModel = model.id === selectedModelId;
 
                       return (

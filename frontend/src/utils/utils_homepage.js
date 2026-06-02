@@ -98,7 +98,7 @@ export function getRequestedModelId() {
   }
 
   const searchParams = new URLSearchParams(window.location.search)
-  return searchParams.get('model')?.trim() ?? ''
+  return searchParams.get('boat')?.trim() ?? ''
 }
 
 // 检查当前页面的 URL 参数中是否开启了“捕获模式”（Capture Mode）。
@@ -386,7 +386,7 @@ export function getStaticAssetBaseUrl(staticAssetOrigin, fallbackBaseUrl) {
   return normalizeBaseUrl(assetBaseUrlFallback(fallbackBaseUrl))
 }
 // 动态获取当前网页在浏览器中运行时的“基础路径”。
-// 它通常用于多级路由或前端部署在子目录（例如 [https://example.com/app/dashboard](https://example.com/app/dashboard)）
+// 它通常用于多级路由或前端部署在子目录（例如 https://example.com/app/dashboard ）
 // 的场景，确保程序能知道自己处于哪个“层级”。
 export function getRuntimeBasePath() {
   // React 项目经常涉及 服务端渲染 (SSR)（如 Next.js）。在服务器端运行 JS 时没有浏览器窗口，
@@ -396,7 +396,7 @@ export function getRuntimeBasePath() {
   }
 
   // 作用：获取浏览器地址栏中域名后面的部分。
-  // 例子：如果地址是 [https://site.com/blog/article-1](https://site.com/blog/article-1)，
+  // 例子：如果地址是 (https://site.com/blog/article-1)，
   //     那么 pathname 就是 "/blog/article-1"。  
   const pathname = window.location.pathname || '/'
   const basePath = pathname.endsWith('/')

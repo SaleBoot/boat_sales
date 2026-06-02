@@ -25,7 +25,7 @@ export const useShowcaseData = (
         setLoading(true);
 
         // 1. Fetch local JSON files from the public directory
-        const manifestResponse = await fetch('/app-json/model-manifest.json');
+        const manifestResponse = await fetch('/app-json/asset-manifest.json');
         const siteContentResponse = await fetch('/app-json/site-content.json');
 
         if (!manifestResponse.ok || !siteContentResponse.ok) {

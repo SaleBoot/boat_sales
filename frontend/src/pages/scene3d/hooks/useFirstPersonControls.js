@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
-import { CAMERA_MODE_FIRST_PERSON } from '../constants/constants_ship_scene';
+import { CAMERA_MODE_FIRST_PERSON } from '../../../constants/constants_ship_scene';
 
 // These vectors are kept outside to avoid re-creation
 const interiorLookDirection = new THREE.Vector3();

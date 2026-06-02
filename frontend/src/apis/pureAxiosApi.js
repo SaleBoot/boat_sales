@@ -15,3 +15,9 @@ export const uploadByPresignedUrl = async (presignedUrl, file) => {
     }
   });
 };
+
+
+export const getJsonFile = async (url) => {
+  const response = await axios.get(url);
+  return response.data;
+};

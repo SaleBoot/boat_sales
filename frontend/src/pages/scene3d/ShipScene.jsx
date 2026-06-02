@@ -36,8 +36,8 @@ import {
   CAMERA_MODE_FIRST_PERSON,
   TWO_LAYER_TRACKED_TEXTURE_PATHS
 } from '../../constants/constants_ship_scene.js';
-import { useThree } from '../../hooks/useThree.js';
-import { useFirstPersonControls } from '../../hooks/useFirstPersonControls.js';
+import { useThree } from './hooks/useThree.js';
+import { useFirstPersonControls } from './hooks/useFirstPersonControls.js';
 import { createLoadingTracker } from './runtime/loadingTracker.js';
 import { createCameraPresetController } from './runtime/cameraPresetController.js';
 import { createMaterialPipeline } from './runtime/materialPipeline.js';
@@ -78,7 +78,6 @@ function setupTransformControls(scene,
 
 // --------------------------------------------------------------
 export default function ShipScene({
-  primaryModel,
   modelConfig,
   focusTarget = 'exterior',
   focusTargetPresets = null,
@@ -93,8 +92,9 @@ export default function ShipScene({
   debugTransform = null,
   onDebugTransformChange = null
 }) {
+  console.log('ShipScene start, modelConfig:', modelConfig);
   const assetBaseUrl = getStaticAssetBaseUrl(
-    import.meta.env.VITE_STATIC_ASSET_ORIGIN,
+    import.meta.env.VITE_REMOTE_FBX_ORIGIN,
     import.meta.env.BASE_URL
   )
   const resolveAssetPath = (relativePath) => `${assetBaseUrl}${relativePath}`
@@ -134,6 +134,8 @@ export default function ShipScene({
     ...getWaterTuning(modelId), // 默认配置,
     ...(waterConfig && typeof waterConfig === 'object' ? waterConfig : {}) // 用户配置
   }
+  
+  console.log("modelConfig=",modelConfig)
 
   // 复合部件
   const compositeParts = modelConfig?.parts ?? EMPTY_ARRAY
@@ -142,15 +144,16 @@ export default function ShipScene({
   const effectiveModelConfig = shouldUseSinglePartCompositeFallback
     ? compositeParts[0]?.model ?? null
     : modelConfig?.model ?? null
-  const effectiveUvSets = shouldUseSinglePartCompositeFallback
-    ? compositeParts[0]?.uvSets ?? EMPTY_ARRAY
-    : modelConfig?.uvSets ?? EMPTY_ARRAY
-  const hasRenderableModel = Boolean(primaryModel?.url || effectiveModelConfig?.path || hasCompositeParts)
-  // 模型格式
-  const modelFormat = (effectiveModelConfig?.format ?? 'glb').toLowerCase()
-  const modelPath = primaryModel?.url ?? (effectiveModelConfig?.path
+  // const effectiveMatSlots = shouldUseSinglePartCompositeFallback
+  //   ? compositeParts[0]?.matSlots ?? EMPTY_ARRAY
+  //   : modelConfig?.model?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
+  const effectiveMatSlots =  modelConfig?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
+  console.log("000..effectiveMatSlots=",effectiveMatSlots)
+  const hasRenderableModel = Boolean(effectiveModelConfig?.path || hasCompositeParts)
+  // 模型格式 
+  const modelPath = effectiveModelConfig?.path
     ? resolveManifestPath(effectiveModelConfig.path)
-    : '')
+    : ''
   // 是否是双层船
   const isTwoLayerBoat = modelId === 'TwoLayerBoat'
   // 是否是工作室模式;;默认的室外真实感渲染和工作室风格的预览渲染。
@@ -259,9 +262,9 @@ export default function ShipScene({
   // ===== TwoLayerBoat Locked Block START =====
   // TwoLayerBoat 维持固定 GLB 入口，避免被自动配置改动影响贴图稳定性。
   const effectiveModelPath = modelPath
-  const effectiveModelFormat = isTwoLayerBoat ? 'glb' : modelFormat
   // ===== TwoLayerBoat Locked Block END =====
-  const uvSets = effectiveUvSets
+  const matSlots = effectiveMatSlots
+  console.log("matSlots=",matSlots)
 
   const canvasRef = useRef(null)
   const controlsRef = useRef(null)
@@ -453,9 +456,9 @@ export default function ShipScene({
 
         assetUrls.push(resolver(assetPath))
       }
-      const pushUvTextureUrls = (targetUvSets) => {
-        targetUvSets.forEach((uvSet) => {
-          Object.values(uvSet?.textures ?? {}).forEach((assetPath) => {
+      const pushUvTextureUrls = (targetMatSlots) => {
+        targetMatSlots.forEach((matSlot) => {
+          Object.values(matSlot?.textures ?? {}).forEach((assetPath) => {
             pushAssetUrl(assetPath)
           })
         })
@@ -464,7 +467,7 @@ export default function ShipScene({
       if (hasCompositeParts) {
         compositeParts.forEach((part) => {
           pushAssetUrl(part?.model?.path)
-          pushUvTextureUrls(part?.uvSets ?? EMPTY_ARRAY)
+          pushUvTextureUrls(part?.matSlots ?? EMPTY_ARRAY)
         })
       } else {
         pushAssetUrl(effectiveModelPath, (value) => value)
@@ -473,7 +476,7 @@ export default function ShipScene({
             pushAssetUrl(assetPath, resolveAssetPath)
           })
         } else {
-          pushUvTextureUrls(uvSets)
+          pushUvTextureUrls(matSlots)
         }
       }
 
@@ -488,6 +491,8 @@ export default function ShipScene({
     loadingTracker.estimateAssetSizes(abortController.signal)
 
     const loadTextureAsync = (path) => {
+      console.log("loadTextureAsync,path=" ,path)
+
       if (texturePromiseCache.has(path)) {
         return texturePromiseCache.get(path)
       }
@@ -504,6 +509,7 @@ export default function ShipScene({
               loadingTracker.noteDownloadedBytes(deltaBytes)
             }
             loadingTracker.markAssetCompleted(path, '正在下载贴图资源…')
+
             texturePromise.__resolvedTexture = texture
             resolve(texture)
           },
@@ -519,7 +525,7 @@ export default function ShipScene({
     const materialPipeline = createMaterialPipeline({
       modelId,
       colorConfig,
-      effectiveModelFormat,
+      effectiveModelFormat: effectiveModelPath.split('.').pop()?.toLowerCase() || 'glb',
       resolveAssetPath,
       resolveManifestPath,
       loadTextureAsync,
@@ -529,13 +535,12 @@ export default function ShipScene({
 
     const modelLoader = createModelLoader({
       modelId,
-      modelConfig,
-      effectiveModelFormat,
+      modelConfig, 
       effectiveModelPath,
       hasCompositeParts,
       compositeParts,
       isTwoLayerBoat,
-      uvSets,
+      matSlots,
       resolveManifestPath,
       loadingTracker,
       materialPipeline
@@ -752,8 +757,7 @@ export default function ShipScene({
       stageRoot.clear()
     }
   }, [
-    compositeParts,
-    effectiveModelFormat,
+    compositeParts, 
     effectiveModelPath,
     hasRenderableModel,
     hasCompositeParts,
@@ -763,7 +767,7 @@ export default function ShipScene({
     overviewZoomScale,
     renderConfig.debugTransform,
     shouldShowWaterSurface,
-    uvSets,
+    matSlots,
     stabilizedSmartSystemPreset,
     focusTargetStrategy,
     threeContext

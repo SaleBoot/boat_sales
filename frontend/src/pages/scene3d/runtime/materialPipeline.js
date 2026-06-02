@@ -34,8 +34,7 @@ import {
 
 export function createMaterialPipeline({
   modelId,
-  colorConfig,
-  effectiveModelFormat,
+  colorConfig, 
   resolveAssetPath,
   resolveManifestPath,
   loadTextureAsync,
@@ -626,9 +625,10 @@ export function createMaterialPipeline({
    * @param {boolean} [options.allowSingleMaterialFallback=false] - 如果为 true，并且场景中只有一个材质时，即使名称不匹配也应用贴图。
    * @returns {{appliedCount: number, skippedMeshCount: number}} - 返回一个对象，包含成功应用贴图的材质数量和因缺少 UV 而跳过的网格数量。
    */
-  const applyUvSetMaps = (rootObject, uvSet, maps, options = {}) => {
-    // 从 uvSet 中获取材质名称提示。
-    const hint = uvSet.materialNameHint
+  const applyUvSetMaps = (rootObject, aMatSlot, maps, options = {}) => {
+    
+    const hint = aMatSlot.matName // matSlotName
+    console.log('applyUvSetMaps::aMatSlot', aMatSlot)
     // 规范化材质名称提示。
     const normalizedHint = normalizeMaterialName(hint)
     // 解构并设置默认选项。
@@ -643,20 +643,21 @@ export function createMaterialPipeline({
 
     // 如果提供了材质名称提示，则收集场景中所有的材质插槽。
     const runtimeMaterialSlots = hint ? collectRuntimeMaterialSlots(rootObject) : []
+    console.log('applyUvSetMaps::runtimeMaterialSlots', runtimeMaterialSlots )
     // 检查提示的材质名称是否存在于运行时的材质插槽中。
     const hintMatchesRuntimeSlot = !hint || runtimeMaterialSlots.some((slot) => slot.normalizedName === normalizedHint)
     // 定义单一材质回退逻辑：如果允许回退、提供了提示、提示的材质不存在，并且场景中只有一个材质，则使用该材质作为回退目标。
     const singleMaterialFallbackSlot = allowSingleMaterialFallback && hint && !hintMatchesRuntimeSlot && runtimeMaterialSlots.length === 1
       ? runtimeMaterialSlots[0]
       : null
-
+    console.log('applyUvSetMaps::singleMaterialFallbackSlot', singleMaterialFallbackSlot )
     // 遍历场景中的所有对象。
     rootObject.traverse((child) => {
       // 只处理有材质的网格对象。
       if (!child.isMesh || !child.material) {
         return
       }
-
+      console.log('rootObject.traverse::child', child)
       // 确保网格有 AO UV 坐标（通常是第二套 UV）。
       const hasUv = ensureAoUv(child)
       // 将材质统一处理为数组。
@@ -669,6 +670,8 @@ export function createMaterialPipeline({
         // 检查当前材质是否匹配单一材质回退的插槽。
         const matchesSingleMaterialFallback =
           singleMaterialFallbackSlot && normalizedMaterialName === singleMaterialFallbackSlot.normalizedName
+        console.log('applyUvSetMaps::matchesSingleMaterialFallback', matchesSingleMaterialFallback,
+          ",matchesMaterialHint=",matchesMaterialHint )          
         // 如果两种情况都不匹配，则不作任何修改，返回原始材质。
         if (!matchesMaterialHint && !matchesSingleMaterialFallback) {
           return material
@@ -686,7 +689,7 @@ export function createMaterialPipeline({
           if (materialTransform) {
             targetMaterial = materialTransform(targetMaterial, {
               child,
-              uvSet,
+              aMatSlot,
               normalizedMaterialName,
               maps,
               textureOptions
@@ -695,7 +698,7 @@ export function createMaterialPipeline({
           // 应用渲染配置到材质上。
           targetMaterial = applyUvSetRenderProfileToMaterial(targetMaterial, renderProfile, {
             child,
-            uvSet,
+            aMatSlot,
             maps,
             textureOptions
           })
@@ -708,7 +711,7 @@ export function createMaterialPipeline({
         if (materialTransform) {
           targetMaterial = materialTransform(targetMaterial, {
             child,
-            uvSet,
+            aMatSlot,
             normalizedMaterialName,
             maps,
             textureOptions
@@ -717,7 +720,7 @@ export function createMaterialPipeline({
         // 应用渲染配置到材质上。
         targetMaterial = applyUvSetRenderProfileToMaterial(targetMaterial, renderProfile, {
           child,
-          uvSet,
+          aMatSlot,
           maps,
           textureOptions
         })
@@ -775,7 +778,8 @@ export function createMaterialPipeline({
   // ===== TwoLayerBoat Locked Block START =====
   // TwoLayerBoat 贴图保持回滚后的定向挂载策略（M_01/M_02），请勿替换为通用自动映射。
   const loadAndApplyTwoLayerMaps = async (rootObject) => {
-    const [emissive, normal, ao, metalness, roughness, normal2, ao2, metalness2, roughness2] = await Promise.all([
+    const [emissive, normal, ao, metalness, roughness, 
+      normal2, ao2, metalness2, roughness2] = await Promise.all([
       loadTextureAsync(resolveAssetPath('gltf/TwoLayerBoat/1/1_01 - Default_Emissive.png')),
       loadTextureAsync(resolveAssetPath('gltf/TwoLayerBoat/1/1_01 - Default_Normal.png')),
       loadTextureAsync(resolveAssetPath('gltf/TwoLayerBoat/1/AO.png')),
@@ -828,28 +832,34 @@ export function createMaterialPipeline({
    * @param {string} targetModelFormat - 目标模型的格式 (如 'fbx', 'glb')，用于辅助决策。
    * @param {string} targetLabel - 用于调试和日志记录的标签，通常是模型ID或部件ID。
    */
-  const loadAndApplyUvMaps = async (rootObject, targetUvSets, targetModelFormat, targetLabel) => {
+  const loadAndApplyUvMaps = async (rootObject, targetMatSlots, targetModelFormat, targetLabel) => {
     // 根据模型格式决定是否需要垂直翻转Y轴。FBX格式通常不需要翻转。
     const shouldFlipY = targetModelFormat !== 'fbx'
     // 计算有多少个UV set是真正带有纹理的，这用于后续的“单一材质回退”逻辑。
-    const texturedUvSetCount = targetUvSets
-      .filter((uvSet) => Object.keys(uvSet.textures ?? {}).some((textureType) => Boolean(uvSet.textures?.[textureType])))
-      .length
+    // ???
+    // 计算：有有效纹理的材质槽数量
+    const texturedMatSlotCount = targetMatSlots.filter(matSlot => {
+      const tex = matSlot.textures || {};
+      // 只要任意一个纹理有路径，就算有效
+      return !!( tex.basecolor || tex.normal || tex.ao || tex.roughness || tex.metalness
+      );
+    }).length;
 
     // --- 步骤一：遍历每个UV Set配置，逐个加载并应用 ---
     // 与旧版一次性加载所有纹理不同，新策略是按UV Set的顺序，加载一个，应用一个。
     // 这样可以更好地处理复杂的材质覆盖和转换逻辑。
-    for (const uvSet of targetUvSets) {
+    for (const matSlot of targetMatSlots) 
+    {
       // 提取当前UV Set中所有有效的纹理路径。
-      const textureEntries = Object.entries(uvSet.textures ?? {}).filter(([, path]) => Boolean(path))
+      const textureEntries = Object.entries(matSlot.textures ?? {}).filter(([, path]) => Boolean(path))
       // 如果当前UV Set没有任何纹理，则直接跳到下一个。
       if (textureEntries.length === 0) {
         continue
       }
 
       // 提取出纹理选项和渲染配置，方便后续使用。
-      const textureOptions = uvSet.textureOptions ?? {}
-      const renderProfile = uvSet.renderProfile ?? {}
+      const textureOptions = matSlot.textureOptions ?? {}
+      const renderProfile = matSlot.renderProfile ?? {}
 
       // --- 步骤二：并行加载当前UV Set的所有纹理 ---
       // 使用 Promise.all 并行加载当前UV Set所需的所有纹理，提高效率。
@@ -860,7 +870,7 @@ export function createMaterialPipeline({
           // 根据模型格式设置Y轴翻转。
           texture.flipY = shouldFlipY ? false : true
           // 对颜色和自发光贴图设置正确的色彩空间（SRGB），确保颜色显示正确。
-          if (type === 'baseColor' || type === 'emissive') {
+          if (type === 'basecolor' || type === 'emissive') {
             texture.colorSpace = THREE.SRGBColorSpace
           }
           texture.needsUpdate = true
@@ -875,7 +885,7 @@ export function createMaterialPipeline({
 
       // --- 步骤三：准备材质转换逻辑和应用贴图 ---
       // 检查UV Set是否包含明确的渲染配置。
-      const hasExplicitRenderProfile = Object.values(uvSet.renderProfile ?? {})
+      const hasExplicitRenderProfile = Object.values(matSlot.renderProfile ?? {})
                           .some((value) => value !== '' && value !== 0 && value !== null)
       // **核心转换逻辑**：根据模型ID和UV Set ID，决定是否应用特殊的材质转换函数。
       // 如果有明确的渲染配置，则不应用这些硬编码的转换。
@@ -883,24 +893,24 @@ export function createMaterialPipeline({
         ? null // 有显式配置，不使用硬编码转换
         : modelId === 'FireFighting' // 如果是消防船模型
           ? ( // 且UV Set ID是 'tt/cc'
-              uvSet.id === 'tt/cc'
+              matSlot.id === 'tt/cc'
                 ? applyFireFightingCcClearcoat // 应用消防船清漆效果
-                : uvSet.id === 'tt/langan' // 且UV Set ID是 'tt/langan'
+                : matSlot.id === 'tt/langan' // 且UV Set ID是 'tt/langan'
                   ? applyFireFightingRailingTransparency // 应用消防船栏杆透明效果
                   : null
             )
-          : modelId === 'LiuYun' && uvSet.id === 'mt' // 如果是流云模型且ID是'mt'
+          : modelId === 'LiuYun' && matSlot.id === 'mt' // 如果是流云模型且ID是'mt'
             ? applyLiuYunOpaqueFinish // 应用流云不透明材质效果
             : null
 
       // **最终应用**：调用 applyUvSetMaps 函数，将加载好的纹理和转换逻辑应用到场景中匹配的材质上。
-      const initialResult = applyUvSetMaps(rootObject, uvSet, textureMap, {
+      const initialResult = applyUvSetMaps(rootObject, matSlot, textureMap, {
         preferPbrFinish: targetModelFormat === 'fbx', // FBX模型优先使用PBR材质
         materialTransform, // 传入上面决定的材质转换函数
         textureOptions,
         renderProfile,
         // 如果整个模型只有一个带纹理的UV Set，则允许在材质名称不匹配时也应用贴图，作为一种容错机制。
-        allowSingleMaterialFallback: texturedUvSetCount === 1
+        allowSingleMaterialFallback: texturedMatSlotCount === 1
       })
 
       // --- 步骤四：处理应用结果，输出警告信息 ---
@@ -908,13 +918,13 @@ export function createMaterialPipeline({
       if (initialResult.appliedCount === 0) {
         // 多材质模型如果提示未命中，宁可保留原材质，也不要把整套贴图错误铺满整船。
         if (initialResult.skippedMeshCount > 0) {
-          console.warn(`Skipped UV texture application for ${targetLabel}/${uvSet.id}: model meshes do not contain UV coordinates.`)
+          console.warn(`Skipped UV texture application for ${targetLabel}/${matSlot.id}: model meshes do not contain UV coordinates.`)
         } else {
-          console.warn(`Skipped UV texture application for ${targetLabel}/${uvSet.id}: material name hint did not match any runtime material slot.`)
+          console.warn(`Skipped UV texture application for ${targetLabel}/${matSlot.id}: material name hint did not match any runtime material slot.`)
         }
       } else if (initialResult.skippedMeshCount > 0) {
         // 如果部分网格因缺少UV坐标而跳过，也发出警告。
-        console.warn(`Partially skipped UV texture application for ${targetLabel}/${uvSet.id}: some meshes do not contain UV coordinates.`)
+        console.warn(`Partially skipped UV texture application for ${targetLabel}/${matSlot.id}: some meshes do not contain UV coordinates.`)
       }
     }
   }

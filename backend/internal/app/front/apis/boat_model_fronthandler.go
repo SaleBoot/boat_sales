@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 
 	log "log"
@@ -49,15 +51,56 @@ func NewBoatModelFrontHandler(
 // -----------------------------------
 // HandleGetModels 获取所有模型列表，包含每个模型的基本信息和对应的材质槽列表
 // -----------------------------------
-type ModelsFrontOutput struct {
-	Categories map[string]string         `json:"categories"`
-	Boats      map[string][]BoatFrontOut `json:"boats"`
+/*
+{
+  "menuData": [ // 直接用于菜单渲染
+    { "id": "cat1", "label": "Category One", "models": [{ "id": "YachtA", "label": "Yacht A" }, ...] },
+    { "id": "cat2", "label": "Category Two", "models": [...] }
+  ],
+  "boatsMap": { // 一个以 boatEnName 为键的对象/Map
+    "YachtA": { "boatEnName": "YachtA", "price": 10000, "models": [...] },
+    "YachtB": { "boatEnName": "YachtB", "price": 20000, "models": [...] },
+    "FishBoatC": { "boatEnName": "FishBoatC", "price": 5000, "models": [...] }
+  }
+}
+*/
+type Models4Front struct {
+	BoatMenu []BoatMenu `json:"menu"`
+	BoatMap  BoatMap    `json:"boatMap"` // boatEnName -> list of BoatInfo
 }
 
-type BoatFrontOut struct {
-	BoatName   string `json:"boatName"`
-	BoatEnName string `json:"boatEnName"`
-	// Category        string  `json:"category" gorm:"type:varchar(64);comment:船舶类型英文名"`
+type BoatMenuMap = map[string]*BoatMenu
+type BoatMenu struct {
+	Id    string        `json:"id"`    // 船的类别英文名称 category.EnlishName
+	Label string        `json:"label"` // 船的类别中文名称 category.ChineseName
+	Boats []BoatSubMenu `json:"boats"` // 船的模型列表
+}
+
+func BoatMenuMap2Array(aBoatMenuMap *BoatMenuMap) []BoatMenu {
+	var out []BoatMenu
+	for _, v := range *aBoatMenuMap {
+		out = append(out, *v)
+	}
+
+	// ✅ 排序：按 Id 字母顺序（category.EnlishName）
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Id < out[j].Id
+	})
+	return out
+}
+
+type BoatSubMenu struct {
+	Id    string `json:"id"`    // 船的模型英文名称 boat.boatEnName,
+	Label string `json:"label"` // 船的模型中文名称 boat.boatName,
+}
+
+type BoatMap = map[string]BoatInfo
+type BoatInfo struct {
+	Id    string `json:"id"`    // 船的模型英文名称 boat.boatEnName,
+	Label string `json:"label"` // 船的模型中文名称 boat.boatName,
+	// BoatName   string `json:"boatName"`
+	// BoatEnName string `json:"boatEnName"`
+	Category        string  `json:"category"` // 船舶类别英文名
 	Price           int     `json:"price"`
 	Description     string  `json:"description" gorm:"type:text;comment:简介"`
 	OverallLength   float64 `json:"overallLength" gorm:"comment:总长"`
@@ -73,13 +116,16 @@ type BoatFrontOut struct {
 	Material        string  `json:"material" gorm:"type:varchar(64);comment:材质"`
 	CertificateType string  `json:"certificateType" gorm:"type:varchar(64);comment:证书类型"`
 	// 其他字段...
-	Models []ModelFrontOut `json:"models"`
+	Models []ModelInfo `json:"models"`
 }
 
-func (b *BoatFrontOut) fromModel(aSysBoat *models.SysBoat) {
-	b.BoatName = aSysBoat.BoatName
-	b.BoatEnName = aSysBoat.BoatEnName
-	// b.Category = aSysBoat.Category
+func (b *BoatInfo) fromModel(aSysBoat *models.SysBoat) {
+	b.Id = aSysBoat.BoatEnName
+	b.Label = aSysBoat.BoatName
+
+	// b.BoatName = aSysBoat.BoatName
+	// b.BoatEnName = aSysBoat.BoatEnName
+	b.Category = aSysBoat.Category
 	b.Price = aSysBoat.Price
 	b.Description = aSysBoat.Description
 	b.OverallLength = aSysBoat.OverallLength
@@ -96,78 +142,173 @@ func (b *BoatFrontOut) fromModel(aSysBoat *models.SysBoat) {
 	b.CertificateType = aSysBoat.CertificateType
 }
 
-type ModelFrontOut struct {
-	BoatEnName       string              `json:"boatEnName" gorm:"type:varchar(128);comment:无空格英文名，也是模型文件夹名"`
-	ModelName        string              `json:"modelName" gorm:"type:varchar(255);comment:默认样式的名称"`
-	ModelRuntimePath string              `json:"modelRuntimePath" gorm:"type:varchar(255);comment:运行时路径"`
-	ModelMatSlots    map[string][]string `json:"modelMatSlots" gorm:"type:text;comment:材质槽列表"` // not in db
+type ModelInfo struct {
+	Id    string `json:"id"`    // boatEnName+序号
+	Label string `json:"label"` // ModelName
+	// BoatEnName       string `json:"boatEnName"`       // 无空格英文名，也是模型文件夹名
+	// ModelName        string `json:"modelName"`        // 默认样式的名称
+	ModelRuntimePath string `json:"modelRuntimePath"` // 运行时路径
+	// 材质槽列表 not in table "sys_boat_model", from "cos_path_meta" table
+	//
+	//   "matSlots": [
+	//     {
+	//       "matSlotName": "mat_xx01",
+	//       "textures": ["/gltf01/boatA/model01/mat_xx01_a.png"]
+	//     },
+	MatSlots []MatSlot `json:"matSlots"` // 材质槽列表
 	// 外观相关
-	ExteriorName       string  `json:"exteriorName" gorm:"type:varchar(255);comment:外观名称"`
-	ExteriorDescr      string  `json:"exteriorDescr" gorm:"type:varchar(255);comment:外观描述"`
-	ExteriorAddedPrice float64 `json:"exteriorAddedPrice" gorm:"type:decimal(10,2);comment:外观加价"`
+	ExteriorName       string `json:"exteriorName"`       // 外观名称
+	ExteriorDescr      string `json:"exteriorDescr"`      // 外观描述
+	ExteriorAddedPrice int    `json:"exteriorAddedPrice"` // 外观加价
 	// 内饰相关
-	InteriorName       string  `json:"interiorName" gorm:"type:varchar(255);comment:内饰名称"`
-	InteriorDescr      string  `json:"interiorDescr" gorm:"type:varchar(255);comment:内饰描述"`
-	InteriorAddedPrice float64 `json:"interiorAddedPrice" gorm:"type:decimal(10,2);comment:内饰加价"`
+	InteriorName       string `json:"interiorName"`       // 内饰名称
+	InteriorDescr      string `json:"interiorDescr"`      // 内饰描述
+	InteriorAddedPrice int    `json:"interiorAddedPrice"` // 内饰加价
 	// 甲板相关
-	DeckName       string  `json:"deckName" gorm:"type:varchar(255);comment:甲板名称"`
-	DeckDescr      string  `json:"deckDescr" gorm:"type:varchar(255);comment:甲板描述"`
-	DeckAddedPrice float64 `json:"deckAddedPrice" gorm:"type:decimal(10,2);comment:甲板加价"`
+	DeckName       string `json:"deckName"`       // 甲板名称
+	DeckDescr      string `json:"deckDescr"`      // 甲板描述
+	DeckAddedPrice int    `json:"deckAddedPrice"` // 甲板加价
 	// 动力相关
-	PowerName       string  `json:"powerName" gorm:"type:varchar(255);comment:动力名称"`
-	PowerDescr      string  `json:"powerDescr" gorm:"type:varchar(255);comment:动力描述"`
-	PowerAddedPrice float64 `json:"powerAddedPrice" gorm:"type:decimal(10,2);comment:动力加价"`
+	PowerName       string `json:"powerName"`       // 动力名称
+	PowerDescr      string `json:"powerDescr"`      // 动力描述
+	PowerAddedPrice int    `json:"powerAddedPrice"` // 动力加价
 }
 
-func (b *ModelFrontOut) fromModel(aSysBoatModel *models.SysBoatModel) {
-	b.BoatEnName = aSysBoatModel.BoatEnName
-	b.ModelName = aSysBoatModel.ModelName
+type MatSlot struct {
+	MatName  string     `json:"matName"`
+	Textures TextureSet `json:"textures"` // 用对象，不用数组
+}
+
+// 所有 PBR 通道都定义，但可以为空
+type TextureSet struct {
+	BaseColor string `json:"basecolor"`
+	Normal    string `json:"normal"`
+	Roughness string `json:"roughness"`
+	Metalness string `json:"metalness"`
+	AO        string `json:"ao"`
+	Emissive  string `json:"emissive"`
+}
+
+func (b *ModelInfo) fromModel(aSysBoatModel *models.SysBoatModel) {
+	b.Id = aSysBoatModel.BoatEnName + strconv.Itoa(int(aSysBoatModel.ID))
+	b.Label = aSysBoatModel.ModelName
+	//
+	// b.BoatEnName = aSysBoatModel.BoatEnName
+	// b.ModelName = aSysBoatModel.ModelName
 	b.ModelRuntimePath = aSysBoatModel.ModelRuntimePath
-	// b.ModelMatSlots = aSysBoatModel.ModelMatSlots //  not in db
+	// b.MatSlots = aSysBoatModel.MatSlots //  not in db
 	b.ExteriorName = aSysBoatModel.ExteriorName
 	b.ExteriorDescr = aSysBoatModel.ExteriorDescr
-	b.ExteriorAddedPrice = aSysBoatModel.ExteriorAddedPrice
+	b.ExteriorAddedPrice = int(aSysBoatModel.ExteriorAddedPrice)
 	b.InteriorName = aSysBoatModel.InteriorName
 	b.InteriorDescr = aSysBoatModel.InteriorDescr
-	b.InteriorAddedPrice = aSysBoatModel.InteriorAddedPrice
+	b.InteriorAddedPrice = int(aSysBoatModel.InteriorAddedPrice)
 	b.DeckName = aSysBoatModel.DeckName
 	b.DeckDescr = aSysBoatModel.DeckDescr
-	b.DeckAddedPrice = aSysBoatModel.DeckAddedPrice
+	b.DeckAddedPrice = int(aSysBoatModel.DeckAddedPrice)
 	b.PowerName = aSysBoatModel.PowerName
 	b.PowerDescr = aSysBoatModel.PowerDescr
-	b.PowerAddedPrice = aSysBoatModel.PowerAddedPrice
+	b.PowerAddedPrice = int(aSysBoatModel.PowerAddedPrice)
 }
 
-// 	// 测试用例 1：2个下划线
+// 	// --- 示例 ---
+// 	// 1. 带有变体后缀的文件名: "mat_xx01_xx.png" -> "mat_xx01"
 // 	path1 := "/gltf01/boatA/model01/mat_xx01_xx.png"
 // 	fmt.Println(getMatSlot(path1)) // 输出: mat_xx01
 
-// 	// 测试用例 2：4个下划线（数量不确定）
-// 	path2 := "/gltf01/mat_heavy_iron_tank_02_damaged.png"
-// 	fmt.Println(getMatSlot(path2)) // 输出: mat_heavy_iron_tank_02
-
-// // 测试用例 3：只有1个下划线
-// path3 := "/gltf01/mat_01.png"
-// fmt.Println(getMatSlot(path3)) // 输出: mat
-func getMatSlot(p string) string {
-	// 1. 无论路径多深，先拿到文件名（例如: "mat_xx01_xx.png" 或 "mat_special_cover_02_v2.png"）
+// // 2. 基础材质文件名: "mat_01.png" -> "mat_01"
+// path2 := "/gltf01/mat_01.png"
+// fmt.Println(getMatSlot(path2)) // 输出: mat_01
+func getMatSlotNameAndTexType(p string) (string, string) {
+	// 1. 提取文件名，例如 "mat_xx01_xx.png"
 	fileName := filepath.Base(p)
 
+	// 2. 检查是否以 "mat_" 开头
 	if !strings.HasPrefix(fileName, "mat_") {
 		// log.Printf("getMatSlot(): fileName does not start with 'mat_': %s", fileName)
-		return ""
+		return "", ""
 	}
 
-	// 2. 从后往前，找出【最后一个】下划线 "_" 的位置
-	lastUnderscore := strings.LastIndex(fileName, "_")
+	// 3. 移除文件扩展名，得到 "mat_xx01_xx"
+	fileNameNoExt := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	var matSlotName string = fileNameNoExt
+	var texType string = "basecolor"
+	// 4. 查找最后一个下划线的位置
+	lastUnderscore := strings.LastIndex(fileNameNoExt, "_")
 
-	// 安全检查：如果文件名里根本没有下划线，直接返回原文件名（或空）
-	if lastUnderscore == -1 {
-		return fileName
+	// 5. 如果最后一个下划线是 "mat_" 的一部分（即位置<=3），
+	//    或者根本没有其他下划线，则整个无扩展名的文件名就是槽位名。
+	//    例如 "mat_engine" -> "mat_engine"
+	if lastUnderscore <= 3 {
+		matSlotName = fileNameNoExt
+		texType = "basecolor"
+		return matSlotName, texType
 	}
 
-	// 3. 截取最后一个下划线之前的所有内容
-	return fileName[:lastUnderscore]
+	// 6. 否则，槽位名是最后一个下划线之前的部分。
+	//    例如 "mat_xx01_xx" -> "mat_xx01"
+	matSlotName = fileNameNoExt[:lastUnderscore]
+	texType = fileNameNoExt[lastUnderscore+1:]
+	return matSlotName, texType
+}
+func fillModel_matSlots(
+	aModelRuntimePath string,
+	aCosFilePaths []models.CosPathMeta,
+) ([]MatSlot, error) {
+
+	mapMatName2Textures := make(map[string]MatSlot)
+	modelDirPath := filepath.Dir(aModelRuntimePath)
+
+	for _, path := range aCosFilePaths {
+		fileName := filepath.Base(path.Path)
+
+		// 只处理当前模型目录下的 mat_ 开头文件
+		if !strings.HasPrefix(path.Path, modelDirPath) || !strings.HasPrefix(fileName, "mat_") {
+			continue
+		}
+
+		// 解析材质槽名 + 纹理类型
+		matSlotName, texType := getMatSlotNameAndTexType(path.Path)
+		if matSlotName == "" || texType == "" {
+			continue
+		}
+
+		// 从 map 中获取或新建 MatSlot
+		matSlot, ok := mapMatName2Textures[matSlotName]
+		if !ok {
+			matSlot = MatSlot{
+				MatName:  matSlotName,
+				Textures: TextureSet{}, // 明确初始化，更干净
+			}
+		}
+
+		// 填充对应纹理路径
+		switch texType {
+		case "basecolor":
+			matSlot.Textures.BaseColor = path.Path
+		case "normal":
+			matSlot.Textures.Normal = path.Path
+		case "roughness":
+			matSlot.Textures.Roughness = path.Path
+		case "metallic":
+			matSlot.Textures.Metalness = path.Path
+		case "ao":
+			matSlot.Textures.AO = path.Path
+		case "emissive":
+			matSlot.Textures.Emissive = path.Path
+		}
+
+		// 写回 map
+		mapMatName2Textures[matSlotName] = matSlot
+	}
+
+	// map 转数组，容量直接用 map 长度，性能最优
+	matSlots := make([]MatSlot, 0, len(mapMatName2Textures))
+	for _, slot := range mapMatName2Textures {
+		matSlots = append(matSlots, slot)
+	}
+
+	return matSlots, nil
 }
 
 /*
@@ -188,7 +329,7 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 				Message: fmt.Sprintf("failed to get categories: %s", err.Error())})
 		return
 	}
-	mapCategoryEn2Cn := models.BoatCategory_arrayToMap(svcCategories)
+	categoryMapEn2Cn := models.BoatCategory_arrayToMap(svcCategories)
 
 	// Get all boats
 	svcBoats, err := aH.boatSvc.GetBoatsByCategory("")
@@ -221,46 +362,62 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 	}
 
 	//------+ 内存拼接,构造响应数据 +-----------
-	outputData := &ModelsFrontOutput{ // 响应的数据结构
-		Categories: mapCategoryEn2Cn,
-	}
+	outputData := &Models4Front{} // 响应的数据结构
 
-	// construct mapCategory2Boats
-	outBoats := make(map[string][]BoatFrontOut, len(svcCategories))
+	boatMenuMap := make(BoatMenuMap) // category.EnlishName -> list of BoatMenu
+	boatMap := make(BoatMap)         // boatEnName -> list of BoatInfo
+
 	for _, boat := range svcBoats {
-		boatFrontOut := BoatFrontOut{}
-		boatFrontOut.fromModel(&boat)
-
-		boatFrontOut.Models = make([]ModelFrontOut, 0)
-		for _, model := range allModels {
-
-			if model.BoatEnName == boat.BoatEnName {
-				modelFrontOut := ModelFrontOut{}
-				modelFrontOut.fromModel(model)
-
-				modelFrontOut.ModelMatSlots = make(map[string][]string)
-
-				modelDirPath := filepath.Dir(model.ModelRuntimePath)
-				for _, path := range cosFilePaths {
-					if strings.HasPrefix(path.Path, modelDirPath) &&
-						strings.HasPrefix(filepath.Base(path.Path), "mat_") {
-						// path.Path is like "/gltf01/boatA/model01/mat_xx01_xx.png"
-						// matSlot is like "mat_xx01"
-						log.Printf("HandleGetModels(): modelDirPath: %s,path.Path: %s",
-							modelDirPath, path.Path)
-						matSlot := getMatSlot(path.Path)
-
-						modelFrontOut.ModelMatSlots[matSlot] = append(modelFrontOut.ModelMatSlots[matSlot], path.Path)
-					}
-				}
-				boatFrontOut.Models = append(boatFrontOut.Models, modelFrontOut)
+		// construct boatMenuMap
+		boatMenu, ok := boatMenuMap[boat.Category]
+		if !ok {
+			boatMenu = &BoatMenu{
+				Id:    boat.Category,
+				Label: categoryMapEn2Cn[boat.Category],
 			}
+			boatMenuMap[boat.Category] = boatMenu
+		}
+		boatMenu.Boats = append(boatMenu.Boats, BoatSubMenu{
+			Id:    boat.BoatEnName,
+			Label: boat.BoatName,
+		})
+
+		// construct boatMap
+		boatinfo, ok := boatMap[boat.BoatEnName]
+		if !ok {
+			boatinfo = BoatInfo{}
+			boatinfo.fromModel(&boat)
+			boatinfo.Models = make([]ModelInfo, 0, len(allModels))
 		}
 
-		outBoats[boat.Category] = append(outBoats[boat.Category], boatFrontOut)
+		for _, model := range allModels {
+			if model.BoatEnName != boat.BoatEnName {
+				continue
+			}
+
+			modelinfo := ModelInfo{}
+			modelinfo.fromModel(model)
+
+			// 生成模型ID
+			idx := len(boatinfo.Models)
+			modelinfo.Id = boat.BoatEnName + "_" + strconv.Itoa(idx)
+			modelinfo.Label = boat.BoatName + "_模型" + strconv.Itoa(idx)
+
+			slots, err := fillModel_matSlots(model.ModelRuntimePath, cosFilePaths)
+			if err != nil {
+				log.Printf("模型 %s 加载材质失败: %v", model.ModelRuntimePath, err)
+				modelinfo.MatSlots = []MatSlot{} // 空数组，保证前端安全
+			} else {
+				modelinfo.MatSlots = slots
+			}
+
+			boatinfo.Models = append(boatinfo.Models, modelinfo)
+		}
+		boatMap[boat.BoatEnName] = boatinfo
 	}
 
-	outputData.Boats = outBoats
+	outputData.BoatMenu = BoatMenuMap2Array(&boatMenuMap)
+	outputData.BoatMap = boatMap
 
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,

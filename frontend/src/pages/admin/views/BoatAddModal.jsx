@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Row, Col, message, Divider, Upload, Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { getCosPresignedUrl } from '../../../apis/adminApi';
-import { uploadByPresignedUrl } from '../../../apis/cosApi';
-
+import { uploadByPresignedUrl } from '../../../apis/pureAxiosApi';
+ 
 const { Option } = Select;
 
 const boatTypes = [

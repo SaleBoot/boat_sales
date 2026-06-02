@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useViewerScrollProgress } from '../../../hooks/useViewerScrollProgress';
 import { useFocusTarget } from '../../../hooks/useFocusTarget';
 import ShipScene from '../../scene3d/ShipScene';
@@ -7,6 +7,7 @@ export default function HomePageViewerScreen({
   selectedModelId,
   primaryModel,
   runtimeBasePath,
+  remoteFbxOrigin, // Added for resolving model paths
   selectedModelLabel,
   selectedModelPriceLabel,
   viewerSpecItems,
@@ -18,6 +19,21 @@ export default function HomePageViewerScreen({
     setViewerFocusTarget, 
     viewerFocusTargets 
   } = useFocusTarget( selectedModelId, primaryModel, runtimeBasePath);
+
+  const modelConfig = useMemo(() => {
+    if (!primaryModel) return null;
+
+    const pathSegment = primaryModel.primaryModelInfo?.modelRuntimePath || '';
+    const rawUrl = pathSegment.startsWith('http') ? pathSegment : `${remoteFbxOrigin}${pathSegment}`;
+    const finalUrl = rawUrl.replace(/`/g, '').trim(); 
+
+    return {
+      ...primaryModel,
+      model: {
+        path: finalUrl, 
+      },
+    };
+  }, [primaryModel, remoteFbxOrigin]);
 
   // 使用自定义 Hook 来处理滚动进度效果
   useViewerScrollProgress(viewerScreenRef);
@@ -52,7 +68,7 @@ export default function HomePageViewerScreen({
         </div>
 
         <ShipScene
-          primaryModel={primaryModel}
+          modelConfig={modelConfig}
           viewTogglePortalTarget={sceneViewToggleTarget}
           focusTarget={viewerFocusTarget}
           focusTargetPresets={viewerFocusTargets}

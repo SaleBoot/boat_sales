@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {   
   updateOrthographicFrustum,
-} from '../utils/utils_3js.js';
+} from '../../../utils/utils_3js.js';
 
 // import {  
 //   normalizeMaterialName, 

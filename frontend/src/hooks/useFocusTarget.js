@@ -16,7 +16,7 @@ import { buildApiUrl } from '../utils/utils_homepage';
 export function useFocusTarget(selectedModelId,  
                             primaryModel = {}, 
                             runtimeBasePath = ''
-                            ) 
+                            )
 {
   const [viewerFocusTarget, setViewerFocusTarget] = useState('exterior');
   const [viewerFocusTargets, setViewerFocusTargets] = useState({});

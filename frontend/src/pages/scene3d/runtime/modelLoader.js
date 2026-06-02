@@ -6,19 +6,19 @@ import { ENGINE_MODEL_LIBRARY } from '../../../constants/constants_ship_scene.js
 
 export function createModelLoader({
   modelId,
-  modelConfig,
-  effectiveModelFormat,
+  modelConfig, 
   effectiveModelPath,
   hasCompositeParts,
   compositeParts,
   isTwoLayerBoat,
-  uvSets,
+  matSlots,
   resolveManifestPath,
   loadingTracker,
   materialPipeline
 }) {
   const gltfLoader = new GLTFLoader()
   const fbxLoader = new FBXLoader()
+  const  effectiveModelFormat = effectiveModelPath.split('.').pop()?.toLowerCase() || 'glb'
 
   const applyMeshShadowFlags = (rootObject) => {
     rootObject.traverse((child) => {
@@ -125,7 +125,7 @@ export function createModelLoader({
         try {
           await materialPipeline.loadAndApplyUvMaps(
             engineObject,
-            engineLibraryEntry.uvSets,
+            engineLibraryEntry.matSlots,
             engineLibraryEntry.format,
             `${modelId}/engine-${engineIndex + 1}`
           )
@@ -182,8 +182,9 @@ export function createModelLoader({
   const loadCompositeModelAsync = async () => {
     // --- 场景一：加载单一模型 ---
     // 如果模型配置中没有定义复合部件(hasCompositeParts为false)，则执行此逻辑。
-    if (!hasCompositeParts) {
-      console.log("effectiveModelPath=", effectiveModelPath,";;;hasCompositeParts=", hasCompositeParts);
+    
+    if (!hasCompositeParts) {      
+      console.log("loadCompositeModelAsync", effectiveModelPath,";;;hasCompositeParts=", hasCompositeParts);
       // 调用 loadModelAsync 加载单个模型文件。
       const object3d = await loadModelAsync({
          path: effectiveModelPath
@@ -200,6 +201,7 @@ export function createModelLoader({
          */
         applyMaterials: async () => {
           // 特殊处理：针对“双层船体”有特定的贴图逻辑。
+          console.log("modelLoader::applyMaterials::1");
           if (isTwoLayerBoat) {
             try {
               await materialPipeline.loadAndApplyTwoLayerMaps(object3d)
@@ -209,11 +211,11 @@ export function createModelLoader({
             materialPipeline.applyTwoLayerOverrides(object3d)
             return
           }
-
+          console.log("modelLoader::applyMaterials::2,matSlots.length",matSlots.length);
           // 标准处理：根据配置的UV集加载并应用纹理。
-          if (uvSets.length > 0) {
+          if (matSlots.length > 0) {
             try {
-              await materialPipeline.loadAndApplyUvMaps(object3d, uvSets, effectiveModelFormat, modelId)
+              await materialPipeline.loadAndApplyUvMaps(object3d, matSlots, effectiveModelFormat, modelId)
             } catch (error) {
               console.error(`Failed to load UV set textures for ${modelId}:`, error)
             }
@@ -257,7 +259,7 @@ export function createModelLoader({
         id: part.id,
         format: partFormat,
         object3d,
-        uvSets: part.uvSets ?? []
+        matSlots: part.matSlots ?? []
       }
     }))
 
@@ -270,7 +272,7 @@ export function createModelLoader({
       applyMaterials: async () => {
         for (const [partIndex, part] of loadedParts.entries()) {
           // 如果部件没有定义UV集，可能它有特殊的材质逻辑或不需要贴图。
-          if (part.uvSets.length === 0) {
+          if (part.matSlots.length === 0) {
             if (modelId === 'TestHigh') {
               materialPipeline.applyTestHighStudioOverrides(part.object3d, part.id, partIndex)
             }
@@ -279,7 +281,7 @@ export function createModelLoader({
 
           // 根据部件自身的UV集，为其加载并应用纹理。
           try {
-            await materialPipeline.loadAndApplyUvMaps(part.object3d, part.uvSets, part.format, `${modelId}/${part.id}`)
+            await materialPipeline.loadAndApplyUvMaps(part.object3d, part.matSlots, part.format, `${modelId}/${part.id}`)
           } catch (error) {
             console.error(`Failed to load UV set textures for ${modelId}/${part.id}:`, error)
           }
