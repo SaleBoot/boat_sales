@@ -94,11 +94,14 @@ export function getRouteFromHash(hash) {
 
 export function getRequestedModelId() {
   if (typeof window === 'undefined') {
-    return ''
+    return { boatId: null, modelId: null };
   }
 
-  const searchParams = new URLSearchParams(window.location.search)
-  return searchParams.get('boat')?.trim() ?? ''
+  const searchParams = new URLSearchParams(window.location.search);
+  const boatId = searchParams.get('boatId')?.trim() || null;
+  const modelId = searchParams.get('modelId')?.trim() || searchParams.get('model')?.trim() || null;
+
+  return { boatId, modelId };
 }
 
 // 检查当前页面的 URL 参数中是否开启了“捕获模式”（Capture Mode）。

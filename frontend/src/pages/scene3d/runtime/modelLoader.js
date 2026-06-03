@@ -40,7 +40,7 @@ export function createModelLoader({
 
       if (event.total > 0) {
         const percent = Math.floor((event.loaded / event.total) * 100)
-        console.log(`[modelLoader] Loading progress for ${path}: ${percent}%`)
+        // console.log(`[modelLoader] Loading progress for ${path}: ${percent}%`)
       }
 
       if (event.total) {
@@ -73,13 +73,13 @@ export function createModelLoader({
     const fileExt = path.split('.').pop()?.toLowerCase().trim();
     
     if (fileExt === 'fbx') {
-      console.log(`%c[modelLoader] Using FBXLoader for: ${path}`, 'color: blue; font-weight: bold;');
+      // console.log(`%c[modelLoader] Using FBXLoader for: ${path}`, 'color: blue; font-weight: bold;');
       fbxLoader.load(path, handleComplete, handleProgress, handleError);
       return;
     }
 
     // Default to GLTFLoader for 'gltf', 'glb', or any other extension
-    console.log(`%c[modelLoader] Using GLTFLoader for: ${path}`, 'color: green; font-weight: bold;');
+    // console.log(`%c[modelLoader] Using GLTFLoader for: ${path}`, 'color: green; font-weight: bold;');
     gltfLoader.load(
       path,
       (gltf) => {
@@ -184,7 +184,7 @@ export function createModelLoader({
     // 如果模型配置中没有定义复合部件(hasCompositeParts为false)，则执行此逻辑。
     
     if (!hasCompositeParts) {      
-      console.log("loadCompositeModelAsync", effectiveModelPath,";;;hasCompositeParts=", hasCompositeParts);
+      // console.log("loadCompositeModelAsync", effectiveModelPath,";;;hasCompositeParts=", hasCompositeParts);
       // 调用 loadModelAsync 加载单个模型文件。
       const object3d = await loadModelAsync({
          path: effectiveModelPath
@@ -201,7 +201,7 @@ export function createModelLoader({
          */
         applyMaterials: async () => {
           // 特殊处理：针对“双层船体”有特定的贴图逻辑。
-          console.log("modelLoader::applyMaterials::1");
+          // console.log("modelLoader::applyMaterials::1");
           if (isTwoLayerBoat) {
             try {
               await materialPipeline.loadAndApplyTwoLayerMaps(object3d)

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom';
-import ShipScene from '../scene3d/ShipScene'
 
-const productCategories = ['新能源船', '应急救援船', '公务执法艇', '游艇']
+import ShipScene from '../scene3d/ShipScene'
+import { vesselCategoryMenus } from '../../constants/constants_front_homepage.js'
+
+const productCategories = vesselCategoryMenus
 
 const configurationSteps = ['船型', '外观', '内饰', '动力', '选装']
 
@@ -107,8 +109,8 @@ function formatPrice(value) {
   }).format(value)
 }
 
-function getModelReferencePrice(model) {
-  const candidate = `${model?.price ?? ''}`.trim()
+function getModelReferencePrice(boat) {
+  const candidate = `${boat?.price ?? ''}`.trim()
   if (!candidate) {
     return null
   }
@@ -121,8 +123,8 @@ function getModelReferencePrice(model) {
   return amount
 }
 
-function getModelReferencePriceLabel(model) {
-  const amount = getModelReferencePrice(model)
+function getModelReferencePriceLabel(boat) {
+  const amount = getModelReferencePrice(boat)
   if (amount === null) {
     return ''
   }
@@ -164,8 +166,8 @@ function getCategoryForModel(model) {
   return '应急救援船'
 }
 
-function getModelCaption(model) {
-  const specs = model?.specs ?? {}
+function getModelCaption(boat) {
+  const specs = boat ?? {}
   if (specs.mainEnginePower) {
     return `主机功率 ${specs.mainEnginePower}`
   }
@@ -175,7 +177,7 @@ function getModelCaption(model) {
   if (specs.navigationArea) {
     return specs.navigationArea
   }
-  return model?.id ?? ''
+  return boat?.id ?? ''
 }
 
 function normalizeOrderConfig(orderConfig) {
@@ -205,24 +207,72 @@ function getMaterialOverridesForOptionalSelection(options, selectedIds) {
     .flatMap((option) => Array.isArray(option.materialOverrides) ? option.materialOverrides : [])
 }
 
+function createAugmentedModel(boat) {
+  if (!boat) return null;
+  const primaryModelInfo = boat.models?.[0] ?? null;
+  if (!primaryModelInfo) {
+    return {
+      ...boat,
+      primaryModelInfo: null,
+    };
+  }
+  return {
+    ...boat,
+    primaryModelInfo: primaryModelInfo,
+  };
+}
+
 export default function OrderPage() {
   const {
-    models,
+    boats,
     primaryModel,
-    selectedModelId,
+    selectedModelGid,
     onSelectModel,
     apiBasePath = '/'
   } = useOutletContext();
 
-  const currentModel = primaryModel
-    ?? models.find((model) => model.id === selectedModelId)
-    ?? models[0]
-    ?? null
 
-  const currentOrderConfig = useMemo(() => normalizeOrderConfig(currentModel?.orderConfig), [currentModel])
+  const currentModel = useMemo(() => {
+    // 1. 优先使用手动指定的模型
+    if (primaryModel) {
+      console.log("OrderPage:0:primaryModel=",primaryModel,",selectedModelGid=",selectedModelGid)
+      return primaryModel;
+    }
+    console.log("OrderPage:1.0:selectedModelGid=",selectedModelGid)
+    // 🔴 安全判断 
+    if (!boats || boats.length === 0 || !selectedModelGid) {
+      return null;
+    } 
+    console.log("OrderPage:1:selectedModelGid=",selectedModelGid)
+    // 2. 根据 selectedModelGid.boatId 找船
+    const boat = boats.find((boat) => boat.id === selectedModelGid.boatId) ?? boats[0];
+ 
+    // 3. 精确匹配 modelId，找不到就用第一个模型
+    console.log("OrderPage:2:boat=",boat)
+    const primaryModelInfo =
+      boat.models?.find((model) => model.id === selectedModelGid.modelId) ??
+      boat.models?.[0] ??
+      null;
+
+    if (!primaryModelInfo) { // 4. 没有模型也返回 null
+      return null;
+    }
+
+    // 4. 返回最终结构
+    return {
+      ...boat,
+      primaryModelInfo: primaryModelInfo,
+    };
+  }, [primaryModel, boats, selectedModelGid]);
+
+  // category 英文id
+  const [selectedCategory, setSelectedCategory] = useState(currentModel?.category ?? '')
+
+  // currentOrderConfig
+  const currentOrderConfig = useMemo(
+    () => normalizeOrderConfig(currentModel?.primaryModelInfo?.orderConfig), 
+    [currentModel?.primaryModelInfo])
   const [loadedFocusTargets, setLoadedFocusTargets] = useState(currentOrderConfig.focusTargets)
-
-  const [selectedCategory, setSelectedCategory] = useState(getCategoryForModel(currentModel))
   const [selectedAppearanceId, setSelectedAppearanceId] = useState(currentOrderConfig.appearanceOptions[0]?.id ?? '')
   const [selectedColorId, setSelectedColorId] = useState(currentOrderConfig.colorOptions[0]?.id ?? '')
   const [selectedInteriorId, setSelectedInteriorId] = useState(currentOrderConfig.interiorOptions[0]?.id ?? '')
@@ -231,8 +281,11 @@ export default function OrderPage() {
     currentOrderConfig.optionalSeriesOptions[0]?.id,
     currentOrderConfig.optionalSeriesOptions[2]?.id
   ].filter(Boolean))
+
+  // 
   const [activeConfigStep, setActiveConfigStep] = useState('船型')
   const [activeOrderStage, setActiveOrderStage] = useState('config')
+  const [color, setColor] = useState("#ff0000");
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -249,24 +302,65 @@ export default function OrderPage() {
   })
 
   useEffect(() => {
-    setSelectedCategory(getCategoryForModel(currentModel))
+    if (currentModel) {
+      // currentModel.category english
+      setSelectedCategory(currentModel.category) 
+    }
   }, [currentModel])
 
   useEffect(() => {
     const nextConfig = normalizeOrderConfig(currentModel?.orderConfig)
-    setSelectedAppearanceId((current) => nextConfig.appearanceOptions.some((item) => item.id === current) ? current : (nextConfig.appearanceOptions[0]?.id ?? ''))
-    setSelectedColorId((current) => nextConfig.colorOptions.some((item) => item.id === current) ? current : (nextConfig.colorOptions[0]?.id ?? ''))
-    setSelectedInteriorId((current) => nextConfig.interiorOptions.some((item) => item.id === current) ? current : (nextConfig.interiorOptions[0]?.id ?? ''))
-    setSelectedPowerId((current) => nextConfig.powerOptions.some((item) => item.id === current) ? current : (nextConfig.powerOptions[0]?.id ?? ''))
-    setSelectedOptionalIds((current) => current.filter((id) => nextConfig.optionalSeriesOptions.some((item) => item.id === id)))
+    setSelectedAppearanceId(
+      (current) => nextConfig.appearanceOptions.some((item) => item.id === current) 
+                  ? current : (nextConfig.appearanceOptions[0]?.id ?? ''))
+    setSelectedColorId((current) => nextConfig.colorOptions.some((item) => item.id === current) 
+                  ? current : (nextConfig.colorOptions[0]?.id ?? ''))
+    setSelectedInteriorId((current) => nextConfig.interiorOptions.some((item) => item.id === current) 
+                  ? current : (nextConfig.interiorOptions[0]?.id ?? ''))
+    setSelectedPowerId((current) => nextConfig.powerOptions.some((item) => item.id === current) 
+                  ? current : (nextConfig.powerOptions[0]?.id ?? ''))
+    setSelectedOptionalIds((current) => current.filter(
+      (id) => nextConfig.optionalSeriesOptions.some((item) => item.id === id)))
   }, [currentModel])
 
-  const filteredModels = useMemo(
-    () => models.filter((model) => getCategoryForModel(model) === selectedCategory),
-    [models, selectedCategory]
+  const filteredBoats = useMemo(
+    () => boats.filter((boat) => boat.category === selectedCategory),
+    [boats, selectedCategory]
   )
 
-  const activeModel = currentModel ?? filteredModels[0] ?? models[0] ?? null
+  const activeModel = useMemo(() => {
+    if (currentModel) {
+      return currentModel;
+    }
+    if (filteredBoats[0]) {
+      return createAugmentedModel(filteredBoats[0]);
+    }
+    if (boats[0]) {
+      return createAugmentedModel(boats[0]);
+    }
+    return null;
+  }, [currentModel, filteredBoats, boats]);
+
+  const [selectedBoatIdLocal, setSelectedBoatIdLocal] = useState(activeModel?.id || '');
+
+  useEffect(() => {
+    console.log("useEffect: activeModel.id=", activeModel?.id, ", selectedBoatIdLocal=", selectedBoatIdLocal);
+    if (activeModel?.id && selectedBoatIdLocal !== activeModel.id) {
+      setSelectedBoatIdLocal(activeModel.id);
+    }
+  }, [activeModel?.id, selectedBoatIdLocal]);
+
+  const handleBoatSelectChange = (event) => {
+    const newBoatId = event.target.value;
+    // console.log("handleBoatSelectChange: newBoatId=", newBoatId);
+    setSelectedBoatIdLocal(newBoatId);
+
+    const selectedBoat = filteredBoats.find(boat => boat.id === newBoatId);
+    if (selectedBoat) {
+      // console.log("handleBoatSelectChange: calling onSelectModel with boat.id=", selectedBoat.id);
+      onSelectModel({ boatId: selectedBoat.id, modelId: selectedBoat.models?.[0]?.id ?? "" });
+    }
+  };
   const activeOrderConfig = useMemo(() => normalizeOrderConfig(activeModel?.orderConfig), [activeModel])
   const effectiveFocusTargets = loadedFocusTargets && Object.keys(loadedFocusTargets).length
     ? loadedFocusTargets
@@ -309,6 +403,7 @@ export default function OrderPage() {
       cancelled = true
     }
   }, [activeOrderConfig.focusTargets, apiBasePath, currentModel?.id])
+
   const activeAppearance = activeOrderConfig.appearanceOptions.find((item) => item.id === selectedAppearanceId) ?? activeOrderConfig.appearanceOptions[0]
   const activeColor = activeOrderConfig.colorOptions.find((item) => item.id === selectedColorId) ?? activeOrderConfig.colorOptions[0]
   const activeInterior = activeOrderConfig.interiorOptions.find((item) => item.id === selectedInteriorId) ?? activeOrderConfig.interiorOptions[0]
@@ -499,12 +594,13 @@ export default function OrderPage() {
     }
   }, [activeConfigStep])
 
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category)
+  const handleCategorySelect = (aCategory) => {
+
+    setSelectedCategory(aCategory.id)
     setActiveConfigStep('船型')
-    const nextModel = models.find((model) => getCategoryForModel(model) === category)
-    if (nextModel) {
-      onSelectModel(nextModel.id)
+    const nextBoat = boats.find((boat) => boat.category === aCategory.id)
+    if (nextBoat) {
+      onSelectModel(nextBoat.id, nextBoat.models?.[0]?.id ?? "")
     }
   }
 
@@ -601,6 +697,15 @@ export default function OrderPage() {
     }
   }
 
+  if (!currentModel) {
+    return (
+      <div className="page-loading" style={{ textAlign: 'center', paddingTop: '100px', color: '#f5f5f7' }}>
+        <h2>正在加载模型数据...</h2>
+        <p>如果长时间没有响应，请尝试 <Link to="/">返回首页</Link> 并重新选择。</p>
+      </div>
+    );
+  }
+
   return (
     <div className="order-page">
       <header className="order-topbar">
@@ -620,15 +725,18 @@ export default function OrderPage() {
           </div>
         </div>
       </header>
+ 
 
       <main className="order-shell">
         <section className="order-visual-column">
           <div className="order-visual-sticky">
             <div className="order-scene-panel">
               {activeModel ? (
-                <ShipScene
-                  key={activeModel.id}
-                  modelConfig={activeModel}
+                <ShipScene 
+                  modelConfig={{
+                    ...activeModel,
+                    model: { path: activeModel.primaryModelInfo?.modelRuntimePath ?? '', },
+                  }}
                   focusTarget={sceneFocusTarget}
                   focusTargetPresets={effectiveFocusTargets}
                   colorConfig={activeColor}
@@ -666,40 +774,45 @@ export default function OrderPage() {
             <div className="order-category-row" role="tablist" aria-label="船型分类">
               {productCategories.map((category) => (
                 <button
-                  key={category}
+                  key={category.id}
                   type="button"
                   className={`order-category-chip ${selectedCategory === category ? 'active' : ''}`}
                   onClick={() => handleCategorySelect(category)}
                 >
-                  {category}
+                  {category.label}
                 </button>
               ))}
             </div>
 
-            <div className="order-model-grid">
-              {filteredModels.map((model) => {
-                const isActive = model.id === activeModel?.id
-
-                return (
-                  <button
-                    key={model.id}
-                    type="button"
-                    className={`order-model-card ${isActive ? 'active' : ''}`}
-                    onClick={() => { setActiveConfigStep('船型'); onSelectModel(model.id) }}
-                  >
-                    <div className="order-model-card-copy">
-                      <p className="order-model-category">{getCategoryForModel(model)}</p>
-                      <h3>{model.label}</h3>
-                      <p>{getModelCaption(model)}</p>
-                      {getModelReferencePriceLabel(model) && (
-                        <p className="order-model-card-price">{getModelReferencePriceLabel(model)}</p>
-                      )}
-                    </div>
-                    <span className="order-model-card-state">{isActive ? '已选中' : '选择'}</span>
-                  </button>
-                )
-              })}
+          <div className="order-model-selector">
+          <div className="order-model-selection-row">
+            <label htmlFor="boat-select" className="order-model-label">{'选择船型'}:</label>
+            <select
+              id="boat-select"
+              value={selectedBoatIdLocal}
+              onChange={handleBoatSelectChange}
+              className="order-model-dropdown"
+            >
+              {filteredBoats.map((boat) => (
+                <option key={boat.id} value={boat.id}>
+                  {boat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {activeModel && (
+            <div className="order-model-details">
+              <div className="order-model-card-copy">
+                <p className="order-model-category">{getCategoryForModel(activeModel)}</p>
+                <h3>{activeModel.label}</h3>
+                <p>{getModelCaption(activeModel)}</p>
+                {getModelReferencePriceLabel(activeModel) && (
+                  <p className="order-model-card-price">{getModelReferencePriceLabel(activeModel)}</p>
+                )}
+              </div>
             </div>
+          )}
+        </div>
           </section>
 
           <section id="order-section-appearance" className="order-config-section">
@@ -707,7 +820,19 @@ export default function OrderPage() {
               <p className="order-section-step">02</p>
               <div>
                 <h2>外观</h2>
-                <p>选择识别风格与船体颜色，形成初步交付视觉方向。</p>
+                <p>选择船体颜色</p>
+      
+      {/* 颜色选择控件 */}
+      <input
+        type="color"
+        value={color}
+        onChange={(e) => setColor(e.target.value)}
+        style={{ width: "100px", height: "40px" }}
+      />
+
+      {/* 显示当前选中的颜色值 */}
+      <p>当前颜色：{color}</p>
+
               </div>
             </div>
 
@@ -729,30 +854,9 @@ export default function OrderPage() {
               ))}
             </div>
 
-            {activeOrderConfig.colorOptions.length > 0 ? (
-              <div className="order-color-grid order-subsection">
-                {activeOrderConfig.colorOptions.map((color) => {
-                  const isActive = color.id === selectedColorId
-
-                  return (
-                    <button
-                      key={color.id}
-                      type="button"
-                      className={`order-color-card ${isActive ? 'active' : ''}`}
-                      onClick={() => setSelectedColorId(color.id)}
-                    >
-                      <span className="order-color-swatch" style={{ backgroundColor: color.hex }} />
-                      <div>
-                        <h3>{color.label}</h3>
-                        <p>{color.surcharge > 0 ? `${formatPrice(color.surcharge)} 选装` : '标准配色'}</p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="order-empty-note">当前船型暂未配置可选船体颜色。</p>
-            )}
+          
+ 
+   
           </section>
 
           <section id="order-section-interior" className="order-config-section">

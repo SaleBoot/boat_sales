@@ -10,10 +10,12 @@ const frontRoutes = [
   {
     path: '/',
     element: <HomePage />,
-  },
-  {
-    path: '/order',
-    element: <OrderPage />,
+    children: [
+      {
+        path: 'order',
+        element: <OrderPage />,
+      },
+    ],
   },
   {
     path: '/order-success',

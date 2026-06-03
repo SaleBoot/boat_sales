@@ -339,18 +339,41 @@ export function createMaterialPipeline({
     return material
   }
 
+  /**
+   * 将各种纹理贴图（maps）应用到 Three.js 材质上。
+   * 这个函数根据传入的 `maps` 对象，将对应的纹理设置到 `material` 的属性上，
+   * 并根据纹理类型调整材质的相关属性（如颜色、金属度、粗糙度、透明度等）。
+   *
+   * @param {THREE.Material} material - 要应用贴图的 Three.js 材质对象。
+   * @param {object} maps - 包含各种纹理贴图的对象。
+   * @param {THREE.Texture} [maps.basecolor] - 基础颜色贴图。
+   * @param {THREE.Texture} [maps.emissive] - 自发光贴图。
+   * @param {THREE.Texture} [maps.normal] - 法线贴图。
+   * @param {THREE.Texture} [maps.orm] - 环境光遮蔽（AO）、粗糙度（Roughness）、金属度（Metalness）打包贴图。
+   * @param {THREE.Texture} [maps.rmao] - 粗糙度（Roughness）、金属度（Metalness）、环境光遮蔽（AO）打包贴图。
+   * @param {THREE.Texture} [maps.ao] - 环境光遮蔽贴图。
+   * @param {THREE.Texture} [maps.metalness] - 金属度贴图。
+   * @param {THREE.Texture} [maps.roughness] - 粗糙度贴图。
+   * @param {THREE.Texture} [maps.opacity] - 透明度贴图。
+   * @param {object} options - 配置选项。
+   * @param {boolean} [options.canUseUvMaps=true] - 是否允许使用 UV 贴图。
+   * @param {object} [options.textureOptions={}] - 纹理相关的额外选项。
+   * @param {object} [options.textureOptions.baseColor] - 基础颜色纹理选项。
+   * @param {boolean} [options.textureOptions.baseColor.useAlphaAsOpacity=false] - 是否将基础颜色贴图的 Alpha 通道用作透明度。
+   */
   const applyMapsToMaterial = (material, maps, options = {}) => {
     const {
       canUseUvMaps = true,
       textureOptions = {}
     } = options
     const shouldUseBaseColorAlpha = textureOptions.baseColor?.useAlphaAsOpacity === true
+    // console.log('applyMapsToMaterial::maps', maps)
 
-    if (maps.baseColor && canUseUvMaps) {
+    if (maps.basecolor && canUseUvMaps) {
       if (material.color) {
         material.color.set('#ffffff')
       }
-      material.map = maps.baseColor
+      material.map = maps.basecolor
     }
     if (maps.emissive && canUseUvMaps) {
       material.emissive = new THREE.Color('#ffffff')
@@ -405,14 +428,16 @@ export function createMaterialPipeline({
     }
     material.needsUpdate = true
   }
+  // 
   // 定义函数：应用消防CC清漆效果，接收材质对象作为参数
+  // 
   const applyFireFightingCcClearcoat = (material) => {
     // 1. 安全判断：如果传入的是物理材质直接用，否则转换为物理材质
     const targetMaterial = material?.isMeshPhysicalMaterial ? material : createPhysicalMaterial(material)
 
-    // 2. 金属度：有金属度贴图则设为0.26，无贴图则设为0.1
+    // 2. 金属度
     targetMaterial.metalness = targetMaterial.metalnessMap ? 0.26 : 0.1
-    // 3. 粗糙度：有粗糙度贴图则设为1（高粗糙），无贴图则设为0.56
+    // 3. 粗糙度
     targetMaterial.roughness = targetMaterial.roughnessMap ? 1 : 0.56
     // 4. 清漆效果（核心）：清漆强度 + 清漆粗糙度
     targetMaterial.clearcoat = 0.22
@@ -557,7 +582,6 @@ export function createMaterialPipeline({
       // 一个网格可能有一个或多个材质（存储在数组中），所以这里统一处理为数组。
       const materials = Array.isArray(child.material) ? child.material : [child.material]
       materials.forEach((material) => {
-        // 获取材质的原始名称，并去除首尾空格。
         const name = `${material?.name ?? ''}`.trim()
         // 对材质名称进行规范化处理（例如，转换为小写，移除特殊字符等）。
         const normalizedName = normalizeMaterialName(name)
@@ -628,7 +652,7 @@ export function createMaterialPipeline({
   const applyUvSetMaps = (rootObject, aMatSlot, maps, options = {}) => {
     
     const hint = aMatSlot.matName // matSlotName
-    console.log('applyUvSetMaps::aMatSlot', aMatSlot)
+    // console.log('applyUvSetMaps::aMatSlot', aMatSlot)
     // 规范化材质名称提示。
     const normalizedHint = normalizeMaterialName(hint)
     // 解构并设置默认选项。
@@ -643,21 +667,22 @@ export function createMaterialPipeline({
 
     // 如果提供了材质名称提示，则收集场景中所有的材质插槽。
     const runtimeMaterialSlots = hint ? collectRuntimeMaterialSlots(rootObject) : []
-    console.log('applyUvSetMaps::runtimeMaterialSlots', runtimeMaterialSlots )
+    // console.log('applyUvSetMaps::runtimeMaterialSlots', runtimeMaterialSlots )
     // 检查提示的材质名称是否存在于运行时的材质插槽中。
     const hintMatchesRuntimeSlot = !hint || runtimeMaterialSlots.some((slot) => slot.normalizedName === normalizedHint)
     // 定义单一材质回退逻辑：如果允许回退、提供了提示、提示的材质不存在，并且场景中只有一个材质，则使用该材质作为回退目标。
     const singleMaterialFallbackSlot = allowSingleMaterialFallback && hint && !hintMatchesRuntimeSlot && runtimeMaterialSlots.length === 1
       ? runtimeMaterialSlots[0]
       : null
-    console.log('applyUvSetMaps::singleMaterialFallbackSlot', singleMaterialFallbackSlot )
+    // console.log('applyUvSetMaps::singleMaterialFallbackSlot', singleMaterialFallbackSlot )
+
     // 遍历场景中的所有对象。
     rootObject.traverse((child) => {
       // 只处理有材质的网格对象。
       if (!child.isMesh || !child.material) {
         return
       }
-      console.log('rootObject.traverse::child', child)
+      // console.log('rootObject.traverse::child', child)
       // 确保网格有 AO UV 坐标（通常是第二套 UV）。
       const hasUv = ensureAoUv(child)
       // 将材质统一处理为数组。
@@ -667,19 +692,22 @@ export function createMaterialPipeline({
         const normalizedMaterialName = normalizeMaterialName(material?.name)
         // 检查当前材质是否匹配名称提示。
         const matchesMaterialHint = !hint || normalizedMaterialName === normalizedHint
+        // console.log('applyUvSetMaps::normalizedMaterialName', normalizedMaterialName,
+        //   ",normalizedHint=",normalizedHint, ",matchesMaterialHint=",matchesMaterialHint )           
         // 检查当前材质是否匹配单一材质回退的插槽。
         const matchesSingleMaterialFallback =
           singleMaterialFallbackSlot && normalizedMaterialName === singleMaterialFallbackSlot.normalizedName
-        console.log('applyUvSetMaps::matchesSingleMaterialFallback', matchesSingleMaterialFallback,
-          ",matchesMaterialHint=",matchesMaterialHint )          
+        // console.log('applyUvSetMaps::matchesSingleMaterialFallback', matchesSingleMaterialFallback,
+        //   ",matchesMaterialHint=",matchesMaterialHint )          
         // 如果两种情况都不匹配，则不作任何修改，返回原始材质。
         if (!matchesMaterialHint && !matchesSingleMaterialFallback) {
           return material
         }
 
+                
         // 获取用于应用 UV 贴图的目标材质。如果需要，会创建一个新的 PhysicalMaterial。
         let targetMaterial = getMaterialForUvMaps(material, options)
-
+        // console.log('applyUvSetMaps::targetMaterial=...=', targetMaterial ,"...hasUv=",hasUv)     
         // 如果网格没有所需的 UV 坐标。
         if (!hasUv) {
           skippedMeshCount += 1 // 增加跳过的网格计数。
@@ -704,7 +732,7 @@ export function createMaterialPipeline({
           })
           return targetMaterial
         }
-
+        // console.log('applyUvSetMaps::to..applyMapsToMaterial=...=', targetMaterial ,"...maps=",maps)     
         // 如果网格有 UV 坐标，则应用所有贴图。
         applyMapsToMaterial(targetMaterial, maps, { canUseUvMaps: true, textureOptions })
         // 如果有材质转换函数，则执行它。

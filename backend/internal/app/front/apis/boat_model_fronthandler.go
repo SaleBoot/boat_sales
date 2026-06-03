@@ -260,10 +260,8 @@ func fillModel_matSlots(
 	modelDirPath := filepath.Dir(aModelRuntimePath)
 
 	for _, path := range aCosFilePaths {
-		fileName := filepath.Base(path.Path)
-
-		// 只处理当前模型目录下的 mat_ 开头文件
-		if !strings.HasPrefix(path.Path, modelDirPath) || !strings.HasPrefix(fileName, "mat_") {
+		// 只处理当前模型目录下的 文件
+		if !strings.HasPrefix(path.Path, modelDirPath) {
 			continue
 		}
 
@@ -290,7 +288,7 @@ func fillModel_matSlots(
 			matSlot.Textures.Normal = path.Path
 		case "roughness":
 			matSlot.Textures.Roughness = path.Path
-		case "metallic":
+		case "metallic", "metalness":
 			matSlot.Textures.Metalness = path.Path
 		case "ao":
 			matSlot.Textures.AO = path.Path

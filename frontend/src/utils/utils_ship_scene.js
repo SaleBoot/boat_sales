@@ -211,7 +211,7 @@ export function resolveAppliedFocusTarget(
 
 export function getColorShaderPreset(colorConfig, options = {}) {
   const { explicitMaterialSlots = false } = options
-  const fallbackHex = colorConfig?.hex ?? '#f2f3f5'
+  const fallbackHex = colorConfig?.hex ?? '#f5f2f3'
 
   return {
     color: fallbackHex,

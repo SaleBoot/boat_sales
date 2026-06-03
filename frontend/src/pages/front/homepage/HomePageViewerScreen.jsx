@@ -4,7 +4,7 @@ import { useFocusTarget } from '../../../hooks/useFocusTarget';
 import ShipScene from '../../scene3d/ShipScene';
 
 export default function HomePageViewerScreen({
-  selectedModelId,
+  selectedModelGid,
   primaryModel,
   runtimeBasePath,
   remoteFbxOrigin, // Added for resolving model paths
@@ -18,7 +18,7 @@ export default function HomePageViewerScreen({
   const { viewerFocusTarget, 
     setViewerFocusTarget, 
     viewerFocusTargets 
-  } = useFocusTarget( selectedModelId, primaryModel, runtimeBasePath);
+  } = useFocusTarget( selectedModelGid, primaryModel, runtimeBasePath);
 
   const modelConfig = useMemo(() => {
     if (!primaryModel) return null;

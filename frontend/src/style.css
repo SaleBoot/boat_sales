@@ -740,6 +740,7 @@ textarea {
   font-size: clamp(1.2rem, 2.4vw, 1.7rem);
   line-height: 1.08;
   letter-spacing: -0.04em;
+  color: #f5f5f7;
 }
 
 .detail-spec-price {
@@ -775,6 +776,7 @@ textarea {
   font-size: 1rem;
   line-height: 1.1;
   letter-spacing: -0.02em;
+  color: #f5f5f7;
 }
 
 .detail-compare-stack {
@@ -1606,6 +1608,91 @@ canvas.webgl {
 .order-model-grid {
   grid-template-columns: 1fr;
   gap: 0.7rem;
+}
+
+.order-model-selector {
+  display: flex;
+  flex-direction: column; /* 确保子元素垂直堆叠 */
+  gap: 1rem; /* 增加间距 */
+  margin-bottom: 1rem;
+}
+
+.order-model-selection-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.order-model-label {
+  color: rgba(245, 245, 247, 0.68);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-model-dropdown {
+  max-width: 300px; /* 限制最大宽度，防止过宽导致标签换行 */
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  font-size: 1rem;
+  appearance: none; /* Remove default browser styling */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  height: auto; /* 确保高度自适应内容 */
+}
+
+.order-model-dropdown:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.order-model-dropdown option {
+  background-color: #1a202c; /* Dark background for options */
+  color: #f8fafc; /* Light text color for options */
+}
+
+.order-model-details {
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.order-model-details .order-model-card-copy {
+  min-width: 0;
+}
+
+.order-model-details .order-model-category {
+  color: rgba(245, 245, 247, 0.54);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.order-model-details h3 {
+  margin-top: 0.18rem;
+  font-size: 1.08rem;
+  line-height: 1.1;
+}
+
+.order-model-details p {
+  color: rgba(245, 245, 247, 0.68);
+  line-height: 1.65;
+}
+
+.order-model-details .order-model-card-price {
+  margin-top: 0.42rem;
+  color: #f3d18b;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .order-color-grid {

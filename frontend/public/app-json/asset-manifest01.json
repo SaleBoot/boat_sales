@@ -45,11 +45,7 @@
       }, 
       "uvSets": [
         {
-          "id": "cc",
-          "label": "UV cc",
-          "directory": "/gltf/57sites/cc",
-          "materialNameHint": "02 - Default",
-          "materialHintSource": "manual",
+          "id": "cc", 
           "textures": {
             "baseColor": "/gltf/57sites/cc/ccUV_01 - Default_BaseColor.png",
             "normal": "/gltf/57sites/cc/ccUV_01 - Default_Normal.png",
@@ -57,8 +53,7 @@
           }
         },
         {
-          "id": "mt",
-          "label": "UV mt", 
+          "id": "mt", 
           "textures": {
             "baseColor": "/gltf/57sites/mt/mtUV_01 - Default_BaseColor.png",
             "normal": "/gltf/57sites/mt/mtUV_01 - Default_Normal.png",

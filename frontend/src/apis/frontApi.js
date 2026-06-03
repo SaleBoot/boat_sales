@@ -98,6 +98,19 @@ export const getFrontBoatModels = () => {
   return api.get('/front/boat-models');
 };
 
+/**
+ * Fetches the focus targets for a specific boat model.
+ * @param {string} boatId - The ID of the boat.
+ * @param {string} [modelId] - The optional ID of the specific model variant.
+ * @returns {Promise<object>} A promise that resolves to the focus targets object.
+ */
+export const getFocusTargets = (boatId, modelId) => {
+  return api.get('/front/model/focus-targets', {
+    params: { boatId, modelId },
+  });
+};
+
+
 
 /**
  * @typedef {object} SiteContent

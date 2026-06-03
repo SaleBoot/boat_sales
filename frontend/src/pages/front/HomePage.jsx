@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Outlet } from 'react-router-dom';
 import { getFrontBoatModels, getSiteContent } from '../../apis/frontApi';
 import { usePointerGlow, useGlobalMenuClose } from '../../hooks/useUIEvents';
 import { MODEL_STORAGE_KEY } from '../../constants/constants_front_homepage';
@@ -40,7 +40,7 @@ export default function HomePage() {
   const resolveStaticPath = (relativePath) => `${staticAssetBaseUrl}${relativePath}`;
 
   const location = useLocation();
-  const route = getRouteFromHash(location.hash);
+  const isOrderPage = location.pathname.startsWith('/order');
 
   const [openCategoryId, setOpenCategoryId] = useState(null);
   const [openCompareSelectId, setOpenCompareSelectId] = useState(null);
@@ -48,7 +48,8 @@ export default function HomePage() {
   const [siteContent, setSiteContent] = useState(null);
   const [boatsMap, setBoatsMap] = useState({});
   const [modelsByCategory, setModelsByCategory] = useState([]);
-  const [selectedBoatId, setSelectedBoatId] = useState(() => getRequestedModelId());
+  // Model GlobalId 包含2个字段 boatId、modelId 
+  const [selectedModelGid, setSelectedModelGid] = useState(() => getRequestedModelId());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,10 +74,11 @@ export default function HomePage() {
 
           // 3. Set the initial model based on the first item in the menu if not already set
           if (!getRequestedModelId()) {
-            const firstCategory = menu?.[0];
-            const firstModelId = firstCategory?.boats?.[0]?.id;
-            if (firstModelId) {
-              setSelectedBoatId(firstModelId);
+            const firstCategory = menu?.[1];
+            const firstBoatId = firstCategory?.boats?.[0]?.id;
+            const firstModelId = firstCategory?.boats?.[0]?.models?.[0]?.id;
+            if (firstBoatId) {
+              setSelectedModelGid({ boatId: firstBoatId, modelId: firstModelId });
             }
           }
         } else {
@@ -98,10 +100,13 @@ export default function HomePage() {
   const heroContent = normalizeHeroContent(siteContent?.hero);
 
   const primaryModel = useMemo(() => {
-    const createStructuredModel = (boatData) => {
+    const createStructuredModel = (boatData,modelId) => {
       if (!boatData) return null;
 
-      const primaryModelInfo = boatData.models?.[0] || {};
+    const primaryModelInfo = 
+      boatData.models?.find(item => item.id === modelId) 
+      || boatData.models?.[0] 
+      || {};
       return {
         ...boatData, // boatData from API now includes id and label
         primaryModelInfo: primaryModelInfo, // Nest the specific model info
@@ -111,28 +116,28 @@ export default function HomePage() {
     if (!boatsMap) 
       return null;
 
-    const selectBoat = boatsMap?.[selectedBoatId];
+    const selectBoat = boatsMap?.[selectedModelGid.boatId];
     if (selectBoat) {
-      return createStructuredModel(selectBoat);
+      return createStructuredModel(selectBoat, selectedModelGid.modelId);
     }
 
-    // Fallback to the first model 
-    const firstModelKey = Object.keys(boatsMap)[0];
-    if (firstModelKey) {
-      return createStructuredModel(boatsMap[firstModelKey]);
+    // Fallback to the first boat 
+    const firstBoatKey = Object.keys(boatsMap)[0];
+    if (firstBoatKey) {
+      return createStructuredModel(boatsMap[firstBoatKey], selectedModelGid.modelId || "");
     }
     return null; // 如果整个 map 确实是空的，安全返回 null
-  }, [selectedBoatId, boatsMap]);
+  }, [selectedModelGid, boatsMap]);
 
   // Diagnostic useEffect to track primaryModel changes
   useEffect(() => {
-    console.log('[HomePage] primaryModel has been updated. New value:', primaryModel);
-    if (primaryModel) {
-      console.log(`[HomePage] -> primaryModel URL is: ${primaryModel.url}`);
-    } else {
-      console.log('[HomePage] -> The primaryModel is null.');
-    }
-  }, [primaryModel]);
+    console.log('[HomePage] selectedModelGid has been updated. New value:', selectedModelGid);
+    // if (primaryModel) {
+    //   console.log(`[HomePage] -> primaryModel URL is: ${primaryModel.url}`);
+    // } else {
+    //   console.log('[HomePage] -> The primaryModel is null.');
+    // }
+  }, [selectedModelGid]);
 
   const brochurePath = resolveStaticPath(siteSettings.brochurePath);
   const heroImagePath = resolveStaticPath(siteSettings.heroImagePath);
@@ -148,15 +153,28 @@ export default function HomePage() {
   const primaryDetailSpecCards = buildComparisonSpecSections(primaryModel);
   const activeCategoryId = primaryModel?.category ?? modelsByCategory[0]?.id ?? null;
 
-  const handleModelSelect = (modelId) => {
-    console.log("[HomePage] handleModelSelect triggered with ID: ", modelId);
-    if (!modelId || modelId === selectedBoatId) {
-      console.log("[HomePage] Aborting: modelId is same as current or invalid.");
-      return
+  const handleModelSelect = (modelGid) => {
+    console.log("[HomePage] handleModelSelect triggered with ID: ", modelGid);
+    // 1. 无效ID直接跳过
+    if (!modelGid?.boatId ) {
+      console.log("[HomePage] Aborting: invalid modelGid");
+      return;
     }
 
-    setSelectedBoatId(modelId)
-    window.localStorage.setItem(MODEL_STORAGE_KEY, modelId)
+
+
+    // 2. 和当前选中一样 → 不重复更新
+    if (
+      modelGid.boatId === selectedModelGid?.boatId &&
+      modelGid.modelId === selectedModelGid?.modelId
+    ) {
+      console.log("[HomePage] Aborting: same model, no change");
+      return;
+    }
+
+    // 3. 更新状态 + 本地存储
+    setSelectedModelGid(modelGid);
+    window.localStorage.setItem(MODEL_STORAGE_KEY, JSON.stringify(modelGid));
   };
 
   const scrollToExperience = () => {
@@ -188,6 +206,20 @@ export default function HomePage() {
     );
   }
 
+  if (isOrderPage) {
+    return (
+      <Outlet
+        context={{
+          boats: Object.values(boatsMap),
+          primaryModel,
+          selectedModelGid: selectedModelGid,
+          onSelectModel: handleModelSelect,
+          apiBasePath: runtimeBasePath,
+        }}
+      />
+    );
+  }
+
   return (
     <div className="page">
       <HomepageHeader
@@ -197,7 +229,7 @@ export default function HomePage() {
         setOpenCategoryId={setOpenCategoryId}
         handleModelSelect={handleModelSelect}
         scrollToExperience={scrollToExperience}
-        selectedBoatId={selectedBoatId}
+        selectedModelGid={selectedModelGid}
         brochurePath={brochurePath}
       />
 
@@ -209,7 +241,7 @@ export default function HomePage() {
         />
 
         <HomePageViewerScreen
-          selectedBoatId={selectedBoatId}
+          selectedModelGid={selectedModelGid}
           primaryModel={primaryModel}
           runtimeBasePath={runtimeBasePath}
           remoteFbxOrigin={remoteFbxOrigin}
@@ -229,7 +261,7 @@ export default function HomePage() {
 
             <DetailCompareStack
               models={Object.values(boatsMap)}
-              selectedBoatId={selectedBoatId}
+              selectedModelGid={selectedModelGid}
               maxCompareModelCount={maxCompareModelCount}
               openCompareSelectId={openCompareSelectId}
               setOpenCompareSelectId={setOpenCompareSelectId}

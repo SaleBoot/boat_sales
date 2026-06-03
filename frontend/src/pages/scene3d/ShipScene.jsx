@@ -92,7 +92,7 @@ export default function ShipScene({
   debugTransform = null,
   onDebugTransformChange = null
 }) {
-  console.log('ShipScene start, modelConfig:', modelConfig);
+  // console.log('ShipScene start, modelConfig:', modelConfig);
   const assetBaseUrl = getStaticAssetBaseUrl(
     import.meta.env.VITE_REMOTE_FBX_ORIGIN,
     import.meta.env.BASE_URL
@@ -135,7 +135,7 @@ export default function ShipScene({
     ...(waterConfig && typeof waterConfig === 'object' ? waterConfig : {}) // 用户配置
   }
   
-  console.log("modelConfig=",modelConfig)
+  // console.log("modelConfig=",modelConfig)
 
   // 复合部件
   const compositeParts = modelConfig?.parts ?? EMPTY_ARRAY
@@ -144,11 +144,12 @@ export default function ShipScene({
   const effectiveModelConfig = shouldUseSinglePartCompositeFallback
     ? compositeParts[0]?.model ?? null
     : modelConfig?.model ?? null
+  
   // const effectiveMatSlots = shouldUseSinglePartCompositeFallback
   //   ? compositeParts[0]?.matSlots ?? EMPTY_ARRAY
   //   : modelConfig?.model?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
   const effectiveMatSlots =  modelConfig?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
-  console.log("000..effectiveMatSlots=",effectiveMatSlots)
+  // console.log("000..effectiveMatSlots=",effectiveMatSlots)
   const hasRenderableModel = Boolean(effectiveModelConfig?.path || hasCompositeParts)
   // 模型格式 
   const modelPath = effectiveModelConfig?.path
@@ -264,7 +265,7 @@ export default function ShipScene({
   const effectiveModelPath = modelPath
   // ===== TwoLayerBoat Locked Block END =====
   const matSlots = effectiveMatSlots
-  console.log("matSlots=",matSlots)
+  // console.log("matSlots=",matSlots)
 
   const canvasRef = useRef(null)
   const controlsRef = useRef(null)
@@ -491,7 +492,7 @@ export default function ShipScene({
     loadingTracker.estimateAssetSizes(abortController.signal)
 
     const loadTextureAsync = (path) => {
-      console.log("loadTextureAsync,path=" ,path)
+      // console.log("loadTextureAsync,path=" ,path)
 
       if (texturePromiseCache.has(path)) {
         return texturePromiseCache.get(path)

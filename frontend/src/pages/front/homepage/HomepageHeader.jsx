@@ -35,7 +35,7 @@ export default function HomepageHeader({
     }
 
     if (category.boats.length === 1) {
-      handleModelSelect(category.boats[0].id)
+      handleModelSelect({ boatId: category.boats[0].id, modelId: "" })
       setOpenCategoryId(null)
       scrollToExperience()
       return
@@ -45,8 +45,8 @@ export default function HomepageHeader({
     scrollToExperience()
   }
   // 
-  const handleCategoryItemClick = (modelId) => {
-    handleModelSelect(modelId)
+  const handleCategoryItemClick = (boatId) => {
+    handleModelSelect({ boatId: boatId, modelId: "" })
     setOpenCategoryId(null)
     scrollToExperience()
   }
@@ -80,18 +80,18 @@ export default function HomepageHeader({
                   </button>
 
                   <div className="site-category-dropdown" role="menu" aria-label={category.label}>
-                    {category.boats?.map((model) => {
-                      const isActiveModel = model.id === selectedModelId;
+                    {category.boats?.map((boat) => {
+                      const isActiveModel = boat.id === selectedModelId;
 
                       return (
                         <button
-                          key={model.id}
+                          key={boat.id}
                           type="button"
                           className={`site-category-option ${isActiveModel ? 'active' : ''}`}
-                          onClick={() => handleCategoryItemClick(model.id)}
+                          onClick={() => handleCategoryItemClick(boat.id)}
                           role="menuitem"
                         >
-                          <span>{getModelDisplayLabel(model)}</span>
+                          <span>{getModelDisplayLabel(boat)}</span>
                         </button>
                       );
                     })}

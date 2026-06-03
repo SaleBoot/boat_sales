@@ -22,7 +22,7 @@ export default function AdminLayout() {
       <aside className="admin-sidebar">
         <header className="admin-sidebar-header">
           <p className="admin-kicker">Admin Console</p>
-          <h1>京穗船舶后台管理</h1>
+          <h1 style={{ color: '#f5f5f7' }}>京穗船舶后台管理</h1>
         </header>
 
         <nav className="admin-sidebar-nav">
@@ -60,7 +60,7 @@ export default function AdminLayout() {
 
         <footer className="admin-sidebar-footer">
           {user && (
-            <p> 已登录为 <strong className="text-accent">{user.email || '管理员'}</strong> </p>
+            <p style={{ color: '#f5f5f7' }}> 已登录为 <strong className="text-accent">{user.email || '管理员'}</strong> </p>
           )}
           <button type="button" className="btn text" onClick={logout}>
             退出登录
