@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { getModelDisplayLabel } from '../../../utils/utils_homepage';
 
 export default function HomepageHeader({
-  modelsByCategory = [],
+  categoryMenus = [],
   activeCategoryId,
   openCategoryId,
   setOpenCategoryId,
@@ -57,7 +57,7 @@ export default function HomepageHeader({
       <div className="site-nav-inner">
         <div className="site-nav-left">
           <nav className="site-categories" aria-label="船型分类">
-            {modelsByCategory.map((category) => {
+            {categoryMenus.map((category) => {
               const isActiveCategory = category.id === activeCategoryId;
               const isOpen = openCategoryId === category.id;
 

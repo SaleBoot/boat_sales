@@ -188,8 +188,8 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
               rules={[
                 { required: true, message: '请输入船舶英文名' },
                 {
-                  pattern: /^[a-z0-9_-]+$/,
-                  message: '船舶英文名只能包含小写英文、数字、下划线或连字符',
+                  pattern: /^[a-zA-Z0-9_-]+$/,
+                  message: '船舶英文名只能包含英文字母、数字、下划线或连字符',
                 },
               ]}
               style={{ marginBottom: '4px' }}

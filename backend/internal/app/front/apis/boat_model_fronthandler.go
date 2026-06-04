@@ -71,8 +71,8 @@ type Models4Front struct {
 
 type BoatMenuMap = map[string]*BoatMenu
 type BoatMenu struct {
-	Id    string        `json:"id"`    // 船的类别英文名称 category.EnlishName
-	Label string        `json:"label"` // 船的类别中文名称 category.ChineseName
+	Id    string        `json:"id"`    // 船的类别ID category.CategoryStrID
+	Label string        `json:"label"` // 船的类别中文名称 category.CnName
 	Boats []BoatSubMenu `json:"boats"` // 船的模型列表
 }
 
@@ -147,7 +147,8 @@ type ModelInfo struct {
 	Label string `json:"label"` // ModelName
 	// BoatEnName       string `json:"boatEnName"`       // 无空格英文名，也是模型文件夹名
 	// ModelName        string `json:"modelName"`        // 默认样式的名称
-	ModelRuntimePath string `json:"modelRuntimePath"` // 运行时路径
+	AdImgs           []string `json:"adImgs"`
+	ModelRuntimePath string   `json:"modelRuntimePath"` // 运行时路径
 	// 材质槽列表 not in table "sys_boat_model", from "cos_path_meta" table
 	//
 	//   "matSlots": [
@@ -251,22 +252,90 @@ func getMatSlotNameAndTexType(p string) (string, string) {
 	texType = fileNameNoExt[lastUnderscore+1:]
 	return matSlotName, texType
 }
-func fillModel_matSlots(
+
+func filterModelAdImgs(
+	aModelRuntimePath string,
+	aCosFilePaths []models.CosPathMeta,
+) ([]string, error) {
+	modelDirPath := filepath.Dir(aModelRuntimePath)
+	modelDirPath = strings.ToLower(strings.TrimSpace(modelDirPath))
+	if modelDirPath == "." || modelDirPath == "" {
+		return []string{}, nil
+	}
+
+	adimgs := make([]string, 0, 4)
+
+	allowedExts := map[string]bool{
+		".jpg":  true,
+		".png":  true,
+		".jpeg": true,
+	}
+
+	for _, path := range aCosFilePaths {
+		curPath := strings.TrimSpace(path.Path)
+		if curPath == "" {
+			continue
+		}
+
+		// 只处理当前模型目录下的 文件
+		rel, err := filepath.Rel(modelDirPath, curPath)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			continue
+		}
+
+		// 检查文件类型
+		fileName := strings.ToLower(filepath.Base(curPath)) // 提取纯文件名，防止 curPath 是 "../"
+		if fileName == "." || fileName == ".." {            // 防御路径穿越
+			continue
+		}
+
+		ext := strings.ToLower(filepath.Ext(fileName))
+		if !allowedExts[ext] {
+			continue
+		}
+
+		// 宣传图必须有前缀"adimg"
+		if !strings.HasPrefix(fileName, "adimg") {
+			continue
+		}
+
+		// 写回 map
+		adimgs = append(adimgs, curPath)
+		if len(adimgs) >= 4 {
+			break
+		}
+	}
+
+	return adimgs, nil
+}
+
+func filterModelMatSlots(
 	aModelRuntimePath string,
 	aCosFilePaths []models.CosPathMeta,
 ) ([]MatSlot, error) {
 
-	mapMatName2Textures := make(map[string]MatSlot)
 	modelDirPath := filepath.Dir(aModelRuntimePath)
+	modelDirPath = strings.TrimSpace(modelDirPath)
+	if modelDirPath == "." || modelDirPath == "" {
+		return []MatSlot{}, nil
+	}
+	// 强制目录边界
+	modelDirPath = strings.TrimSuffix(modelDirPath, "/") + "/"
 
+	mapMatName2Textures := make(map[string]MatSlot)
 	for _, path := range aCosFilePaths {
+		curPath := strings.TrimSpace(path.Path)
+		if curPath == "" {
+			continue
+		}
+
 		// 只处理当前模型目录下的 文件
-		if !strings.HasPrefix(path.Path, modelDirPath) {
+		if !strings.HasPrefix(curPath, modelDirPath) {
 			continue
 		}
 
 		// 解析材质槽名 + 纹理类型
-		matSlotName, texType := getMatSlotNameAndTexType(path.Path)
+		matSlotName, texType := getMatSlotNameAndTexType(curPath)
 		if matSlotName == "" || texType == "" {
 			continue
 		}
@@ -283,17 +352,17 @@ func fillModel_matSlots(
 		// 填充对应纹理路径
 		switch texType {
 		case "basecolor":
-			matSlot.Textures.BaseColor = path.Path
+			matSlot.Textures.BaseColor = curPath
 		case "normal":
-			matSlot.Textures.Normal = path.Path
+			matSlot.Textures.Normal = curPath
 		case "roughness":
-			matSlot.Textures.Roughness = path.Path
+			matSlot.Textures.Roughness = curPath
 		case "metallic", "metalness":
-			matSlot.Textures.Metalness = path.Path
+			matSlot.Textures.Metalness = curPath
 		case "ao":
-			matSlot.Textures.AO = path.Path
+			matSlot.Textures.AO = curPath
 		case "emissive":
-			matSlot.Textures.Emissive = path.Path
+			matSlot.Textures.Emissive = curPath
 		}
 
 		// 写回 map
@@ -372,6 +441,7 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 			boatMenu = &BoatMenu{
 				Id:    boat.CategoryStrID,
 				Label: categoryMapEn2Cn[boat.CategoryStrID].CnName,
+				Boats: make([]BoatSubMenu, 0, len(svcBoats)),
 			}
 			boatMenuMap[boat.CategoryStrID] = boatMenu
 		}
@@ -401,10 +471,18 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 			modelinfo.Id = boat.BoatEnName + "_" + strconv.Itoa(idx)
 			modelinfo.Label = boat.BoatName + "_模型" + strconv.Itoa(idx)
 
-			slots, err := fillModel_matSlots(model.ModelRuntimePath, cosFilePaths)
+			adImgs, err := filterModelAdImgs(model.ModelRuntimePath, cosFilePaths)
+			if err != nil {
+				log.Printf("模型 %s 加载宣传图失败: %v", model.ModelRuntimePath, err)
+				modelinfo.AdImgs = []string{} // 空切片，保证前端安全
+			} else {
+				modelinfo.AdImgs = adImgs
+			}
+
+			slots, err := filterModelMatSlots(model.ModelRuntimePath, cosFilePaths)
 			if err != nil {
 				log.Printf("模型 %s 加载材质失败: %v", model.ModelRuntimePath, err)
-				modelinfo.MatSlots = []MatSlot{} // 空数组，保证前端安全
+				modelinfo.MatSlots = []MatSlot{} // 空切片，保证前端安全
 			} else {
 				modelinfo.MatSlots = slots
 			}

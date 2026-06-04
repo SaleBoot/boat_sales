@@ -180,18 +180,6 @@ func (aH *BoatHandler) HandleDeleteBoats(c *gin.Context) {
 
 func (aH *BoatHandler) HandleUpdateBoat(c *gin.Context) {
 	id := c.Param("id")
-
-	var input BoatInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, types.ApiResponse{
-			Code:    http.StatusBadRequest,
-			Message: fmt.Sprintf("invalid request body: %s", err.Error()),
-		})
-		return
-	}
-
-	boat := input.toModel()
-
 	// Convert id from string to uint and assign to boat.ID
 	var boatID uint
 	_, err := fmt.Sscan(id, &boatID)
@@ -202,6 +190,16 @@ func (aH *BoatHandler) HandleUpdateBoat(c *gin.Context) {
 		})
 		return
 	}
+
+	var input BoatInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprintf("invalid request body: %s", err.Error()),
+		})
+		return
+	}
+	boat := input.toModel()
 	boat.ID = boatID
 
 	if err := aH.boatSvc.UpdateBoat(boat); err != nil {

@@ -248,13 +248,16 @@ const ModelParametersPanel = ({ boat,
                                         src={`${cosOrigin}/${image.key}`}
                                         alt={image.key}
                                         style={{ objectFit: 'cover' }}
+                                        loading="lazy"
+                                        decoding="async"
                                       />
                                     ))}
                                   </Space>
                                 </Image.PreviewGroup>
                               </Collapse.Panel>
                             </Collapse>
-                            {(modelFiles.length > 0 || otherFiles.length > 0) && <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
+                            {(modelFiles.length > 0 || otherFiles.length > 0) && 
+                              <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
                           </>
                         )}
 
@@ -280,22 +283,24 @@ const ModelParametersPanel = ({ boat,
 
 
  
-			{otherFiles.length > 0 && (
-			  <>
-			    {(modelFiles.length > 0 || adImages.length > 0) && <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />}
-			    <Collapse size="small" ghost>
-			      <Collapse.Panel header={`其他资源文件 (${otherFiles.length}个)`} key="other-files">
-			        <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0, maxHeight: '200px', overflowY: 'auto' }}>
-			          {otherFiles.map(file => (
-			            <li key={file.key} style={{ padding: '2px 0' }}>
-			              <Typography.Text type="secondary">{file.key}</Typography.Text>
-			            </li>
-			          ))}
-			        </ul>
-			      </Collapse.Panel>
-			    </Collapse>
-			  </>
-			)}
+                        {otherFiles.length > 0 && (
+                          <>
+                            {(modelFiles.length > 0 || adImages.length > 0) && 
+                            <div style={{ height: '1px', backgroundColor: '#f0f0f0', margin: '12px 0' }} />
+                            }
+                            <Collapse size="small" ghost>
+                              <Collapse.Panel header={`其他资源文件 (${otherFiles.length}个)`} key="other-files">
+                                <ul style={{ listStyleType: 'none', paddingLeft: 0, margin: 0, maxHeight: '200px', overflowY: 'auto' }}>
+                                  {otherFiles.map(file => (
+                                    <li key={file.key} style={{ padding: '2px 0' }}>
+                                      <Typography.Text type="secondary">{file.key}</Typography.Text>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </Collapse.Panel>
+                            </Collapse>
+                          </>
+                        )}
 
 			
                       </Collapse.Panel>

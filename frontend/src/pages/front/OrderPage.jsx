@@ -3,17 +3,14 @@ import { Link, useOutletContext } from 'react-router-dom';
 
 import ShipScene from '../scene3d/ShipScene'
 import { vesselCategoryMenus } from '../../constants/constants_front_homepage.js'
-
-const productCategories = vesselCategoryMenus
-
-const configurationSteps = ['船型', '外观', '内饰', '动力', '选装']
+ 
+const configurationSteps = ['船型', '外观', '内饰', '动力' ]
 
 const sectionIds = {
   船型: 'order-section-model',
   外观: 'order-section-appearance',
   内饰: 'order-section-interior',
-  动力: 'order-section-power',
-  选装: 'order-section-options'
+  动力: 'order-section-power', 
 }
 
 const orderStageOptions = [
@@ -26,8 +23,7 @@ const stepFocusTargets = {
   船型: 'exterior',
   外观: 'exterior',
   内饰: 'exterior',
-  动力: 'engine',
-  选装: 'exterior'
+  动力: 'engine', 
 }
 
 const COMPACT_STEP_WHEEL_LOCK_MS = 520
@@ -96,8 +92,7 @@ const DEFAULT_ORDER_CONFIG = {
       description: '面向救援、巡逻与长时间值守任务，兼顾续航和负载能力',
       price: 468000
     }
-  ],
-  optionalSeriesOptions: [],
+  ], 
   focusTargets: {}
 }
 
@@ -180,33 +175,19 @@ function getModelCaption(boat) {
   return boat?.id ?? ''
 }
 
-function normalizeOrderConfig(orderConfig) {
+function normalizeOrderConfig(orderConfig) 
+{
   const config = orderConfig ?? {}
   return {
     appearanceOptions: Array.isArray(config.appearanceOptions) ? config.appearanceOptions : [],
     colorOptions: Array.isArray(config.colorOptions) ? config.colorOptions : [],
     interiorOptions: Array.isArray(config.interiorOptions) ? config.interiorOptions : [],
-    powerOptions: Array.isArray(config.powerOptions) ? config.powerOptions : [],
-    optionalSeriesOptions: Array.isArray(config.optionalSeriesOptions) ? config.optionalSeriesOptions : [],
+    powerOptions: Array.isArray(config.powerOptions) ? config.powerOptions : [], 
     focusTargets: config.focusTargets && Object.keys(config.focusTargets).length ? config.focusTargets : {}
   }
 }
-
-function getFocusTargetForOptionalSelection(options, selectedIds) {
-  for (const option of options) {
-    if (selectedIds.includes(option.id) && option.focusTarget) {
-      return option.focusTarget
-    }
-  }
-  return ''
-}
-
-function getMaterialOverridesForOptionalSelection(options, selectedIds) {
-  return options
-    .filter((option) => selectedIds.includes(option.id))
-    .flatMap((option) => Array.isArray(option.materialOverrides) ? option.materialOverrides : [])
-}
-
+ 
+// 创建一个增强的模型对象，包含 primaryModelInfo
 function createAugmentedModel(boat) {
   if (!boat) return null;
   const primaryModelInfo = boat.models?.[0] ?? null;
@@ -224,6 +205,7 @@ function createAugmentedModel(boat) {
 
 export default function OrderPage() {
   const {
+    categoryMenus,
     boats,
     primaryModel,
     selectedModelGid,
@@ -231,6 +213,18 @@ export default function OrderPage() {
     apiBasePath = '/'
   } = useOutletContext();
 
+  const productCategories = useMemo(() => { 
+    // 如果modelsByCategory是数组 && 有长度
+    if (categoryMenus && categoryMenus.length > 0) {
+      return categoryMenus.map(item => ({
+        id: item.id,
+        label: item.label
+      }));
+    }
+    // 备用
+    return vesselCategoryMenus;
+  }, [categoryMenus]); // vesselCategoryMenus 是常量，无需作为依赖
+  console.log("OrderPage:productCategories=",productCategories)
 
   const currentModel = useMemo(() => {
     // 1. 优先使用手动指定的模型
@@ -274,18 +268,16 @@ export default function OrderPage() {
     [currentModel?.primaryModelInfo])
   const [loadedFocusTargets, setLoadedFocusTargets] = useState(currentOrderConfig.focusTargets)
   const [selectedAppearanceId, setSelectedAppearanceId] = useState(currentOrderConfig.appearanceOptions[0]?.id ?? '')
-  const [selectedColorId, setSelectedColorId] = useState(currentOrderConfig.colorOptions[0]?.id ?? '')
   const [selectedInteriorId, setSelectedInteriorId] = useState(currentOrderConfig.interiorOptions[0]?.id ?? '')
   const [selectedPowerId, setSelectedPowerId] = useState(currentOrderConfig.powerOptions[0]?.id ?? '')
-  const [selectedOptionalIds, setSelectedOptionalIds] = useState([
-    currentOrderConfig.optionalSeriesOptions[0]?.id,
-    currentOrderConfig.optionalSeriesOptions[2]?.id
-  ].filter(Boolean))
+ 
 
   // 
   const [activeConfigStep, setActiveConfigStep] = useState('船型')
   const [activeOrderStage, setActiveOrderStage] = useState('config')
-  const [color, setColor] = useState("#ff0000");
+  const [exteriorColor, setExteriorColor] = useState('#EAEAEA')      // 船体
+  const [interiorColor, setInteriorColor] = useState('#332E2B') // 内饰
+  const [deckColor, setDeckColor] = useState('#995522')       // 甲板
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -310,17 +302,18 @@ export default function OrderPage() {
 
   useEffect(() => {
     const nextConfig = normalizeOrderConfig(currentModel?.orderConfig)
+
     setSelectedAppearanceId(
       (current) => nextConfig.appearanceOptions.some((item) => item.id === current) 
                   ? current : (nextConfig.appearanceOptions[0]?.id ?? ''))
-    setSelectedColorId((current) => nextConfig.colorOptions.some((item) => item.id === current) 
-                  ? current : (nextConfig.colorOptions[0]?.id ?? ''))
+ 
+
     setSelectedInteriorId((current) => nextConfig.interiorOptions.some((item) => item.id === current) 
                   ? current : (nextConfig.interiorOptions[0]?.id ?? ''))
+
     setSelectedPowerId((current) => nextConfig.powerOptions.some((item) => item.id === current) 
                   ? current : (nextConfig.powerOptions[0]?.id ?? ''))
-    setSelectedOptionalIds((current) => current.filter(
-      (id) => nextConfig.optionalSeriesOptions.some((item) => item.id === id)))
+
   }, [currentModel])
 
   const filteredBoats = useMemo(
@@ -361,7 +354,11 @@ export default function OrderPage() {
       onSelectModel({ boatId: selectedBoat.id, modelId: selectedBoat.models?.[0]?.id ?? "" });
     }
   };
-  const activeOrderConfig = useMemo(() => normalizeOrderConfig(activeModel?.orderConfig), [activeModel])
+
+  const activeOrderConfig = useMemo(
+    () => normalizeOrderConfig(activeModel?.orderConfig), 
+    [activeModel])
+
   const effectiveFocusTargets = loadedFocusTargets && Object.keys(loadedFocusTargets).length
     ? loadedFocusTargets
     : activeOrderConfig.focusTargets
@@ -404,28 +401,24 @@ export default function OrderPage() {
     }
   }, [activeOrderConfig.focusTargets, apiBasePath, currentModel?.id])
 
-  const activeAppearance = activeOrderConfig.appearanceOptions.find((item) => item.id === selectedAppearanceId) ?? activeOrderConfig.appearanceOptions[0]
-  const activeColor = activeOrderConfig.colorOptions.find((item) => item.id === selectedColorId) ?? activeOrderConfig.colorOptions[0]
-  const activeInterior = activeOrderConfig.interiorOptions.find((item) => item.id === selectedInteriorId) ?? activeOrderConfig.interiorOptions[0]
-  const activePower = activeOrderConfig.powerOptions.find((item) => item.id === selectedPowerId) ?? activeOrderConfig.powerOptions[0]
+  const activeAppearance = activeOrderConfig.appearanceOptions.find((item) => item.id === selectedAppearanceId) 
+                        ?? activeOrderConfig.appearanceOptions[0]
+  const activeColor = activeOrderConfig.colorOptions.find((item) => item.id === selectedColorId) 
+                        ?? activeOrderConfig.colorOptions[0]
+  const activeInterior = activeOrderConfig.interiorOptions.find((item) => item.id === selectedInteriorId) 
+                        ?? activeOrderConfig.interiorOptions[0]
+  const activePower = activeOrderConfig.powerOptions.find((item) => item.id === selectedPowerId) 
+                        ?? activeOrderConfig.powerOptions[0]
   const activeModelReferencePrice = getModelReferencePrice(activeModel)
   const activeModelReferencePriceLabel = getModelReferencePriceLabel(activeModel)
-  const availableOptionalSeries = activeOrderConfig.optionalSeriesOptions.filter((item) => !item.yachtOnly || activeModel?.type === '游艇')
-  const activeOptionalSeries = availableOptionalSeries.filter((item) => selectedOptionalIds.includes(item.id))
-
-  const activeOptionalFocusTarget = getFocusTargetForOptionalSelection(activeOrderConfig.optionalSeriesOptions, selectedOptionalIds)
-  const activeOptionalMaterialOverrides = useMemo(
-    () => getMaterialOverridesForOptionalSelection(activeOrderConfig.optionalSeriesOptions, selectedOptionalIds),
-    [activeOrderConfig.optionalSeriesOptions, selectedOptionalIds]
-  )
+  
   const sceneFocusTarget = 'exterior'
 
   const totalPrice = (activeModelReferencePrice ?? 0)
     + (activeAppearance?.price ?? 0)
     + (activeColor?.surcharge ?? 0)
     + (activeInterior?.price ?? 0)
-    + (activePower?.price ?? 0)
-    + activeOptionalSeries.reduce((sum, item) => sum + (item.price ?? 0), 0)
+    + (activePower?.price ?? 0) 
 
   useEffect(() => {
     const updateActiveStage = () => {
@@ -595,23 +588,17 @@ export default function OrderPage() {
   }, [activeConfigStep])
 
   const handleCategorySelect = (aCategory) => {
+    // console.log("handleCategorySelect aCategory=",aCategory,"boats=",boats)
 
     setSelectedCategory(aCategory.id)
     setActiveConfigStep('船型')
     const nextBoat = boats.find((boat) => boat.category === aCategory.id)
+    // console.log("handleCategorySelect aCategory=",aCategory,"nextBoat=",nextBoat)    
     if (nextBoat) {
       onSelectModel(nextBoat.id, nextBoat.models?.[0]?.id ?? "")
     }
   }
-
-  const handleOptionalToggle = (optionId) => {
-    setSelectedOptionalIds((current) => (
-      current.includes(optionId)
-        ? current.filter((id) => id !== optionId)
-        : [...current, optionId]
-    ))
-  }
-
+ 
   const handleStepJump = (step) => {
     setActiveConfigStep(step)
     const targetId = sectionIds[step]
@@ -675,7 +662,6 @@ export default function OrderPage() {
           colorHex: activeColor?.hex ?? '',
           interiorLabel: activeInterior?.label ?? '',
           powerLabel: activePower?.label ?? '',
-          optionalPackageLabels: activeOptionalSeries.map((item) => item.label),
           totalPrice,
           source: 'showcase-web'
         })
@@ -739,12 +725,15 @@ export default function OrderPage() {
                   }}
                   focusTarget={sceneFocusTarget}
                   focusTargetPresets={effectiveFocusTargets}
-                  colorConfig={activeColor}
-                  optionalMaterialOverrides={activeOptionalMaterialOverrides}
+                  colorConfig={{
+                    exteriorColor : exteriorColor, 
+                    interiorColor : interiorColor, 
+                    deckColor : deckColor
+                  }}
                   overviewZoomScale={0.82}
                 />
               ) : <div className="order-scene-empty">暂无可预览模型</div>}
-            </div>
+            </div>            
           </div>
         </section>
 
@@ -819,21 +808,34 @@ export default function OrderPage() {
             <div className="order-section-header">
               <p className="order-section-step">02</p>
               <div>
-                <h2>外观</h2>
-                <p>选择船体颜色</p>
-      
-      {/* 颜色选择控件 */}
-      <input
-        type="color"
-        value={color}
-        onChange={(e) => setColor(e.target.value)}
-        style={{ width: "100px", height: "40px" }}
-      />
-
-      {/* 显示当前选中的颜色值 */}
-      <p>当前颜色：{color}</p>
-
-              </div>
+                <h2>颜色定制</h2>
+                <div className="order-config-item" 
+                    style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', gap: '8px', flexWrap: 'nowrap' }}>
+                  <div className="order-config-item-label" 
+                       style={{ width: '110px', flexShrink: 0 }}>船体颜色：</div>
+                  <input type="color" value={exteriorColor} 
+                         onChange={(e) => setExteriorColor(e.target.value)} 
+                         style={{ width: '40px', height: '24px', border: 'none', padding: '0' }} />
+                  <span>{exteriorColor}</span>
+                </div>
+                <div className="order-config-item" 
+                     style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', gap: '8px', flexWrap: 'nowrap' }}>
+                  <div className="order-config-item-label" 
+                       style={{ width: '110px', flexShrink: 0 }}>内饰颜色：</div>
+                  <input type="color" value={interiorColor} 
+                        onChange={(e) => setInteriorColor(e.target.value)} 
+                        style={{ width: '40px', height: '24px', border: 'none', padding: '0' }} />
+                  <span>{interiorColor}</span>
+                </div>
+                <div className="order-config-item" 
+                   style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', gap: '8px', flexWrap: 'nowrap' }}>
+                  <div className="order-config-item-label" style={{ width: '110px', flexShrink: 0 }}>甲板颜色：</div>
+                  <input type="color" value={deckColor} 
+                      onChange={(e) => setDeckColor(e.target.value)} 
+                      style={{ width: '40px', height: '24px', border: 'none', padding: '0' }} />
+                  <span>{deckColor}</span>
+                </div>
+              </div>  
             </div>
 
             <div className="order-option-stack">
@@ -853,43 +855,14 @@ export default function OrderPage() {
                 </label>
               ))}
             </div>
-
-          
  
    
           </section>
 
-          <section id="order-section-interior" className="order-config-section">
-            <div className="order-section-header">
-              <p className="order-section-step">03</p>
-              <div>
-                <h2>内饰</h2>
-                <p>根据接待、巡逻、救援或休闲场景，选择更合适的舱内材质与氛围。</p>
-              </div>
-            </div>
-
-            <div className="order-option-stack">
-              {activeOrderConfig.interiorOptions.map((option) => (
-                <label key={option.id} className={`order-radio-card ${selectedInteriorId === option.id ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="interiorOption"
-                    checked={selectedInteriorId === option.id}
-                    onChange={() => setSelectedInteriorId(option.id)}
-                  />
-                  <div>
-                    <h3>{option.label}</h3>
-                    <p>{option.description}</p>
-                  </div>
-                  <strong>{option.price > 0 ? formatPrice(option.price) : '标准'}</strong>
-                </label>
-              ))}
-            </div>
-          </section>
-
+  
           <section id="order-section-power" className="order-config-section">
             <div className="order-section-header">
-              <p className="order-section-step">04</p>
+              <p className="order-section-step">03</p>
               <div>
                 <h2>动力</h2>
                 <p>按航区、载荷与任务强度选择动力方案。</p>
@@ -913,43 +886,6 @@ export default function OrderPage() {
                 </label>
               ))}
             </div>
-          </section>
-
-          <section id="order-section-options" className="order-config-section">
-            <div className="order-section-header">
-              <p className="order-section-step">05</p>
-              <div>
-                <h2>选装</h2>
-                <p>可叠加智能监控、执法辅助、维护系统与游艇娱乐系统。</p>
-              </div>
-            </div>
-
-            {availableOptionalSeries.length > 0 ? (
-              <div className="order-option-stack">
-                {availableOptionalSeries.map((option) => {
-                  const isActive = selectedOptionalIds.includes(option.id)
-                  return (
-                    <label
-                      key={option.id}
-                      className={`order-check-card ${isActive ? 'active' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isActive}
-                        onChange={() => handleOptionalToggle(option.id)}
-                      />
-                      <div>
-                        <h3>{option.label}</h3>
-                        <p>{option.description}</p>
-                      </div>
-                      <strong>{formatPrice(option.price)}</strong>
-                    </label>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="order-empty-note">当前船型暂未配置选装项目。</p>
-            )}
           </section>
 
           <section id="order-section-submit" className="order-summary-card">
@@ -984,20 +920,7 @@ export default function OrderPage() {
                 <strong>{activeColor?.label ?? '-'}</strong>
               </div>
             </div>
-
-            <div className="order-summary-packages">
-              <p>已选选装</p>
-              {activeOptionalSeries.length > 0 ? (
-                activeOptionalSeries.map((item) => (
-                  <div key={item.id} className="order-summary-package-item">
-                    <span>{item.label}</span>
-                    <strong>{formatPrice(item.price)}</strong>
-                  </div>
-                ))
-              ) : (
-                <span className="order-summary-empty">暂未选择选装项目</span>
-              )}
-            </div>
+ 
 
             <div className="order-total">
               <span>参考总价</span>

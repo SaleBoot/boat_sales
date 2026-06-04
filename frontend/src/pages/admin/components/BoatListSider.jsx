@@ -68,7 +68,10 @@ const BoatListSider = ({
             dataSource={boats}
             rowKey="ID"
             loading={loading}
-            pagination={{ pageSize: 8 }}
+            pagination={{
+              pageSize: 10,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
             onRow={(record) => ({
               onClick: () => onRowClick(record),
             })}

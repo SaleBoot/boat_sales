@@ -37,7 +37,10 @@ export default function HomePage() {
   const remoteFbxOrigin = import.meta.env.VITE_REMOTE_FBX_ORIGIN || '';
 
   const captureMode = isCaptureModeEnabled();
-  const resolveStaticPath = (relativePath) => `${staticAssetBaseUrl}${relativePath}`;
+  const resolveStaticPath = (relativePath) => {
+    const normalizedRelativePath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+    return `${staticAssetBaseUrl}${normalizedRelativePath}`;
+  };
 
   const location = useLocation();
   const isOrderPage = location.pathname.startsWith('/order');
@@ -47,7 +50,7 @@ export default function HomePage() {
 
   const [siteContent, setSiteContent] = useState(null);
   const [boatsMap, setBoatsMap] = useState({});
-  const [modelsByCategory, setModelsByCategory] = useState([]);
+  const [categoryMenus, setCategoryMenus] = useState([]);
   // Model GlobalId 包含2个字段 boatId、modelId 
   const [selectedModelGid, setSelectedModelGid] = useState(() => getRequestedModelId());
 
@@ -64,10 +67,10 @@ export default function HomePage() {
         }
         console.log('apiBoats:', apiBoats);
         if (apiBoats) {
-          const { menu, boatMap } = apiBoats;
+          const { menu, boatMap } = apiBoats; 
 
           // 1. Directly set the menu data for the header
-          setModelsByCategory(menu || []);
+          setCategoryMenus(menu || []);
 
           // 2. Set the boat map for quick O(1) lookups
           setBoatsMap(boatMap || {});
@@ -146,12 +149,14 @@ export default function HomePage() {
   const selectedModelLabel = getModelDisplayLabel(primaryModel) ||
     (Object.keys(boatsMap || {}).length ? '选择船型' : '正在加载船型');
   const selectedModelPriceLabel = getModelPriceLabel(primaryModel);
-  const specImagePath = primaryModel
-    ? resolveStaticPath(getModelDetailImageAssetPath(primaryModel))
+  
+  const specImagePaths = primaryModel
+    ?  primaryModel.primaryModelInfo?.adImgs?.map( (adImgPath)=>  resolveStaticPath(adImgPath))
     : '';
+  console.log("^^^^HomePage::specImagePaths=",specImagePaths)    
   const viewerSpecItems = buildViewerSpecItems(primaryModel);
   const primaryDetailSpecCards = buildComparisonSpecSections(primaryModel);
-  const activeCategoryId = primaryModel?.category ?? modelsByCategory[0]?.id ?? null;
+  const activeCategoryId = primaryModel?.category ?? categoryMenus[0]?.id ?? null;
 
   const handleModelSelect = (modelGid) => {
     console.log("[HomePage] handleModelSelect triggered with ID: ", modelGid);
@@ -210,6 +215,7 @@ export default function HomePage() {
     return (
       <Outlet
         context={{
+          categoryMenus: categoryMenus,
           boats: Object.values(boatsMap),
           primaryModel,
           selectedModelGid: selectedModelGid,
@@ -223,7 +229,7 @@ export default function HomePage() {
   return (
     <div className="page">
       <HomepageHeader
-        modelsByCategory={modelsByCategory}
+        categoryMenus={categoryMenus}
         activeCategoryId={activeCategoryId}
         openCategoryId={openCategoryId}
         setOpenCategoryId={setOpenCategoryId}
@@ -253,7 +259,7 @@ export default function HomePage() {
         <section className="detail-screen" id="details">
           <div className="detail-screen-inner">
             <DetailSpecShowcase
-              specImagePath={specImagePath}
+              specImagePaths={specImagePaths}
               selectedModelLabel={selectedModelLabel}
               selectedModelPriceLabel={selectedModelPriceLabel}
               primaryDetailSpecCards={primaryDetailSpecCards}

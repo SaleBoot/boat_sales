@@ -92,7 +92,7 @@ export default function ShipScene({
   debugTransform = null,
   onDebugTransformChange = null
 }) {
-  // console.log('ShipScene start, modelConfig:', modelConfig);
+  console.log('ShipScene start, modelConfig:', modelConfig,"::colorConfig=",colorConfig);
   const assetBaseUrl = getStaticAssetBaseUrl(
     import.meta.env.VITE_REMOTE_FBX_ORIGIN,
     import.meta.env.BASE_URL
@@ -270,6 +270,7 @@ export default function ShipScene({
   const canvasRef = useRef(null)
   const controlsRef = useRef(null)
   const cameraRef = useRef(null)
+  // 
   const modeRef = useRef('exterior')
   const interiorDeckRef = useRef('1')
   const setViewPresetRef = useRef(() => {})
@@ -278,6 +279,7 @@ export default function ShipScene({
   const setOptionalMaterialOverridesRef = useRef(() => {})
   const resolvedOrderFocusPresetsRef = useRef(resolvedOrderFocusPresets)
   const optionalMaterialOverridesRef = useRef(optionalMaterialOverrides)
+  
   const loadedRootRef = useRef(null)
   const focusCoordinateRootRef = useRef(null)
   const activeFocusTargetRef = useRef(resolvedRequestedFocusTarget)

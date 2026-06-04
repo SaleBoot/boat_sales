@@ -140,6 +140,7 @@ func GeneratePresignedURL(objectKey string) (*url.URL, string, error) {
 }
 
 func CheckApiParam_originFileName(aOriginFileName string) (string, error) {
+	aOriginFileName = strings.TrimSpace(aOriginFileName)
 	if aOriginFileName == "" {
 		return "", fmt.Errorf("参数不完整")
 	}
