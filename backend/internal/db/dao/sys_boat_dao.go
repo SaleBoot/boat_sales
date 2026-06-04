@@ -77,9 +77,11 @@ func (dao *SysBoatDao) UpdateBoat(boat *models.SysBoat) error {
 }
 
 // GetBoatsByCategory retrieves boats that match a specific category.
-func (dao *SysBoatDao) GetBoatsByCategory(category string) ([]models.SysBoat, error) {
+func (dao *SysBoatDao) GetBoatsByCategoryStrID(aCategoryStrID string,
+) ([]models.SysBoat, error) {
+
 	var boats []models.SysBoat
-	if err := dao.db.Where("category = ?", category).Order("created_at desc").Find(&boats).Error; err != nil {
+	if err := dao.db.Where("category_id = ?", aCategoryStrID).Order("created_at desc").Find(&boats).Error; err != nil {
 		return nil, err
 	}
 	return boats, nil

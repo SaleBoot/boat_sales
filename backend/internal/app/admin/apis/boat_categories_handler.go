@@ -49,8 +49,9 @@ func (aH *BoatCategoryHandler) HandleGetBoatCategories(c *gin.Context) {
 }
 
 type BoatCategoryInput struct {
-	EnglishName string `json:"englishName"`
-	ChineseName string `json:"chineseName"`
+	CategoryStrID string `json:"categoryStrID"`
+	EnName        string `json:"enName"`
+	CnName        string `json:"cnName"`
 }
 
 func (aH *BoatCategoryHandler) HandleAddBoatCategory(c *gin.Context) {
@@ -66,7 +67,7 @@ func (aH *BoatCategoryHandler) HandleAddBoatCategory(c *gin.Context) {
 		return
 	}
 
-	err := aH.boatCategorySvc.AddBoatCategory(input.EnglishName, input.ChineseName)
+	err := aH.boatCategorySvc.AddBoatCategory(input.CategoryStrID, input.CategoryStrID, input.CnName)
 	if err != nil {
 		log.Printf("failed to create boat category: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -103,7 +104,7 @@ func (aH *BoatCategoryHandler) HandleUpdateBoatCategory(c *gin.Context) {
 	}
 
 	err = aH.boatCategorySvc.UpdateBoatCategory(int(id),
-		input.EnglishName, input.ChineseName)
+		input.CategoryStrID, input.EnName, input.CnName)
 	if err != nil {
 		log.Printf("failed to update boat category: %v", err)
 		c.JSON(http.StatusInternalServerError,

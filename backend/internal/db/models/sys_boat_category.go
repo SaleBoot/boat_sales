@@ -1,5 +1,3 @@
-//  id: 1, englishName: 'New Energy Ship', chineseName: '新能源船'
-
 package models
 
 import (
@@ -8,29 +6,32 @@ import (
 
 type SysBoatCategory struct {
 	gorm.Model
-	EnglishName string `json:"englishName" gorm:"type:varchar(64);comment:英文名称"`
-	ChineseName string `json:"chineseName" gorm:"type:varchar(128);comment:中文名称"`
+	//
+	CategoryStrID string `json:"categoryStrID" gorm:"type:varchar(64);uniqueIndex;comment:唯一标识ID"`
+	EnName        string `json:"enName" gorm:"type:varchar(64);comment:英文名称"`
+	CnName        string `json:"cnName" gorm:"type:varchar(128);comment:中文显示名称"`
 }
 
 func (*SysBoatCategory) TableName() string {
 	return "sys_boat_categories"
 }
 
-func BoatCategory_arrayToMap(categories []SysBoatCategory) map[string]string {
-	m := make(map[string]string)
+func BoatCategory_arrayToMap(categories []SysBoatCategory) map[string]SysBoatCategory {
+	m := make(map[string]SysBoatCategory)
 	for _, category := range categories {
-		m[category.EnglishName] = category.ChineseName
+		m[category.CategoryStrID] = category
 	}
 	return m
 }
 
-func BoatCategory_mapToArray(m map[string]string) []SysBoatCategory {
+func BoatCategory_mapToArray(m map[string]SysBoatCategory) []SysBoatCategory {
 	categories := make([]SysBoatCategory, 0)
 
-	for englishName, chineseName := range m {
+	for categoryStrID, category := range m {
 		categories = append(categories, SysBoatCategory{
-			EnglishName: englishName,
-			ChineseName: chineseName,
+			CategoryStrID: categoryStrID,
+			EnName:        category.EnName,
+			CnName:        category.CnName,
 		})
 	}
 	return categories

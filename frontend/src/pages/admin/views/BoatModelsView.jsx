@@ -49,10 +49,12 @@ export default function BoatModelsView() {
 
   const boatTypeMap = useMemo(() => {
     if (!boatCategories) return {};
-    return boatCategories.reduce((acc, cat) => {
-      acc[cat.englishName] = cat.chineseName;
+    const map = boatCategories.reduce((acc, cat) => {
+      acc[cat.categoryStrID] = cat.cnName;
       return acc;
     }, {});
+    console.log("boatTypeMap:", map); // 添加日志
+    return map;
   }, [boatCategories]);
 
   const fetchBoats = async (filters = {}) => {
@@ -63,6 +65,7 @@ export default function BoatModelsView() {
         ID: id ?? Id ?? iD ?? ID,
         ...rest
       }));
+      console.log("fetchBoats::boatsData=",boatsData)
       setBoats(boatsData);
 
       if (!currentBoat && boatsData.length > 0) {
@@ -150,6 +153,7 @@ export default function BoatModelsView() {
       ]);
       
       setBoatCategories(categoriesResponse || []);
+      console.log("categoriesResponse:", categoriesResponse); // 添加日志
       setModelFolders(modelFoldersResponse?.modelFolders || []);
 
       const boatsData = (boatsResponse || []).map(({ id, Id, iD, ID, ...rest }) => ({

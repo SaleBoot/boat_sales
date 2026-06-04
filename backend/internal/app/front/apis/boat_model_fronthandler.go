@@ -125,7 +125,7 @@ func (b *BoatInfo) fromModel(aSysBoat *models.SysBoat) {
 
 	// b.BoatName = aSysBoat.BoatName
 	// b.BoatEnName = aSysBoat.BoatEnName
-	b.Category = aSysBoat.Category
+	b.Category = aSysBoat.CategoryStrID
 	b.Price = aSysBoat.Price
 	b.Description = aSysBoat.Description
 	b.OverallLength = aSysBoat.OverallLength
@@ -330,7 +330,7 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 	categoryMapEn2Cn := models.BoatCategory_arrayToMap(svcCategories)
 
 	// Get all boats
-	svcBoats, err := aH.boatSvc.GetBoatsByCategory("")
+	svcBoats, err := aH.boatSvc.GetBoatsByCategoryStrID("")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{Code: http.StatusInternalServerError,
@@ -367,13 +367,13 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 
 	for _, boat := range svcBoats {
 		// construct boatMenuMap
-		boatMenu, ok := boatMenuMap[boat.Category]
+		boatMenu, ok := boatMenuMap[boat.CategoryStrID]
 		if !ok {
 			boatMenu = &BoatMenu{
-				Id:    boat.Category,
-				Label: categoryMapEn2Cn[boat.Category],
+				Id:    boat.CategoryStrID,
+				Label: categoryMapEn2Cn[boat.CategoryStrID].CnName,
 			}
-			boatMenuMap[boat.Category] = boatMenu
+			boatMenuMap[boat.CategoryStrID] = boatMenu
 		}
 		boatMenu.Boats = append(boatMenu.Boats, BoatSubMenu{
 			Id:    boat.BoatEnName,

@@ -78,8 +78,8 @@ import api from '../utils/requestApi';
 
 /**
  * @typedef {object} BoatMenu - Represents a single category in the navigation menu.
- * @property {string} id - The category's English name (category.EnlishName).
- * @property {string} label - The category's Chinese name (category.ChineseName).
+ * @property {string} id - The category's English name (category.EnName).
+ * @property {string} label - The category's Chinese name (category.CnName).
  * @property {BoatSubMenu[]} boats - A list of boats in this category for the menu.
  */
 

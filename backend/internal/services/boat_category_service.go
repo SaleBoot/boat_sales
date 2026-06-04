@@ -43,16 +43,16 @@ func (aS *BoatCategoryService) EnsureDefaultBoatCategoriesExist() error {
 	log.Println("No boat categories found, seeding database with default categories...")
 
 	initialData := []models.SysBoatCategory{
-		{EnglishName: "New Energy Ship", ChineseName: "新能源船"},
-		{EnglishName: "Emergency Rescue Ship", ChineseName: "应急救援船"},
-		{EnglishName: "Official Law Enforcement Boat", ChineseName: "公务执法艇"},
-		{EnglishName: "Yacht", ChineseName: "游艇"},
+		{CategoryStrID: "NewEnergy", EnName: "New Energy", CnName: "新能源船"},
+		{CategoryStrID: "EmergencyRescue", EnName: "Emergency Rescue", CnName: "应急救援船"},
+		{CategoryStrID: "OfficialEnforcement", EnName: "Official Law Enforcement", CnName: "公务执法艇"},
+		{CategoryStrID: "Yacht", EnName: "Yacht", CnName: "游艇"},
 	}
 
 	// it is not necessary to use transaction because initial stage
 	for _, category := range initialData {
 		if err := aS.boatCategoryDao.CreateBoatCategory(&category); err != nil {
-			log.Printf("failed to create default boat category '%s': %v", category.EnglishName, err)
+			log.Printf("failed to create default boat category '%s': %v", category.CategoryStrID, err)
 			// Decide if you want to stop on first error or continue
 			return err
 		}
@@ -74,15 +74,17 @@ func (aS *BoatCategoryService) GetBoatCategories() ([]models.SysBoatCategory, er
 }
 
 func (aS *BoatCategoryService) AddBoatCategory(
-	aEnglishName string,
-	aChineseName string,
+	aCategoryStrID string,
+	aEnName string,
+	aCnName string,
 ) error {
 	log.Println("AddBoatCategory,start")
 	defer log.Println("AddBoatCategory,end")
 
 	category := models.SysBoatCategory{
-		EnglishName: aEnglishName,
-		ChineseName: aChineseName,
+		CategoryStrID: aCategoryStrID,
+		EnName:        aEnName,
+		CnName:        aCnName,
 	}
 
 	if err := aS.boatCategoryDao.CreateBoatCategory(&category); err != nil {
@@ -94,29 +96,38 @@ func (aS *BoatCategoryService) AddBoatCategory(
 }
 
 func (aH *BoatCategoryService) UpdateBoatCategory(
-	aCategoryId int,
-	aEnglishName string,
-	aChineseName string,
+	aCategoryIntId int,
+	aCategoryStrID string,
+	aEnName string,
+	aCnName string,
 ) error {
-	// todo: should use transaction to ensure data consistency
-	category, err := aH.boatCategoryDao.GetBoatCategoryByID(uint(aCategoryId))
+	log.Printf("UpdateBoatCategory: Attempting to update category with ID: %d, new CategoryStrID: %s, EnName: %s, CnName: %s",
+		aCategoryIntId, aCategoryStrID, aEnName, aCnName)
+
+	category, err := aH.boatCategoryDao.GetBoatCategoryByID(uint(aCategoryIntId))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Printf("UpdateBoatCategory: Category with ID %d not found.", aCategoryIntId)
 			return fmt.Errorf("category not found")
 		}
 
-		log.Printf("failed to find boat category for update: %v", err)
+		log.Printf("UpdateBoatCategory: failed to find boat category for update (ID: %d): %v", aCategoryIntId, err)
 		return fmt.Errorf("failed to find category")
 	}
 
-	category.EnglishName = aEnglishName
-	category.ChineseName = aChineseName
+	log.Printf("UpdateBoatCategory: Found category (ID: %d, current CategoryStrID: %s, EnName: %s, CnName: %s). Updating fields...",
+		category.ID, category.CategoryStrID, category.EnName, category.CnName)
+
+	category.CategoryStrID = aCategoryStrID
+	category.EnName = aEnName
+	category.CnName = aCnName
 
 	if err := aH.boatCategoryDao.UpdateBoatCategory(category); err != nil {
-		log.Printf("failed to update boat category: %v", err)
+		log.Printf("UpdateBoatCategory: failed to update boat category (ID: %d): %v", category.ID, err)
 		return fmt.Errorf("failed to update category: %w", err)
 	}
 
+	log.Printf("UpdateBoatCategory: Successfully updated category with ID: %d", category.ID)
 	return nil
 }
 

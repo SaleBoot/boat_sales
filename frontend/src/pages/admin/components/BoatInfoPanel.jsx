@@ -48,11 +48,11 @@ const BoatInfoPanel = ({ boat, boatCategories, form, onUpdate, isSubmitting }) =
             <Col span={12}><Form.Item name="boatEnName" label="船舶英文名" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
             <Col span={12}><Form.Item name="price" label="价格" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
             <Col span={12}>
-              <Form.Item name="category" label="船舶类别">
+              <Form.Item name="categoryStrID" label="船舶类别">
                 <Select placeholder="请选择船舶类别">
                   {boatCategories.map(cat => (
-                    <Select.Option key={cat.ID} value={cat.englishName}>
-                      {cat.chineseName}
+                    <Select.Option key={cat.categoryStrID} value={cat.categoryStrID}>
+                      {cat.cnName}
                     </Select.Option>
                   ))}
                 </Select>

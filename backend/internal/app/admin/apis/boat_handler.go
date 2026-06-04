@@ -23,11 +23,11 @@ func NewBoatHandler(aBoSvc *services.BoatService) (*BoatHandler, error) {
 }
 
 func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
-	category := c.Query("category")
+	categoryStrID := c.Query("categoryStrID")
 	var boats []models.SysBoat
 	var err error
 
-	boats, err = aH.boatSvc.GetBoatsByCategory(category)
+	boats, err = aH.boatSvc.GetBoatsByCategoryStrID(categoryStrID)
 	if err != nil {
 		log.Printf("failed to get boats: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -50,7 +50,7 @@ func (aH *BoatHandler) HandleGetBoats(c *gin.Context) {
 type BoatInput struct {
 	BoatName        string   `json:"boatName" binding:"required"`
 	BoatEnName      string   `json:"boatEnName" binding:"required"`
-	Category        string   `json:"category" binding:"required"`
+	CategoryStrID   string   `json:"categoryStrID" binding:"required"`
 	Price           *int     `json:"price"`
 	Description     string   `json:"description"`
 	OverallLength   *float64 `json:"overallLength"`
@@ -73,7 +73,7 @@ func (input *BoatInput) toModel() *models.SysBoat {
 	boat := &models.SysBoat{
 		BoatName:        input.BoatName,
 		BoatEnName:      input.BoatEnName,
-		Category:        input.Category,
+		CategoryStrID:   input.CategoryStrID,
 		Description:     input.Description,
 		NavigationArea:  input.NavigationArea,
 		MainEnginePower: input.MainEnginePower,

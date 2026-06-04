@@ -14,10 +14,10 @@ import { PlusOutlined, RedoOutlined } from '@ant-design/icons';
 import { getBoatCategories, addBoatCategory, updateBoatCategory, deleteBoatCategories } from '../../../apis/adminApi';
 
 const initialData = [
-    { ID: 1, englishName: 'New Energy Ship', chineseName: '新能源船', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
-    { ID: 2, englishName: 'Emergency Rescue Ship', chineseName: '应急救援船', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
-    { ID: 3, englishName: 'Official Law Enforcement Boat', chineseName: '公务执法艇', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
-    { ID: 4, englishName: 'Yacht', chineseName: '游艇', createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:0<PASSWORD>Z' },
+    { ID: 1, CategoryStrID: "NewEnergy", EnName: "New Energy", CnName: "新能源船", createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 2, CategoryStrID: "EmergencyRescue", EnName: "Emergency Rescue", CnName: "应急救援船", createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 3, CategoryStrID: "OfficialEnforcement", EnName: "Official Law Enforcement", CnName: "公务执法艇", createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 4, CategoryStrID: "Yacht", EnName: "Yacht", CnName: "游艇", createdAt: '2023-01-01T00:00:00Z', updatedAt: '2023-01-01T00:00:00Z' },
 ];
 
 const BoatCategoriesView = () => {
@@ -44,12 +44,16 @@ const BoatCategoriesView = () => {
       console.log('Fetched boat categories:', response);
       
       // 强制将 'id', 'Id', 'iD', 'ID' 等统一转换成 'ID'
-      const normalizedData = response.map(({ id, Id, iD, ID, ...rest }) => ({
+      const normalizedData = response.map((item) => ({
         // 按照优先级，用 ?? 一路“或者”过去
-        ID: id ?? Id ?? iD ?? ID,
-        ...rest
+        ID: item.id ?? item.Id ?? item.iD ?? item.ID,
+        CategoryStrID: item.categoryStrID,
+        EnName: item.enName,
+        CnName: item.cnName,
+        CreatedAt: item.CreatedAt,
+        UpdatedAt: item.UpdatedAt,
       }));
-
+      console.log("normalizedData = ",normalizedData)
       setData(normalizedData); 
       // 假设后端返回的数据就是当前页的全部数据，用其长度作为 total
       // 注意：如果后端支持返回总数，这里的逻辑需要调整
@@ -136,14 +140,19 @@ const BoatCategoriesView = () => {
 
   const columns = [
     {
-      title: '船舶类别英文名',
-      dataIndex: 'englishName',
-      key: 'englishName',
+      title: '类别ID',
+      dataIndex: 'CategoryStrID',
+      key: 'categoryStrID',
     },
     {
-      title: '船舶类别中文名',
-      dataIndex: 'chineseName',
-      key: 'chineseName',
+      title: '英文名称',
+      dataIndex: 'EnName',
+      key: 'enName',
+    },
+    {
+      title: '中文名称',
+      dataIndex: 'CnName',
+      key: 'cnName',
     },
     {
       title: '创建时间',
@@ -236,24 +245,29 @@ const BoatCategoriesView = () => {
       >
         <Form form={form} layout="vertical" name="boatCategoryForm">
           <Form.Item
-            name="englishName"
-            label="船舶类别英文名"
+            name="CategoryStrID"
+            label="类别ID"
             rules={[
-              { required: true, message: '请输入船舶类别英文名' },
-              {
-                pattern: /^\S*$/,
-                message: '英文名不能包含空格',
-              },
+              { required: true, message: '请输入类别ID' },
+              { pattern: /^[a-zA-Z0-9_]+$/, message: '只能输入字母、数字和下划线' },
             ]}
-            normalize={(value) => value && value.trim()}
           >
             <Input />
           </Form.Item>
           <Form.Item
-            name="chineseName"
-            label="船舶类别中文名"
-            rules={[{ required: true, message: '请输入船舶类别中文名' }]}
-            normalize={(value) => value && value.trim()}
+            name="EnName"
+            label="英文名称"
+            rules={[
+              { required: true, message: '请输入英文名称' },
+              { pattern: /^[a-zA-Z0-9_ ]+$/, message: '只能输入字母、空格、数字和下划线' },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="CnName"
+            label="中文名称"
+            rules={[{ required: true, message: '请输入中文名称' }]}
           >
             <Input />
           </Form.Item>

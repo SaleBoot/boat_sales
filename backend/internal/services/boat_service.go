@@ -20,15 +20,15 @@ func NewBoatService(aBoatDao *dao.SysBoatDao) (*BoatService, error) {
 	return &BoatService{boatDao: aBoatDao}, nil // 依赖注入
 }
 
-func (aS *BoatService) GetBoatsByCategory(
-	aCategory string,
+func (aS *BoatService) GetBoatsByCategoryStrID(
+	aCategoryStrID string,
 ) ([]models.SysBoat, error) {
-	category := strings.TrimSpace(aCategory)
+	category := strings.TrimSpace(aCategoryStrID)
 
 	var boats []models.SysBoat
 	var err error
 	if category != "" {
-		boats, err = aS.boatDao.GetBoatsByCategory(category)
+		boats, err = aS.boatDao.GetBoatsByCategoryStrID(category)
 	} else {
 		boats, err = aS.boatDao.GetAllBoats()
 	}

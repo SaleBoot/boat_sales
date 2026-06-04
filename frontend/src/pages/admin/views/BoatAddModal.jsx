@@ -6,11 +6,11 @@ import { uploadByPresignedUrl } from '../../../apis/pureAxiosApi';
  
 const { Option } = Select;
 
-const boatTypes = [
-  { id: 'NewEnergyShip', name: '新能源船' },
-  { id: 'EmergencyRescueShip', name: '应急救援船' },
-  { id: 'OfficialLawEnforcementBoat', name: '公务执法艇' },
-  { id: 'Yacht', name: '游艇' },
+const boatTypes = [ // 模拟数据，实际应从后端获取
+  { CategoryStrID: "NewEnergy", EnName: "New Energy", CnName: "新能源船" },
+  { CategoryStrID: "EmergencyRescue", EnName: "Emergency Rescue", CnName: "应急救援船" },
+  { CategoryStrID: "OfficialEnforcement", EnName: "Official Law Enforcement", CnName: "公务执法艇" },
+  { CategoryStrID: "Yacht", EnName: "Yacht", CnName: "游艇" },
 ];
 
 /**
@@ -200,16 +200,16 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
         </Row>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item 
-              name="category" 
+            <Form.Item
+              name="categoryStrID"
               label="船舶类别"
               rules={[{ required: true, message: '请选择船舶类别' }]}
               style={{ marginBottom: '4px' }}
             >
               <Select placeholder="请选择一个船舶类别">
-                {boatTypes.map(type => (
-                  <Option key={type.id} value={type.id}>
-                    {type.name}
+                {boatTypes.map((type) => (
+                  <Option key={type.CategoryStrID} value={type.CategoryStrID}>
+                    {type.CnName}
                   </Option>
                 ))}
               </Select>

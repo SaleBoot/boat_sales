@@ -20,10 +20,10 @@ const BoatListSider = ({
     { title: '船舶英文名', dataIndex: 'boatEnName', key: 'boatEnName', width: 150 },
     {
       title: '船舶类别',
-      dataIndex: 'category',
-      key: 'category',
+      dataIndex: 'categoryStrID',
+      key: 'categoryStrID',
       width: 120,
-      render: (category) => boatTypeMap[category] || category,
+      render: (categoryStrID) => boatTypeMap[categoryStrID] || categoryStrID,
     },
   ];
 
@@ -56,8 +56,8 @@ const BoatListSider = ({
           allowClear
         >
           {boatCategories.map(cat => (
-            <Select.Option key={cat.ID} value={cat.englishName}>
-              {cat.chineseName}
+            <Select.Option key={cat.ID} value={cat.categoryStrID}>
+              {cat.CnName}
             </Select.Option>
           ))}
         </Select>
