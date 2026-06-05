@@ -4,6 +4,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import ShipScene from '../scene3d/ShipScene'
 import { vesselCategoryMenus } from '../../constants/constants_front_homepage.js'
  
+ 
 const configurationSteps = ['船型', '外观', '内饰', '动力' ]
 
 const sectionIds = {
@@ -259,8 +260,12 @@ export default function OrderPage() {
     };
   }, [primaryModel, boats, selectedModelGid]);
 
+ 
+
+
   // category 英文id
   const [selectedCategory, setSelectedCategory] = useState(currentModel?.category ?? '')
+
 
   // currentOrderConfig
   const currentOrderConfig = useMemo(
@@ -317,27 +322,49 @@ export default function OrderPage() {
   }, [currentModel])
 
   const filteredBoats = useMemo(
-    () => boats.filter((boat) => boat.category === selectedCategory),
+    () => Array.isArray(boats) 
+    ? boats.filter((boat) => boat.category === selectedCategory)
+    : [],
     [boats, selectedCategory]
   )
 
   const activeModel = useMemo(() => {
+    
     if (currentModel) {
+      console.log("activeModel =currentModel=",currentModel )
       return currentModel;
     }
     if (filteredBoats[0]) {
+      console.log("activeModel =filteredBoats[0]=",filteredBoats[0] )
       return createAugmentedModel(filteredBoats[0]);
     }
     if (boats[0]) {
+      console.log("activeModel =boats[0]=",boats[0] )
       return createAugmentedModel(boats[0]);
     }
     return null;
   }, [currentModel, filteredBoats, boats]);
+  // ---- category 选择
+  const handleCategorySelect = (aCategory) => {
+    
 
+    setSelectedCategory(aCategory.id)
+    setActiveConfigStep('船型')
+
+    const nextBoat = boats.find((boat) => boat.category === aCategory.id)
+    console.log("^^^^^^^handleCategorySelect aCategory=",aCategory,"nextBoat=",nextBoat)    
+    if (nextBoat) {
+      console.log("^^^^^^^handleCategorySelect aCategory=",aCategory,"nextBoat=",nextBoat)    
+      onSelectModel({boatId: nextBoat.id, modelId: nextBoat.models?.[0]?.id ?? ""})
+    }
+  }  
+
+  //---- boat选择
   const [selectedBoatIdLocal, setSelectedBoatIdLocal] = useState(activeModel?.id || '');
 
+
   useEffect(() => {
-    console.log("useEffect: activeModel.id=", activeModel?.id, ", selectedBoatIdLocal=", selectedBoatIdLocal);
+    console.log("&&&&&useEffect: activeModel.id=", activeModel?.id, ", selectedBoatIdLocal=", selectedBoatIdLocal);
     if (activeModel?.id && selectedBoatIdLocal !== activeModel.id) {
       setSelectedBoatIdLocal(activeModel.id);
     }
@@ -350,11 +377,48 @@ export default function OrderPage() {
 
     const selectedBoat = filteredBoats.find(boat => boat.id === newBoatId);
     if (selectedBoat) {
+      console.log("handleBoatSelectChange: selectedBoat=", selectedBoat);
       // console.log("handleBoatSelectChange: calling onSelectModel with boat.id=", selectedBoat.id);
       onSelectModel({ boatId: selectedBoat.id, modelId: selectedBoat.models?.[0]?.id ?? "" });
     }
   };
 
+  //----model 选择
+  const [selectedModelIdLocal, setSelectedModelIdLocal] = useState(activeModel?.id || '');
+
+  const filteredModels = useMemo(
+    () =>  {
+      const selectedBoat = filteredBoats.find(boat => boat.id === selectedBoatIdLocal) 
+      console.log( "filteredModels:: filteredBoats=",filteredBoats,
+        "selectedBoatIdLocal=",selectedBoatIdLocal,
+        ",,,selectedBoat=",selectedBoat,
+        ",,,selectedBoat?.models=",selectedBoat?.models )
+      return selectedBoat?.models || []
+    },
+    [filteredBoats, selectedBoatIdLocal]
+  )
+  
+
+  const handleModelSelectChange = (event) => {
+    const newModelId = event.target.value;
+    console.log("handleModelSelectChange:00 newModelId=", newModelId);
+    setSelectedModelIdLocal(newModelId);
+    console.log("handleModelSelectChange:01 newModelId=", newModelId);
+    
+    const selectedBoat = filteredBoats.find(boat => boat.id === selectedBoatIdLocal);
+    if (selectedBoat) {
+      const selectedModel = selectedBoat.models?.find(model => model.id === newModelId)
+
+      console.log("handleModelSelectChange: selectedBoat=", selectedBoat);
+      if (selectedModel) {
+        console.log("handleModelSelectChange: selectedModel=", selectedModel,",,selectedBoat=",selectedBoat);
+        onSelectModel({ boatId: selectedBoat.id, modelId: selectedModel.id ?? "" });
+      }
+    }
+
+  };  
+
+  //---- orderConfig
   const activeOrderConfig = useMemo(
     () => normalizeOrderConfig(activeModel?.orderConfig), 
     [activeModel])
@@ -587,17 +651,7 @@ export default function OrderPage() {
     }
   }, [activeConfigStep])
 
-  const handleCategorySelect = (aCategory) => {
-    // console.log("handleCategorySelect aCategory=",aCategory,"boats=",boats)
 
-    setSelectedCategory(aCategory.id)
-    setActiveConfigStep('船型')
-    const nextBoat = boats.find((boat) => boat.category === aCategory.id)
-    // console.log("handleCategorySelect aCategory=",aCategory,"nextBoat=",nextBoat)    
-    if (nextBoat) {
-      onSelectModel(nextBoat.id, nextBoat.models?.[0]?.id ?? "")
-    }
-  }
  
   const handleStepJump = (step) => {
     setActiveConfigStep(step)
@@ -712,7 +766,6 @@ export default function OrderPage() {
         </div>
       </header>
  
-
       <main className="order-shell">
         <section className="order-visual-column">
           <div className="order-visual-sticky">
@@ -760,20 +813,21 @@ export default function OrderPage() {
               </div>
             </div>
 
-            <div className="order-category-row" role="tablist" aria-label="船型分类">
-              {productCategories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  className={`order-category-chip ${selectedCategory === category ? 'active' : ''}`}
-                  onClick={() => handleCategorySelect(category)}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
+            <div className="order-category-row" role="tablist" aria-label="船型类别">
+            {productCategories.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                className={`order-category-chip ${selectedCategory === category.id ? 'active' : ''}`}
+                onClick={() => handleCategorySelect(category)}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
 
           <div className="order-model-selector">
+
           <div className="order-model-selection-row">
             <label htmlFor="boat-select" className="order-model-label">{'选择船型'}:</label>
             <select
@@ -789,11 +843,29 @@ export default function OrderPage() {
               ))}
             </select>
           </div>
+
+          <div className="order-model-selection-row">
+            <label htmlFor="boat-select" className="order-model-label">{'选择样式'}:</label>
+            <select
+              id="model-select"
+              value={selectedModelIdLocal}
+              onChange={handleModelSelectChange}
+              className="order-model-dropdown"
+            >
+              {filteredModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          </div>          
+
+          
           {activeModel && (
             <div className="order-model-details">
               <div className="order-model-card-copy">
                 <p className="order-model-category">{getCategoryForModel(activeModel)}</p>
-                <h3>{activeModel.label}</h3>
+                <h3>{activeModel.primaryModelInfo?.label}</h3>
                 <p>{getModelCaption(activeModel)}</p>
                 {getModelReferencePriceLabel(activeModel) && (
                   <p className="order-model-card-price">{getModelReferencePriceLabel(activeModel)}</p>

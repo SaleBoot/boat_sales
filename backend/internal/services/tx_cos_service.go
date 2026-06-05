@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
@@ -34,17 +32,6 @@ type CosConfig struct {
 }
 
 func getCosConfig() (*CosConfig, error) {
-	// 1. 🌟 关键：加载项目根目录下的 .env 文件
-	// 它会自动把文件里的键值对注入到系统的环境变量中
-	err := godotenv.Load()
-	if err != nil {
-		log.Printf("Error loading .env file: %v", err)
-		// 这里不直接返回错误，因为在生产环境中我们可能已经通过其他方式设置了环境变量
-		// export SALESBOAT_COS_SECRET_ID=your_secret_id
-		// export SALESBOAT_COS_SECRET_KEY=your_secret_key
-		// export SALESBOAT_COS_REGION=ap-chengdu
-		// export SALESBOAT_COS_BUCKET=your_bucket
-	}
 
 	// 2. 使用官方 os 库读取已经注入的环境变量
 	secretID := os.Getenv("SALESBOAT_COS_SECRET_ID")

@@ -25,7 +25,7 @@ dist-ssr
 
 src/tmp*
 tmp/
-public/gltf
-public/gltf01
-public/gltf-1
+
+gltf01-all
+public/gltf* 
 public/pdf

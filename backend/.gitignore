@@ -6,3 +6,5 @@ tmp/
 .env-dev
 test.db
 doc01/tx_cos_cmd.md
+
+configs/

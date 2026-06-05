@@ -3,7 +3,6 @@ import { useAuth } from './context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const DEFAULT_ADMIN_EMAIL = 'display@preview.com'
-const DEFAULT_password = 'cqjscb2026'
 
 /**
  * 后台登录页面组件。
@@ -11,7 +10,7 @@ const DEFAULT_password = 'cqjscb2026'
  */
 export default function LoginPage() {
   const [email, setEmail] = useState(DEFAULT_ADMIN_EMAIL);
-  const [password, setPassword] = useState(DEFAULT_password);
+  const [password, setPassword] = useState('cqjscb2026');
   const [error, setError] = useState('');
   // isSubmitting 状态是必需的，以防止重复提交并提供用户反馈
   const [isSubmitting, setIsSubmitting] = useState(false);

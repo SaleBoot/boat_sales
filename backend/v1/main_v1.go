@@ -3,9 +3,11 @@ package v1
 import (
 	"boatsales-backend/internal/types"
 	"mime"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 
 	"log"
 	"math/rand"
@@ -21,7 +23,17 @@ func init() {
 }
 
 func Main_v1() {
-
+	// 1. 🌟 关键：加载项目根目录下的 .env 文件
+	// 它会自动把文件里的键值对注入到系统的环境变量中
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Error loading .env file: %v", err)
+		// 这里不直接返回错误，因为在生产环境中我们可能已经通过其他方式设置了环境变量
+		// export SALESBOAT_COS_SECRET_ID=your_secret_id
+		// export SALESBOAT_COS_SECRET_KEY=your_secret_key
+		// export SALESBOAT_COS_REGION=ap-chengdu
+		// export SALESBOAT_COS_BUCKET=your_bucket
+	}
 	// 核心应用对象创建
 	app, err := NewApp()
 	if err != nil {
@@ -63,8 +75,13 @@ func Main_v1() {
 	// gin.SetMode(gin.ReleaseMode)
 
 	// 步骤四：配置精细化的 HTTP 服务器
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8082"
+	}
+
 	server := &http.Server{
-		Addr: ":8080",
+		Addr: ":" + port,
 		// 这意味着所有请求进来，先过跨域检查，再分发到具体路由。
 		Handler: r,
 		// 读取超时时间，防止客户端请求过慢导致服务器资源浪费。
@@ -78,7 +95,7 @@ func Main_v1() {
 		IdleTimeout: 30 * time.Second,
 	}
 
-	log.Println("Go server is running at http://localhost:8080")
+	log.Println("Go server is running at http://localhost:" + port)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
