@@ -16,14 +16,18 @@ type CosHandler struct {
 	cosPathSyncSvc *services.CosPathService
 }
 
-func NewCosHandler(aCosPathSyncSvc *services.CosPathService) (*CosHandler, error) {
+func NewCosHandler(aCosPathSyncSvc *services.CosPathService,
+	aMustSyncCosDirTree bool,
+) (*CosHandler, error) {
 	if aCosPathSyncSvc == nil {
 		return nil, fmt.Errorf("NewCosHandler: aCosPathSyncSvc cannot be nil")
 	}
 
-	_, err := aCosPathSyncSvc.SyncCosDirTree(context.Background())
-	if err != nil {
-		log.Printf("NewCosHandler():Error syncing cos dir tree: %v", err)
+	if aMustSyncCosDirTree {
+		_, err := aCosPathSyncSvc.SyncCosDirTree(context.Background())
+		if err != nil {
+			log.Printf("NewCosHandler():Error syncing cos dir tree: %v", err)
+		}
 	}
 
 	return &CosHandler{cosPathSyncSvc: aCosPathSyncSvc}, nil

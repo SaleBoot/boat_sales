@@ -149,11 +149,10 @@ export default function ShipScene({
   //   ? compositeParts[0]?.matSlots ?? EMPTY_ARRAY
   //   : modelConfig?.model?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
   const effectiveMatSlots =  modelConfig?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
-  // console.log("000..effectiveMatSlots=",effectiveMatSlots)
-  const hasRenderableModel = Boolean(effectiveModelConfig?.path || hasCompositeParts)
+  const hasRenderableModel = Boolean(modelConfig?.primaryModelInfo?.modelRuntimePath || hasCompositeParts)
   // 模型格式 
-  const modelPath = effectiveModelConfig?.path
-    ? resolveManifestPath(effectiveModelConfig.path)
+  const modelPath = modelConfig?.primaryModelInfo?.modelRuntimePath
+    ? resolveManifestPath(modelConfig?.primaryModelInfo?.modelRuntimePath)
     : ''
   // 是否是双层船
   const isTwoLayerBoat = modelId === 'TwoLayerBoat'

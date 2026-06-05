@@ -7,6 +7,7 @@ export default function DetailSpecShowcase({
   primaryDetailSpecCards,
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!specImagePaths || specImagePaths.length <= 1) {
@@ -28,6 +29,15 @@ export default function DetailSpecShowcase({
     setCurrentIndex((prevIndex) => (prevIndex + 1) % specImagePaths.length);
   };
 
+  const handleImageClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = (e) => {
+    e.stopPropagation(); // 防止事件冒泡到外层div的onClick
+    setIsModalOpen(false);
+  };
+
   return (
     <section className="detail-spec-showcase" aria-label="主要技术参数">
       <div className="detail-spec-combined-card">
@@ -38,8 +48,9 @@ export default function DetailSpecShowcase({
                 key={currentIndex} // 使用 key 来触发图片重新渲染
                 className="detail-spec-image"
                 src={specImagePaths[currentIndex]}
-                alt={`${selectedModelLabel} 渲染图 ${currentIndex + 1}`}
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                alt={`${selectedModelLabel} 宣传图 ${currentIndex + 1}`}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', cursor: 'zoom-in' }}
+                onClick={handleImageClick}
               />
               {specImagePaths.length > 1 && (
                 <>
@@ -84,6 +95,50 @@ export default function DetailSpecShowcase({
         </div>
         
       </div>
+
+      {isModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            cursor: 'zoom-out',
+          }}
+          onClick={() => setIsModalOpen(false)}
+        >
+          <img
+            src={specImagePaths[currentIndex]}
+            alt={`${selectedModelLabel} 宣传图 ${currentIndex + 1} (enlarged)`}
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              objectFit: 'contain',
+            }}
+          />
+          <button
+            onClick={handleCloseModal}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'none',
+              border: 'none',
+              color: 'white',
+              fontSize: '30px',
+              cursor: 'pointer',
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
     </section>
   );
 }

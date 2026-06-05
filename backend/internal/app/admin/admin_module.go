@@ -35,7 +35,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		return nil, fmt.Errorf("failed to NewBoatCategoryHandler: %w", err)
 	}
 
-	cosHTmp, err := apis.NewCosHandler(aCosPathSyncSvc)
+	cosHTmp, err := apis.NewCosHandler(aCosPathSyncSvc, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to NewCosHandler: %w", err)
 	}

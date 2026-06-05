@@ -258,17 +258,20 @@ func filterModelAdImgs(
 	aCosFilePaths []models.CosPathMeta,
 ) ([]string, error) {
 	modelDirPath := filepath.Dir(aModelRuntimePath)
-	modelDirPath = strings.ToLower(strings.TrimSpace(modelDirPath))
+	modelDirPath = strings.TrimSpace(modelDirPath)
 	if modelDirPath == "." || modelDirPath == "" {
 		return []string{}, nil
 	}
-
+	// if strings.Contains(modelDirPath, "950FUGUsites") {
+	// 	log.Println("950FUGUsites...")
+	// }
 	adimgs := make([]string, 0, 4)
 
 	allowedExts := map[string]bool{
 		".jpg":  true,
 		".png":  true,
 		".jpeg": true,
+		".webp": true,
 	}
 
 	for _, path := range aCosFilePaths {
@@ -276,6 +279,9 @@ func filterModelAdImgs(
 		if curPath == "" {
 			continue
 		}
+		// if strings.Contains(curPath, "950FUGUsites") {
+		// 	log.Println("950FUGUsites...")
+		// }
 
 		// 只处理当前模型目录下的 文件
 		rel, err := filepath.Rel(modelDirPath, curPath)
