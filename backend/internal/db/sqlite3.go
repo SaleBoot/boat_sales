@@ -18,7 +18,7 @@ func InitSqlite3DB() (*gorm.DB, error) {
 	}
 
 	// Connect to the SQLite database (will create the file if it doesn't exist)
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("boatsales.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 		return nil, err

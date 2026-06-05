@@ -4,7 +4,7 @@ boatsales-backend
 tmp/
 .env
 .env-dev
-test.db
+*.db
 doc01/tx_cos_cmd.md
 
 configs/
