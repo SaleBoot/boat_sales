@@ -78,3 +78,59 @@ function getParentDirName(path) {
   return parts[parts.length - 2];
 }
 
+/**
+ * 构建单个 URL
+ */
+export function buildUrl(baseUrl, relativePath) 
+{
+  // 参数验证
+  if (typeof relativePath !== 'string') {
+    throw new Error('relativePath must be an string');
+  }
+  if (typeof baseUrl !== 'string') {
+    throw new Error('baseUrl must be a string');
+  }
+
+  // 规范化 baseUrl（确保末尾有 /）
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+
+ 
+  // 处理空路径（返回空字符串或跳过）
+  const pathSegment = relativePath || '';
+  if (!pathSegment) {
+    return ''; // 或根据需求调整（如返回 baseUrl 本身）
+  }
+
+  // 判断是否已是绝对 URL（http:// 或 https://）
+  const isAbsoluteUrl = /^https?:\/\//i.test(pathSegment);
+  let rawUrl;
+  if (isAbsoluteUrl) {
+    rawUrl = pathSegment;
+  } else {
+    // 规范化 pathSegment（去除开头的 /，避免重复）
+    const normalizedPath = pathSegment.startsWith('/') ? pathSegment.slice(1) : pathSegment;
+    rawUrl = `${normalizedBaseUrl}${normalizedPath}`;
+  }
+
+  // 移除反引号、多余空格，并 trim
+  const finalUrl = rawUrl.replace(/`/g, '').replace(/\s+/g, ' ').trim(); 
+  return finalUrl;  
+}
+
+/**
+ * 构建多个 URL
+ */
+export function buildUrls(baseUrl, relativePaths) {
+  // 参数验证
+  if (!Array.isArray(relativePaths)) {
+    throw new Error('relativePaths must be an array');
+  }
+  if (typeof baseUrl !== 'string') {
+    throw new Error('baseUrl must be a string');
+  }
+
+  // 使用 buildUrl 处理每个路径，并过滤空结果
+  return relativePaths
+    .map(path => buildUrl(baseUrl, path))
+    .filter(url => url.length > 0); // 更明确的过滤条件
+}

@@ -3,6 +3,9 @@ import { useLocation, Outlet } from 'react-router-dom';
 import { getFrontBoatModels, getSiteContent } from '../../apis/frontApi';
 import { usePointerGlow, useGlobalMenuClose } from '../../hooks/useUIEvents';
 import { MODEL_STORAGE_KEY } from '../../constants/constants_front_homepage';
+import { buildUrl, buildUrls} from '../../utils/format'
+import { buildModel4ShipScene } from '../../utils/utils_ship_scene.js'
+
 import {
   buildComparisonSpecSections,
   buildViewerSpecItems,
@@ -197,18 +200,30 @@ export default function HomePage() {
   };
 
   // --- Original JSX from HomePage.jsx ---
-  if (captureMode) {
-    const pathSegment = primaryModel?.primaryModelInfo?.modelRuntimePath || '';
-    const rawUrl = pathSegment.startsWith('http') ? pathSegment : `${remoteFbxOrigin}${pathSegment}`;
-    const finalUrl = rawUrl.replace(/`/g, '').trim();
-
-    return (
-      <main className="capture-screen">
-        <div className="capture-scene-shell">
-          <ShipScene modelConfig={{ ...primaryModel, model: { path: finalUrl } }} />
-        </div>
-      </main>
-    );
+  if (captureMode) 
+  {
+    const model4front  = primaryModel?.primaryModelInfo ; 
+    if(model4front )
+    {
+      const finalModel = buildModel4ShipScene(model4front, remoteFbxOrigin)  
+      if(finalModel.modelPartPaths?.length > 0)
+      {
+        return (
+          <main className="capture-screen">
+            <div className="capture-scene-shell">
+              <ShipScene 
+                modelConfig={ {
+                  modelPartPaths: finalModel.modelPartPaths,
+                  matSlots: finalModel.matSlots
+                } } 
+              />
+            </div>
+          </main>
+        );
+      }else{
+        console.log("error: finalModel is empty::",finalModel)
+      }
+    }
   }
 
   if (isOrderPage) {
@@ -219,8 +234,9 @@ export default function HomePage() {
           boats: Object.values(boatsMap),
           primaryModel,
           selectedModelGid: selectedModelGid,
-          onSelectModel: handleModelSelect,
-          apiBasePath: runtimeBasePath,
+          onSelectModel:    handleModelSelect,
+          remoteFbxOrigin:  remoteFbxOrigin,
+          apiBasePath:      runtimeBasePath,          
         }}
       />
     );

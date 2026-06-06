@@ -66,7 +66,7 @@ func (a *FrontModule) RegisterRoutes(aApiRG *gin.RouterGroup) {
 		// 	cosRG.GET("/descendant-files", a.cosH.HandleGetAllDescendantFiles) // 递归列出所有后代文件的接口
 		// 	cosRG.GET("/tree", a.cosH.HandleListDirTree)
 		// }
-
+		// 全路径 /api/front/boat-models
 		fontRG.GET("/boat-models", a.boatModelFH.HandleGetModels)
 	}
 

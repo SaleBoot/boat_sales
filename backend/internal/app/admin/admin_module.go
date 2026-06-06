@@ -5,6 +5,9 @@ import (
 	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/internal/services"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,11 +38,22 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		return nil, fmt.Errorf("failed to NewBoatCategoryHandler: %w", err)
 	}
 
-	cosHTmp, err := apis.NewCosHandler(aCosPathSyncSvc, false)
+	//
+	shouldSyncCosDirTree := os.Getenv("SyncCosDirTree") // 读环境变量
+	shouldSyncCosDirTree = strings.ToLower(strings.TrimSpace(shouldSyncCosDirTree))
+	isSyncCosDirTree := (shouldSyncCosDirTree != "false")
+	if isSyncCosDirTree {
+		log.Println("To sync CosDirTree to db!")
+	} else {
+		log.Println("Not to sync CosDirTree to db!")
+	}
+
+	cosHTmp, err := apis.NewCosHandler(aCosPathSyncSvc, isSyncCosDirTree)
 	if err != nil {
 		return nil, fmt.Errorf("failed to NewCosHandler: %w", err)
 	}
 
+	//
 	bH, err := apis.NewBoatHandler(aBoatSvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to NewBoatHandler: %w", err)

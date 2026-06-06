@@ -6,19 +6,21 @@ import { ENGINE_MODEL_LIBRARY } from '../../../constants/constants_ship_scene.js
 
 export function createModelLoader({
   modelId,
-  modelConfig, 
-  effectiveModelPath,
-  hasCompositeParts,
+  modelConfig,  
   compositeParts,
   isTwoLayerBoat,
   matSlots,
-  resolveManifestPath,
+  resolveUrlPath,
   loadingTracker,
   materialPipeline
 }) {
   const gltfLoader = new GLTFLoader()
   const fbxLoader = new FBXLoader()
+  
+  const  hasCompositeParts = Array.isArray(compositeParts)? compositeParts.length > 0 : false
+  const  effectiveModelPath = compositeParts?.[0] || ''
   const  effectiveModelFormat = effectiveModelPath.split('.').pop()?.toLowerCase() || 'glb'
+  console.log("createModelLoader...::compositeParts",compositeParts,"matSlots=",matSlots )
 
   const applyMeshShadowFlags = (rootObject) => {
     rootObject.traverse((child) => {
@@ -117,7 +119,7 @@ export function createModelLoader({
       try {
  
         const engineObject = await loadModelAsync({
-          path: resolveManifestPath(engineLibraryEntry.path)
+          path: resolveUrlPath(engineLibraryEntry.path)
         })
 
         applyMeshShadowFlags(engineObject)
@@ -184,7 +186,7 @@ export function createModelLoader({
     // 如果模型配置中没有定义复合部件(hasCompositeParts为false)，则执行此逻辑。
     
     if (!hasCompositeParts) {      
-      // console.log("loadCompositeModelAsync", effectiveModelPath,";;;hasCompositeParts=", hasCompositeParts);
+      console.log("loadCompositeModelAsync;;;effectiveModelPath=", effectiveModelPath);
       // 调用 loadModelAsync 加载单个模型文件。
       const object3d = await loadModelAsync({
          path: effectiveModelPath
@@ -240,8 +242,8 @@ export function createModelLoader({
     // 使用 Promise.all 并行加载所有已定义的模型部件，以提高效率。
     const loadedParts = await Promise.all(compositeParts.map(async (part) => {
       // 解析当前部件的模型格式和路径。
-      const partFormat = (part?.model?.format ?? 'glb').toLowerCase()
-      const partPath = resolveManifestPath(part?.model?.path ?? '')
+      const partFormat =  part.split('.').pop()?.toLowerCase() || 'glb'
+      const partPath = resolveUrlPath(part)
       console.log(`Loading composite part model from: ${partPath} (format: ${partFormat})`)
       
       // 加载单个部件的3D模型。
@@ -256,10 +258,10 @@ export function createModelLoader({
 
       // 返回该部件的详细信息，供后续材质应用步骤使用。
       return {
-        id: part.id,
+        id: part,
         format: partFormat,
         object3d,
-        matSlots: part.matSlots ?? []
+        matSlots: matSlots ?? []
       }
     }))
 

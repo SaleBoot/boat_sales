@@ -3,7 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 
 import ShipScene from '../scene3d/ShipScene'
 import { vesselCategoryMenus } from '../../constants/constants_front_homepage.js'
- 
+import { buildModel4ShipScene } from '../../utils/utils_ship_scene'
  
 const configurationSteps = ['船型', '外观', '内饰', '动力' ]
 
@@ -211,6 +211,7 @@ export default function OrderPage() {
     primaryModel,
     selectedModelGid,
     onSelectModel,
+    remoteFbxOrigin,
     apiBasePath = '/'
   } = useOutletContext();
 
@@ -344,6 +345,14 @@ export default function OrderPage() {
     }
     return null;
   }, [currentModel, filteredBoats, boats]);
+
+  const modelConfig = useMemo(() => {  
+    return buildModel4ShipScene(
+      activeModel?.primaryModelInfo,
+      remoteFbxOrigin
+    );
+  }, [activeModel?.primaryModelInfo?.id, remoteFbxOrigin]);
+
   // ---- category 选择
   const handleCategorySelect = (aCategory) => {
     
@@ -771,22 +780,34 @@ export default function OrderPage() {
           <div className="order-visual-sticky">
             <div className="order-scene-panel">
               {activeModel ? (
-                <ShipScene 
-                  modelConfig={{
-                    ...activeModel,
-                    model: { path: activeModel.primaryModelInfo?.modelRuntimePath ?? '', },
-                  }}
-                  focusTarget={sceneFocusTarget}
-                  focusTargetPresets={effectiveFocusTargets}
-                  colorConfig={{
-                    exteriorColor : exteriorColor, 
-                    interiorColor : interiorColor, 
-                    deckColor : deckColor
-                  }}
-                  overviewZoomScale={0.82}
-                />
-              ) : <div className="order-scene-empty">暂无可预览模型</div>}
-            </div>            
+                (() => { 
+                  if (!modelConfig.partPaths?.length) {
+                    console.log("error: modelConfig is empty::", modelConfig);
+                    return null;
+                  }
+                  
+                  return (
+                    <main className="capture-screen">
+                      <div className="capture-scene-shell">
+                        <ShipScene 
+                          modelConfig={modelConfig}
+                          focusTarget={sceneFocusTarget}
+                          focusTargetPresets={effectiveFocusTargets}
+                          colorConfig={{
+                            exteriorColor: exteriorColor,
+                            interiorColor: interiorColor,
+                            deckColor: deckColor
+                          }}
+                          overviewZoomScale={0.82}
+                        />
+                      </div>
+                    </main>
+                  );
+                })()
+              ) : (
+                <div className="order-scene-empty">暂无可预览模型</div>
+              )}
+            </div>
           </div>
         </section>
 

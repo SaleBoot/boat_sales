@@ -36,7 +36,7 @@ export function createMaterialPipeline({
   modelId,
   colorConfig, 
   resolveAssetPath,
-  resolveManifestPath,
+  resolveAssetUrl,
   loadTextureAsync,
   externalTextures,
   texturePromiseCache
@@ -869,8 +869,8 @@ export function createMaterialPipeline({
     const texturedMatSlotCount = targetMatSlots.filter(matSlot => {
       const tex = matSlot.textures || {};
       // 只要任意一个纹理有路径，就算有效
-      return !!( tex.basecolor || tex.normal || tex.ao || tex.roughness || tex.metalness
-      );
+      return !!( tex.basecolor || tex.normal || tex.ao || 
+                 tex.roughness || tex.metalness || tex.emissive );
     }).length;
 
     // --- 步骤一：遍历每个UV Set配置，逐个加载并应用 ---
@@ -880,7 +880,6 @@ export function createMaterialPipeline({
     {
       // 提取当前UV Set中所有有效的纹理路径。
       const textureEntries = Object.entries(matSlot.textures ?? {}).filter(([, path]) => Boolean(path))
-      // 如果当前UV Set没有任何纹理，则直接跳到下一个。
       if (textureEntries.length === 0) {
         continue
       }
@@ -894,7 +893,7 @@ export function createMaterialPipeline({
       const loadedTextures = await Promise.all(
         textureEntries.map(async ([type, path]) => {
           // 异步加载纹理图片。
-          const texture = await loadTextureAsync(resolveManifestPath(path))
+          const texture = await loadTextureAsync(resolveAssetUrl(path))
           // 根据模型格式设置Y轴翻转。
           texture.flipY = shouldFlipY ? false : true
           // 对颜色和自发光贴图设置正确的色彩空间（SRGB），确保颜色显示正确。
@@ -1074,7 +1073,7 @@ export function createMaterialPipeline({
     rememberOptionalMaterialBase(targetMaterial)
 
     if (override.baseColorPath) {
-      const texture = texturePromiseCache.get(resolveManifestPath(override.baseColorPath))?.__resolvedTexture
+      const texture = texturePromiseCache.get(resolveAssetUrl(override.baseColorPath))?.__resolvedTexture
       if (texture) {
         targetMaterial.map = texture
         if (targetMaterial.color) {
@@ -1091,7 +1090,7 @@ export function createMaterialPipeline({
     await Promise.all(normalizedOverrides
       .filter((override) => override.baseColorPath)
       .map(async (override) => {
-        const resolvedPath = resolveManifestPath(override.baseColorPath)
+        const resolvedPath = resolveAssetUrl(override.baseColorPath)
         const texture = await loadTextureAsync(resolvedPath)
         texture.flipY = effectiveModelFormat !== 'fbx' ? false : true
         texture.colorSpace = THREE.SRGBColorSpace

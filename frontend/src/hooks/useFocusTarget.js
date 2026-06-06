@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getFocusTargets } from '../apis/frontApi'; // 导入新的 API 函数
 
 /**
@@ -9,7 +9,7 @@ import { getFocusTargets } from '../apis/frontApi'; // 导入新的 API 函数
  * @param {string} runtimeBasePath - API 的基础路径。
  * @returns {{
  *   viewerFocusTarget: string,
- *   setViewerFocusTarget: React.Dispatch<React.SetStateAction<string>>,
+ *   setViewerFocusTarget: (target: string) => void,
  *   viewerFocusTargets: object
  * }} - 返回焦点目标、其设置函数以及可用的焦点目标列表。
  */
@@ -18,13 +18,17 @@ export function useFocusTarget(selectedModelGid,
                             runtimeBasePath = ''
                             )
 {
-  const [viewerFocusTarget, setViewerFocusTarget] = useState('exterior');
+  const [viewerFocusTarget, setViewerFocusTargetState] = useState('exterior');
+  const setViewerFocusTarget = useCallback((target) => {
+    setViewerFocusTargetState(target);
+  }, []);
+
   const [viewerFocusTargets, setViewerFocusTargets] = useState({});
 
   // 当选中的模型 ID 变化时，重置视觉焦点为 'exterior'
   useEffect(() => {
     setViewerFocusTarget('exterior');
-  }, [selectedModelGid]);
+  }, [selectedModelGid, setViewerFocusTarget]);
 
   // 当选中的模型 ID 或其配置变化时，异步加载该模型的焦点目标列表
   useEffect(() => {

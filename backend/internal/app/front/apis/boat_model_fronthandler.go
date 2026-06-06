@@ -143,12 +143,12 @@ func (b *BoatInfo) fromModel(aSysBoat *models.SysBoat) {
 }
 
 type ModelInfo struct {
-	Id    string `json:"id"`    // boatEnName+序号
-	Label string `json:"label"` // ModelName
-	// BoatEnName       string `json:"boatEnName"`       // 无空格英文名，也是模型文件夹名
-	// ModelName        string `json:"modelName"`        // 默认样式的名称
-	AdImgs           []string `json:"adImgs"`
-	ModelRuntimePath string   `json:"modelRuntimePath"` // 运行时路径
+	Id         string   `json:"id"`         // boatEnName+序号
+	Label      string   `json:"label"`      // ModelName
+	BoatEnName string   `json:"boatEnName"` // 无空格英文名，也是模型文件夹名
+	ModelName  string   `json:"modelName"`  // 默认样式的名称
+	AdImgs     []string `json:"adImgs"`
+	PartPaths  []string `json:"partPaths"` // 模型部件运行时路径列表
 	// 材质槽列表 not in table "sys_boat_model", from "cos_path_meta" table
 	//
 	//   "matSlots": [
@@ -194,9 +194,10 @@ func (b *ModelInfo) fromModel(aSysBoatModel *models.SysBoatModel) {
 	b.Id = aSysBoatModel.BoatEnName + strconv.Itoa(int(aSysBoatModel.ID))
 	b.Label = aSysBoatModel.ModelName
 	//
-	// b.BoatEnName = aSysBoatModel.BoatEnName
-	// b.ModelName = aSysBoatModel.ModelName
-	b.ModelRuntimePath = aSysBoatModel.ModelRuntimePath
+	b.BoatEnName = aSysBoatModel.BoatEnName
+	b.ModelName = aSysBoatModel.ModelName
+	//
+	// b.PartPaths = append(b.PartPaths, aSysBoatModel.ModelRuntimePath)
 	// b.MatSlots = aSysBoatModel.MatSlots //  not in db
 	b.ExteriorName = aSysBoatModel.ExteriorName
 	b.ExteriorDescr = aSysBoatModel.ExteriorDescr
@@ -253,6 +254,69 @@ func getMatSlotNameAndTexType(p string) (string, string) {
 	return matSlotName, texType
 }
 
+func filterModelPartPaths(
+	aModelRuntimePath string,
+	aCosFilePaths []models.CosPathMeta,
+) ([]string, error) {
+	modelDirPath := filepath.Dir(aModelRuntimePath)
+	modelDirPath = strings.TrimSpace(modelDirPath)
+	if modelDirPath == "." || modelDirPath == "" {
+		return []string{}, nil
+	}
+	// if strings.Contains(modelDirPath, "950FUGUsites") {// for debug
+	// 	log.Println("950FUGUsites...")
+	// }
+	const cPartCount int = 8
+	partPaths := make([]string, 0, cPartCount)
+
+	// 获取aModelRuntimePath的文件类型并判断
+	runtimeFileName := strings.ToLower(filepath.Base(aModelRuntimePath)) // 提取纯文件名，防止 curPath 是 "../"
+	if runtimeFileName == "." || runtimeFileName == ".." {
+		return []string{}, nil
+	}
+
+	allowedExt := strings.ToLower(filepath.Ext(runtimeFileName))
+	if allowedExt != ".glb" && allowedExt != ".fbx" {
+		return []string{}, nil
+	}
+
+	//
+	for _, path := range aCosFilePaths {
+		curPath := strings.TrimSpace(path.Path)
+		if curPath == "" {
+			continue
+		}
+		// if strings.Contains(curPath, "950FUGUsites") {
+		// 	log.Println("950FUGUsites...")
+		// }
+
+		// 只要当前模型目录下的 文件
+		rel, err := filepath.Rel(modelDirPath, curPath)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			continue
+		}
+
+		// 检查文件类型
+		fileName := strings.ToLower(filepath.Base(curPath)) // 提取纯文件名，防止 curPath 是 "../"
+		if fileName == "." || fileName == ".." {            // 防御路径穿越
+			continue
+		}
+
+		ext := strings.ToLower(filepath.Ext(fileName))
+		if ext != allowedExt {
+			continue
+		}
+
+		// 写回 alice
+		partPaths = append(partPaths, curPath)
+		if len(partPaths) >= cPartCount {
+			break
+		}
+	}
+
+	return partPaths, nil
+}
+
 func filterModelAdImgs(
 	aModelRuntimePath string,
 	aCosFilePaths []models.CosPathMeta,
@@ -305,7 +369,7 @@ func filterModelAdImgs(
 			continue
 		}
 
-		// 写回 map
+		// 写回 alice
 		adimgs = append(adimgs, curPath)
 		if len(adimgs) >= 4 {
 			break
@@ -399,7 +463,7 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 	if err != nil || len(svcCategories) == 0 {
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{Code: http.StatusInternalServerError,
-				Message: fmt.Sprintf("failed to get categories: %s", err.Error())})
+				Message: fmt.Sprintf("failed to get categories: %s from db", err.Error())})
 		return
 	}
 	categoryMapEn2Cn := models.BoatCategory_arrayToMap(svcCategories)
@@ -409,26 +473,26 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{Code: http.StatusInternalServerError,
-				Message: fmt.Sprintf("failed to get boats: %s", err.Error())})
+				Message: fmt.Sprintf("failed to get boats: %s from db", err.Error())})
 		return
 	}
 
 	// get all models
-	allModels, err := aH.boatModelSvc.GetAllModels()
+	svcModels, err := aH.boatModelSvc.GetAllModels()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{Code: http.StatusInternalServerError,
-				Message: fmt.Sprintf("failed to get users: %s", err.Error())})
+				Message: fmt.Sprintf("failed to get models: %s", err.Error())})
 		return
 	}
 
-	cosFilePaths, err := aH.cosPathSvc.GetAllFilePaths(c.Request.Context())
+	svcCosFilePaths, err := aH.cosPathSvc.GetAllFilePaths(c.Request.Context())
 	if err != nil {
-		log.Printf("HandleGetAllModelPaths(): Error getting all model folders with files: %v", err)
+		log.Printf("Error getting all model file paths: %v from db", err)
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{
 				Code:    http.StatusInternalServerError,
-				Message: fmt.Sprintf("获取模型列表失败: %v", err),
+				Message: fmt.Sprintf("获取模型Cos Path列表失败: %v", err),
 				Data:    nil,
 			})
 		return
@@ -461,33 +525,44 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 		if !ok {
 			boatinfo = BoatInfo{}
 			boatinfo.fromModel(&boat)
-			boatinfo.Models = make([]ModelInfo, 0, len(allModels))
+			boatinfo.Models = make([]ModelInfo, 0, len(svcModels))
 		}
 
-		for _, model := range allModels {
-			if model.BoatEnName != boat.BoatEnName {
+		for _, svcModel := range svcModels {
+			if svcModel.BoatEnName != boat.BoatEnName {
 				continue
 			}
 
 			modelinfo := ModelInfo{}
-			modelinfo.fromModel(model)
+			modelinfo.fromModel(svcModel)
 
 			// 生成模型ID
 			idx := len(boatinfo.Models)
 			modelinfo.Id = boat.BoatEnName + "_" + strconv.Itoa(idx)
 			modelinfo.Label = boat.BoatName + "_模型" + strconv.Itoa(idx)
 
-			adImgs, err := filterModelAdImgs(model.ModelRuntimePath, cosFilePaths)
+			// 加载模型的文件路径
+			partPaths, err := filterModelPartPaths(svcModel.ModelRuntimePath, svcCosFilePaths)
 			if err != nil {
-				log.Printf("模型 %s 加载宣传图失败: %v", model.ModelRuntimePath, err)
+				log.Printf("模型 %s 加载模型文件失败: %v", svcModel.ModelRuntimePath, err)
+				modelinfo.PartPaths = []string{} // 空切片，保证前端安全
+			} else {
+				modelinfo.PartPaths = partPaths
+			}
+
+			// 加载模型的宣传图
+			adImgs, err := filterModelAdImgs(svcModel.ModelRuntimePath, svcCosFilePaths)
+			if err != nil {
+				log.Printf("模型 %s 加载宣传图失败: %v", svcModel.ModelRuntimePath, err)
 				modelinfo.AdImgs = []string{} // 空切片，保证前端安全
 			} else {
 				modelinfo.AdImgs = adImgs
 			}
 
-			slots, err := filterModelMatSlots(model.ModelRuntimePath, cosFilePaths)
+			// 加载模型的材质
+			slots, err := filterModelMatSlots(svcModel.ModelRuntimePath, svcCosFilePaths)
 			if err != nil {
-				log.Printf("模型 %s 加载材质失败: %v", model.ModelRuntimePath, err)
+				log.Printf("模型 %s 加载材质失败: %v", svcModel.ModelRuntimePath, err)
 				modelinfo.MatSlots = []MatSlot{} // 空切片，保证前端安全
 			} else {
 				modelinfo.MatSlots = slots
@@ -503,7 +578,7 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
-		Message: "Successfully got allModels",
+		Message: "Successfully got all models",
 		Data:    outputData,
 	})
 }

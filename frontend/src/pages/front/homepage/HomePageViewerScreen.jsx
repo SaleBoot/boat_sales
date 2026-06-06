@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useViewerScrollProgress } from '../../../hooks/useViewerScrollProgress';
 import { useFocusTarget } from '../../../hooks/useFocusTarget';
 import ShipScene from '../../scene3d/ShipScene';
+import { buildModel4ShipScene } from "../../../utils/utils_ship_scene";
 
 export default function HomePageViewerScreen({
   selectedModelGid,
@@ -19,21 +20,24 @@ export default function HomePageViewerScreen({
     setViewerFocusTarget, 
     viewerFocusTargets 
   } = useFocusTarget( selectedModelGid, primaryModel, runtimeBasePath);
-
+ 
+ 
   const modelConfig = useMemo(() => {
-    if (!primaryModel) return null;
+    return buildModel4ShipScene(
+      primaryModel?.primaryModelInfo,
+      remoteFbxOrigin
+    );
+  }, [primaryModel?.primaryModelInfo?.id, remoteFbxOrigin]);
 
-    const pathSegment = primaryModel.primaryModelInfo?.modelRuntimePath || '';
-    const rawUrl = pathSegment.startsWith('http') ? pathSegment : `${remoteFbxOrigin}${pathSegment}`;
-    const finalUrl = rawUrl.replace(/`/g, '').trim(); 
+  useEffect(() => { 
+    console.log('HomePageViewerScreen.jsx modelConfig', modelConfig);
+    if (!modelConfig) 
+    {
+      return;
+    }
 
-    return {
-      ...primaryModel,
-      model: {
-        path: finalUrl, 
-      },
-    };
-  }, [primaryModel, remoteFbxOrigin]);
+  }, [modelConfig]);
+
 
   // 使用自定义 Hook 来处理滚动进度效果
   useViewerScrollProgress(viewerScreenRef);

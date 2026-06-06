@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { createPortal } from 'react-dom'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
+import { buildUrl } from '../../utils/format.js';
 
 import {  
   normalizeDebugTransform,  
@@ -33,8 +34,7 @@ import {
 import {
   WATER_SURFACE_ENABLED, 
   EMPTY_ARRAY, 
-  CAMERA_MODE_FIRST_PERSON,
-  TWO_LAYER_TRACKED_TEXTURE_PATHS
+  CAMERA_MODE_FIRST_PERSON 
 } from '../../constants/constants_ship_scene.js';
 import { useThree } from './hooks/useThree.js';
 import { useFirstPersonControls } from './hooks/useFirstPersonControls.js';
@@ -82,7 +82,7 @@ export default function ShipScene({
   focusTarget = 'exterior',
   focusTargetPresets = null,
   colorConfig = null,
-  optionalMaterialOverrides = [],
+  optionalMaterialOverrides = EMPTY_ARRAY,
   overviewZoomScale = 1,
   viewTogglePortalTarget = null,
   focusTargetStrategy = 'default',
@@ -100,24 +100,8 @@ export default function ShipScene({
   const resolveAssetPath = (relativePath) => `${assetBaseUrl}${relativePath}`
   // 在 React 或前端项目中，它的核心任务是：确保无论传入什么样的资源路径（assetPath），
   // 最终都能拼凑出一个可以正常访问的完整 URL。
-  const resolveManifestPath = (assetPath) => {
-    if (!assetPath) {
-      return ''
-    }
-    // 绝对地址检查（网络路径）
-    // 正则表达式：^https?:\/\/ 匹配以 http:// 或 https:// 开头的字符串（不区分大小写）。
-    // 逻辑：如果这个资源已经是完整的网络地址了（比如已经在 CDN 上或引用的是外部图片），那就原样返回，不要再折腾它。
-    if (/^https?:\/\//i.test(assetPath)) {
-      return assetPath
-    }
-
-    // 
-    if (assetPath.startsWith('/')) {
-      // 为了拼接到 assetBaseUrl（通常以 / 结尾）后面，代码使用 slice(1) 删掉了 assetPath 开头的斜杠。
-      return `${assetBaseUrl}${assetPath.slice(1)}`
-    }
-
-    return `${assetBaseUrl}${assetPath}`
+  const resolveAssetUrl = (assetPath) => { 
+    return buildUrl(assetBaseUrl, assetPath)
   }
 
   // (1)modelConfig?.id ,,,先检查 modelConfig 是否存在（即不是 null 或 undefined）
@@ -130,30 +114,31 @@ export default function ShipScene({
   const resolvedRequestedFocusTarget = resolveRequestedFocusTarget(modelId, focusTarget)
   const renderConfig = modelConfig?.renderConfig ?? {}
   const waterConfig = renderConfig?.water ?? {}
-  const waterTuning = {
-    ...getWaterTuning(modelId), // 默认配置,
-    ...(waterConfig && typeof waterConfig === 'object' ? waterConfig : {}) // 用户配置
-  }
+
+  const waterTuning = useMemo(() => ( {
+    ...getWaterTuning(modelId), // 默认配置
+    ...(waterConfig && typeof waterConfig === 'object' ? waterConfig : {}) // 用户配置 
+}), [modelId, waterConfig]);
+  console.log("ShipScene::  waterTuning =" ,waterTuning)
   
   // console.log("modelConfig=",modelConfig)
 
   // 复合部件
-  const compositeParts = modelConfig?.parts ?? EMPTY_ARRAY
-  const hasCompositeParts = compositeParts.length > 0
-  const shouldUseSinglePartCompositeFallback = !modelConfig?.model?.path && compositeParts.length === 1
-  const effectiveModelConfig = shouldUseSinglePartCompositeFallback
-    ? compositeParts[0]?.model ?? null
-    : modelConfig?.model ?? null
+  const compositePartPaths = useMemo(
+    () => modelConfig?.partPaths ?? [],
+    [JSON.stringify(modelConfig?.partPaths)]
+  );
+  console.log("ShipScene::  compositePartPaths =" ,compositePartPaths)
+
+  const hasCompositeParts = compositePartPaths.length > 0
+  const hasRenderableModel = Boolean(compositePartPaths.length > 0)
+  const shouldUseSinglePartCompositeFallback = compositePartPaths.length === 1
   
-  // const effectiveMatSlots = shouldUseSinglePartCompositeFallback
-  //   ? compositeParts[0]?.matSlots ?? EMPTY_ARRAY
-  //   : modelConfig?.model?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
-  const effectiveMatSlots =  modelConfig?.primaryModelInfo?.matSlots ?? EMPTY_ARRAY
-  const hasRenderableModel = Boolean(modelConfig?.primaryModelInfo?.modelRuntimePath || hasCompositeParts)
-  // 模型格式 
-  const modelPath = modelConfig?.primaryModelInfo?.modelRuntimePath
-    ? resolveManifestPath(modelConfig?.primaryModelInfo?.modelRuntimePath)
-    : ''
+  const effectiveMatSlots = useMemo(() => modelConfig?.matSlots ?? [], [
+    JSON.stringify(modelConfig?.matSlots),
+  ]);
+  
+ 
   // 是否是双层船
   const isTwoLayerBoat = modelId === 'TwoLayerBoat'
   // 是否是工作室模式;;默认的室外真实感渲染和工作室风格的预览渲染。
@@ -261,10 +246,8 @@ export default function ShipScene({
   const shouldShowWaterSurface = (waterConfig.enabled ?? WATER_SURFACE_ENABLED) && !isStudioLook
   // ===== TwoLayerBoat Locked Block START =====
   // TwoLayerBoat 维持固定 GLB 入口，避免被自动配置改动影响贴图稳定性。
-  const effectiveModelPath = modelPath
-  // ===== TwoLayerBoat Locked Block END =====
-  const matSlots = effectiveMatSlots
-  // console.log("matSlots=",matSlots)
+  const effectiveModelPath = modelConfig?.partPaths?.[0] || ''
+  // ===== TwoLayerBoat Locked Block END ===== 
 
   const canvasRef = useRef(null)
   const controlsRef = useRef(null)
@@ -272,16 +255,23 @@ export default function ShipScene({
   // 
   const modeRef = useRef('exterior')
   const interiorDeckRef = useRef('1')
-  const setViewPresetRef = useRef(() => {})
-  const setFocusTargetRef = useRef(() => {})
-  const setColorConfigRef = useRef(() => {})
-  const setOptionalMaterialOverridesRef = useRef(() => {})
+
+  // 
+  const setViewPresetRef = useRef(() => {}) // 「函数引用」
+  const setFocusTargetRef = useRef(() => {}) // 「函数引用」
+  // 设置颜色和材质的 函数指针
+  const setColorConfigRef = useRef(() => {}) //  「函数引用」
+  const setOptionalMaterialOverridesRef = useRef(() => {}) // 「函数引用」
+  // OrderFocus PresetsRef
   const resolvedOrderFocusPresetsRef = useRef(resolvedOrderFocusPresets)
+  // MaterialOverride ref
   const optionalMaterialOverridesRef = useRef(optionalMaterialOverrides)
-  
+  // 
   const loadedRootRef = useRef(null)
+  // focus 
   const focusCoordinateRootRef = useRef(null)
   const activeFocusTargetRef = useRef(resolvedRequestedFocusTarget)
+  // debug
   const transformControlsRef = useRef(null)
   const debugModeRef = useRef(debugMode)
   const debugTransformModeRef = useRef(debugTransformMode)
@@ -312,7 +302,13 @@ export default function ShipScene({
     setIsLoadingHudVisible(true)
     setSceneError('')
     setLoadingState(createInitialLoadingState(hasRenderableModel))
-  }, [modelId, effectiveModelPath, hasRenderableModel])
+  }, [modelConfig?.id])
+
+  useEffect(() => {
+    if (typeof onFocusTargetChange === 'function') {
+      onFocusTargetChange(activeFocusTarget)
+    }
+  }, [activeFocusTarget, onFocusTargetChange])
 
   // 初始化threejs 场景
   const threeContext = useThree(canvasRef, {
@@ -333,22 +329,19 @@ export default function ShipScene({
     if (!canvas || !threeContext) {
       return undefined
     }
+    // 防止重复执行
+    // if (!hasRenderableModel) {
+    //   return;
+    // }
+    console.log('ShipScene render...useEffect-01, modelConfig.id:', modelConfig?.id,"..hasRenderableModel=",hasRenderableModel);
+    
     
     const {
-      renderer,
-      scene,
-      presentationRoot,
-      modelRoot,
-      waterRoot,
-      stageRoot,
-      waterSurface,
-      interiorSkySphere,
-      exteriorCamera,
-      interiorCamera,
-      controls,
-      pmremGenerator,
-      reflectionEnvironment,
-      environmentTexture
+      renderer,          scene,
+      presentationRoot,  modelRoot, waterRoot, stageRoot,
+      waterSurface,   interiorSkySphere,  
+      exteriorCamera, interiorCamera,
+      controls,  pmremGenerator, reflectionEnvironment, environmentTexture
     } = threeContext;
 
     // Restore the initial position from the original logic
@@ -361,7 +354,7 @@ export default function ShipScene({
       setIsLoadingHudVisible(true)
       return undefined
     }
-
+    console.log('ShipScene render...useEffect-02, modelConfig.id:', modelConfig?.id);
     let isDisposed = false
     const getIsDisposed = () => isDisposed
     if (loadingOverlayTimerRef.current) {
@@ -449,9 +442,10 @@ export default function ShipScene({
     const textureLoader = new THREE.TextureLoader()
     const externalTextures = []
     const texturePromiseCache = new Map()
+
     const trackedAssetUrls = (() => {
       const assetUrls = []
-      const pushAssetUrl = (assetPath, resolver = resolveManifestPath) => {
+      const pushAssetUrl = (assetPath, resolver = resolveAssetUrl) => {
         if (!assetPath) {
           return
         }
@@ -465,25 +459,16 @@ export default function ShipScene({
           })
         })
       }
+      // 
+      compositePartPaths.forEach((partPath) => {
+        pushAssetUrl(partPath, (value) => value)          
+      })            
 
-      if (hasCompositeParts) {
-        compositeParts.forEach((part) => {
-          pushAssetUrl(part?.model?.path)
-          pushUvTextureUrls(part?.matSlots ?? EMPTY_ARRAY)
-        })
-      } else {
-        pushAssetUrl(effectiveModelPath, (value) => value)
-        if (isTwoLayerBoat) {
-          TWO_LAYER_TRACKED_TEXTURE_PATHS.forEach((assetPath) => {
-            pushAssetUrl(assetPath, resolveAssetPath)
-          })
-        } else {
-          pushUvTextureUrls(matSlots)
-        }
-      }
+      pushUvTextureUrls(effectiveMatSlots)         
 
       return [...new Set(assetUrls.filter(Boolean))]
     })()
+
     const loadingTracker = createLoadingTracker({
       trackedAssetUrls,
       setLoadingState,
@@ -523,27 +508,25 @@ export default function ShipScene({
       texturePromiseCache.set(path, texturePromise)
       return texturePromise
     }
-
+console.log('ShipScene render...useEffect-02, modelConfig.id:', modelConfig?.id);
     const materialPipeline = createMaterialPipeline({
       modelId,
       colorConfig,
       effectiveModelFormat: effectiveModelPath.split('.').pop()?.toLowerCase() || 'glb',
       resolveAssetPath,
-      resolveManifestPath,
+      resolveAssetUrl,
       loadTextureAsync,
       externalTextures,
       texturePromiseCache
     })
-
+console.log('ShipScene render...useEffect-02, modelConfig.id:', modelConfig?.id,"..compositePartPaths=",compositePartPaths);
     const modelLoader = createModelLoader({
       modelId,
-      modelConfig, 
-      effectiveModelPath,
-      hasCompositeParts,
-      compositeParts,
+      modelConfig,  
+      compositeParts : compositePartPaths,
       isTwoLayerBoat,
-      matSlots,
-      resolveManifestPath,
+      matSlots : effectiveMatSlots,
+      resolveUrlPath : resolveAssetUrl,
       loadingTracker,
       materialPipeline
     })
@@ -559,7 +542,7 @@ export default function ShipScene({
         return
       }
 
-      compositeParts.forEach((part, partIndex) => {
+      compositePartPaths.forEach((part, partIndex) => {
         const partObject = loadedRoot.children[partIndex]
         if (!partObject) {
           return
@@ -592,7 +575,7 @@ export default function ShipScene({
         return
       }
 
-      compositeParts.forEach((part, partIndex) => {
+      compositePartPaths.forEach((part, partIndex) => {
         const partObject = loadedRoot.children[partIndex]
         if (!partObject) {
           return
@@ -656,17 +639,23 @@ export default function ShipScene({
           shadowStage.receiveShadow = true
           stageRoot.add(shadowStage)
         }
-
+        // 
         modelRoot.add(object3d)
         loadedRootRef.current = object3d
+
         focusCoordinateRootRef.current = object3d
         setFocusTargetRef.current(activeFocusTargetRef.current)
+
         if (typeof onDebugTransformChangeRef.current === 'function') {
           onDebugTransformChangeRef.current(objectTransformToDebugPayload(object3d))
         }
+
         syncTransformControls()
+
+        // 设置颜色配置和材质覆盖
         setColorConfigRef.current(colorConfig)
         setOptionalMaterialOverridesRef.current(optionalMaterialOverridesRef.current)
+        // 
         setLoadingState((previous) => ({
           ...previous,
           phase: '场景已就绪',
@@ -716,7 +705,7 @@ export default function ShipScene({
         updateFirstPersonMovement(deltaSeconds)
       }
       renderer.render(scene, activeCamera)
-      frameId = window.requestAnimationFrame(renderLoop)
+      frameId = window.requestAnimationFrame(renderLoop)      
     }
     renderLoop()
 
@@ -757,22 +746,18 @@ export default function ShipScene({
         child.material?.dispose?.()
       })
       stageRoot.clear()
-    }
-  }, [
-    compositeParts, 
-    effectiveModelPath,
-    hasRenderableModel,
-    hasCompositeParts,
+    }}, 
+    [
+    compositePartPaths,
+    effectiveMatSlots,
     isStudioLook,
     isTwoLayerBoat,
     modelId,
-    overviewZoomScale,
     renderConfig.debugTransform,
-    shouldShowWaterSurface,
-    matSlots,
+    shouldShowWaterSurface,    
     stabilizedSmartSystemPreset,
-    focusTargetStrategy,
-    threeContext
+    threeContext,
+    overviewZoomScale, //-   
   ])
 
   useEffect(() => {
@@ -852,10 +837,10 @@ export default function ShipScene({
     )
     setActiveFocusTarget(resolvedTarget)
     activeFocusTargetRef.current = resolvedTarget
-    setFocusTargetRef.current(appliedTarget)
-    if (typeof onFocusTargetChange === 'function') {
-      onFocusTargetChange(resolvedTarget)
-    }
+    setActiveFocusTarget(resolvedTarget)
+    // if (typeof onFocusTargetChange === 'function') {
+    //   onFocusTargetChange(resolvedTarget)
+    // }
   }
 
   const stopViewTogglePointerPropagation = (event) => {

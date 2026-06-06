@@ -27,7 +27,10 @@ import api from '../utils/requestApi';
  * @typedef {object} ModelInfo - Represents a specific, configurable model variant of a boat.
  * @property {string} id - Unique ID for the model (e.g., boatEnName + index).
  * @property {string} label - The display name of the model (ModelName).
- * @property {string} modelRuntimePath - The runtime path for the 3D model file.
+ * @property {string} boatEnName - The English name of the boat, also the model folder name.
+ * @property {string} modelName - The name of the default style.
+ * @property {string[]} adImgs - Advertising images.
+ * @property {string[]} partPaths - List of runtime paths for model parts.
  * @property {MatSlot[]} matSlots - List of material slots for customization.
  * @property {string} exteriorName - Name of the exterior option.
  * @property {string} exteriorDescr - Description of the exterior option.
@@ -78,7 +81,7 @@ import api from '../utils/requestApi';
 
 /**
  * @typedef {object} BoatMenu - Represents a single category in the navigation menu.
- * @property {string} id - The category's English name (category.EnName).
+ * @property {string} id - The category's ID (category.CategoryStrID).
  * @property {string} label - The category's Chinese name (category.CnName).
  * @property {BoatSubMenu[]} boats - A list of boats in this category for the menu.
  */
@@ -99,10 +102,11 @@ export const getFrontBoatModels = () => {
 };
 
 /**
- * Fetches the focus targets for a specific boat model.
+ * Fetches the complete boat model data for the frontend.
+ * This includes the menu structure and a map for quick lookups.
  * @param {string} boatId - The ID of the boat.
  * @param {string} [modelId] - The optional ID of the specific model variant.
- * @returns {Promise<object>} A promise that resolves to the focus targets object.
+ * @returns {Promise<Models4Front>} A promise that resolves to the comprehensive boat data object.
  */
 export const getFocusTargets = (boatId, modelId) => {
   return api.get('/front/model/focus-targets', {

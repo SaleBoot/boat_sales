@@ -30,18 +30,7 @@ export const FOCUS_COORDINATE_SPACE_SCENE = 'scene';
 export const FOCUS_COORDINATE_SPACE_MODEL_LOCAL = 'model-local';
 // threejs DEFAULT_CAMERA_ROTATION_DEGREES
 export const DEFAULT_CAMERA_ROTATION_DEGREES = [0, 0, 0];
-// 
-export const TWO_LAYER_TRACKED_TEXTURE_PATHS = [
-  'gltf/TwoLayerBoat/1/1_01 - Default_Emissive.png',
-  'gltf/TwoLayerBoat/1/1_01 - Default_Normal.png',
-  'gltf/TwoLayerBoat/1/AO.png',
-  'gltf/TwoLayerBoat/1/meti.png',
-  'gltf/TwoLayerBoat/1/rou.png',
-  'gltf/TwoLayerBoat/2/1_02 - Default_Normal.png',
-  'gltf/TwoLayerBoat/2/AO_3.png',
-  'gltf/TwoLayerBoat/2/meti_1.png',
-  'gltf/TwoLayerBoat/2/rou_2.png'
-];
+ 
 export const MODEL_WATER_TUNING = {
   PleasureBoat: {
     levelFactor: 0.06,

@@ -19,6 +19,73 @@ import {
   FOCUS_COORDINATE_SPACE_MODEL_LOCAL 
 } from '../constants/constants_ship_scene.js';
 
+import { buildUrl, buildUrls} from './format'
+ 
+/**
+ * 构建船舶场景的模型数据
+ * @param {Object} aModel4Front - 是从后台传来的船的模型
+ * @param {string} remoteFbxOrigin - 远程资源的基础 URL
+ * @returns {Object} 包含模型部件路径和材质插槽的对象
+ */
+export function buildModel4ShipScene(aModel4Front, remoteFbxOrigin) {
+  // 参数验证
+  if (!aModel4Front || typeof aModel4Front !== 'object') {
+    console.warn('Invalid aModel4Front provided');
+    return {
+      id: "",
+      label: "",
+      partPaths: [],
+      matSlots: []      
+    };
+  }
+
+  if (typeof remoteFbxOrigin !== 'string') {
+    console.warn('Invalid remoteFbxOrigin provided');
+    return {
+      id: "",
+      label: "",      
+      partPaths: [],
+      matSlots: []      
+    };
+  }
+
+  // 安全获取 modelPartPaths
+  const modelPartPaths = Array.isArray(aModel4Front.partPaths) 
+    ? aModel4Front.partPaths 
+    : [];
+
+  // 构建部件路径 URL
+  // const finalPartPaths = buildUrls(remoteFbxOrigin, modelPartPaths);
+  const finalPartPaths =  modelPartPaths;
+
+  // 安全获取 matSlots
+  const matSlots = Array.isArray(aModel4Front.matSlots) 
+    ? aModel4Front.matSlots  : [];
+
+  // 构建材质插槽数据
+  const finalMatSlots = matSlots.map(slot => {
+    // 确保每个 slot 是对象
+    if (!slot || typeof slot !== 'object') {
+      return { matName: '', textures: [] };
+    }
+    // console.log("buildModel4ShipScene...::slot",slot)
+    // 安全获取 textures
+    const textures = typeof slot.textures === 'object' ? slot.textures : {};
+ 
+    return {
+      matName: typeof slot.matName === 'string' ? slot.matName : '',      
+      textures:  textures 
+    };
+  });
+
+  return {
+    id:    aModel4Front.id    || "",
+    label: aModel4Front.label || "",    
+    partPaths: finalPartPaths,
+    matSlots: finalMatSlots
+  };
+}
+
 // 将“原材料名称”转化为一种标准化的、只有小写字母和数字的格式。
 // "nsuv2_03 - Default_BaseColor.png" --> "nsuv203defaultbasecolorpng"
 export function normalizeMaterialName(value) {
