@@ -1122,32 +1122,47 @@ export function createMaterialPipeline({
   }
 
   const applyColorConfigToObject = (rootObject, partRole, nextColorConfig = colorConfig) => {
-    const colorMaterialSlots = getColorConfigMaterialSlots(nextColorConfig)
-    const hasExplicitColorSlots = colorMaterialSlots.size > 0
-    if (!hasExplicitColorSlots && !shouldApplyColorway(modelId, partRole)) {
-      return
-    }
+    // const colorMaterialSlots = getColorConfigMaterialSlots(nextColorConfig)
+    // const hasExplicitColorSlots = colorMaterialSlots.size > 0
+    // if (!hasExplicitColorSlots && !shouldApplyColorway(modelId, partRole)) {
+    //   return
+    // }
 
-    const colorPreset = getColorShaderPreset(nextColorConfig, 
-                                { explicitMaterialSlots: hasExplicitColorSlots })
-    const colorOptions = partRole === 'hull'
-      ? { targetWhiteSurfaces: true, allowHighMetalness: true }
-      : {}
+    // const colorPreset = getColorShaderPreset(nextColorConfig, 
+    //                             { explicitMaterialSlots: hasExplicitColorSlots })
+    // const colorOptions = partRole === 'hull'
+    //   ? { targetWhiteSurfaces: true, allowHighMetalness: true }
+    //   : {}
     rootObject.traverse((child) => {
       if (!child.isMesh || !child.material) {
         return
       }
 
-      updateMeshMaterials(child, (material) => {
-        if (hasExplicitColorSlots && !materialMatchesColorSlots(material, colorMaterialSlots)) {
-          return clearShaderTintMaterial(material)
-        }
+      if(child.material.name.includes("mat_part01") )
+      {
+         child.material.color.set( nextColorConfig?.mat_part01_color || '#ffffff' ) 
+      } 
 
-        return applyShaderTintMaterial(material, colorPreset, {
-          ...colorOptions,
-          forceTint: hasExplicitColorSlots
-        })
-      })
+      if(child.material.name.includes("mat_part02") )
+      {
+         child.material.color.set( nextColorConfig?.mat_part02_color || '#ffffff') 
+      }       
+
+      if(child.material.name.includes("mat_part03") )
+      {
+         child.material.color.set( nextColorConfig?.mat_part03_color || '#ffffff') 
+      }             
+
+      // updateMeshMaterials(child, (material) => {
+      //   if (hasExplicitColorSlots && !materialMatchesColorSlots(material, colorMaterialSlots)) {
+      //     return clearShaderTintMaterial(material)
+      //   }
+
+      //   return applyShaderTintMaterial(material, colorPreset, {
+      //     ...colorOptions,
+      //     forceTint: hasExplicitColorSlots
+      //   })
+      // })
     })
   }
 

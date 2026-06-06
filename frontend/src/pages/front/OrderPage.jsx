@@ -794,9 +794,9 @@ export default function OrderPage() {
                           focusTarget={sceneFocusTarget}
                           focusTargetPresets={effectiveFocusTargets}
                           colorConfig={{
-                            exteriorColor: exteriorColor,
-                            interiorColor: interiorColor,
-                            deckColor: deckColor
+                             mat_part01_color : exteriorColor ,
+                             mat_part02_color : interiorColor ,
+                             mat_part03_color : deckColor  ,                              
                           }}
                           overviewZoomScale={0.82}
                         />

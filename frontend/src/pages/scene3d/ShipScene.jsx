@@ -535,13 +535,8 @@ console.log('ShipScene render...useEffect-02, modelConfig.id:', modelConfig?.id,
       if (!loadedRoot) {
         return
       }
-
-      if (!hasCompositeParts) {
-        materialPipeline.applyColorConfigToObject(loadedRoot, 'full', nextColorConfig)
-        materialPipeline.applyOptionalMaterialOverridesToObject(loadedRoot, optionalMaterialOverridesRef.current)
-        return
-      }
-
+console.log("ShipScene..setColorConfigRef nextColorConfig=",nextColorConfig,",loadedRoot=",loadedRoot)
+ 
       compositePartPaths.forEach((part, partIndex) => {
         const partObject = loadedRoot.children[partIndex]
         if (!partObject) {
@@ -550,7 +545,7 @@ console.log('ShipScene render...useEffect-02, modelConfig.id:', modelConfig?.id,
 
         materialPipeline.applyColorConfigToObject(
           partObject,
-          materialPipeline.getTestHighPartRole(part.id, partIndex),
+          materialPipeline.getTestHighPartRole(part, partIndex),
           nextColorConfig
         )
         materialPipeline.applyOptionalMaterialOverridesToObject(partObject, optionalMaterialOverridesRef.current)
