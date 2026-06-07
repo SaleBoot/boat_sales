@@ -6,6 +6,61 @@ import { getGrandparentPath } from '../../../utils/utils_admin';
 
 const { Title } = Typography;
 
+const buildModelConfig = (subfolderName, subfolderFiles, sourcePath) => {
+  // 1. Determine the required extension from the source path
+  const requiredExtension = sourcePath.split('.').pop()?.toLowerCase();
+
+  // 2. Filter for model files (fbx/glb) that match the required extension
+  const partPaths = subfolderFiles
+    .filter(f => {
+      const fileExtension = f.key.split('.').pop()?.toLowerCase();
+      return fileExtension === requiredExtension;
+    })
+    .map(f => `/${f.key.replace(/^\//, '')}`);
+
+  const textureFiles = subfolderFiles.filter(f => {
+    const lowerKey = f.key.toLowerCase();
+    const fileName = lowerKey.substring(lowerKey.lastIndexOf('/') + 1);
+    if (fileName.startsWith('adimg')) return false;
+    return lowerKey.endsWith('.png') || lowerKey.endsWith('.jpg') || lowerKey.endsWith('.jpeg');
+  });
+
+  const matSlots = textureFiles.reduce((acc, file) => {
+    const pathParts = file.key.split('/');
+    const fileName = pathParts[pathParts.length - 1];
+    const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    const parts = fileNameWithoutExt.split('_');
+
+    if (parts.length < 3 || parts[0] !== 'mat') return acc;
+
+    const matName = `${parts[0]}_${parts[1]}`;
+    const textureType = parts.slice(2).join('_');
+
+    let matSlot = acc.find(slot => slot.matName === matName);
+    if (!matSlot) {
+      matSlot = {
+        matName: matName,
+        textures: { basecolor: "", normal: "", roughness: "", metalness: "", ao: "", emissive: "" }
+      };
+      acc.push(matSlot);
+    }
+
+    let finalTextureType = textureType === 'metallic' ? 'metalness' : textureType;
+    if (finalTextureType in matSlot.textures) {
+      matSlot.textures[finalTextureType] = `/${file.key}`;
+    }
+    return acc;
+  }, []);
+
+  return {
+    id: subfolderName,
+    label: subfolderName,
+    partPaths: partPaths,
+    matSlots: matSlots
+  };
+};
+
+
 const ModelParametersPanel = ({ boat,     
   modelFolders = [], 
   isLoadingModelFolders = false, 
@@ -92,9 +147,44 @@ const ModelParametersPanel = ({ boat,
     setSelectedModelFolderName(selectedPath || '')
   };
 
-  const handleRuntimeModelChange = (e) => {
-    if (onModelChange) {
-      onModelChange(e.target.value);
+  const handleDefaultStylePreview = (runtimePath) => {
+    if (!runtimePath || !onModelChange) return;
+
+    // 1. Find the correct parent folder using original paths, which have leading slashes.
+    const parentFolder = modelFolders.find(folder => runtimePath.startsWith(folder.modelFolderName));
+
+    if (!parentFolder) {
+        message.error('无法在可用模型文件夹中找到该路径。');
+        console.error(`Path "${runtimePath}" not found in any modelFolders.`);
+        return;
+    }
+
+    // 2. Extract subfolder name. Clean the path only for the split operation.
+    const relativePath = runtimePath.substring(parentFolder.modelFolderName.length);
+    const subfolderName = relativePath.replace(/^\//, '').split('/')[0];
+
+    if (!subfolderName) {
+        message.warn('无法从路径中确定子文件夹。');
+        console.error(`Could not determine subfolder from runtimePath: "${runtimePath}"`);
+        return;
+    }
+
+    // 3. Construct the prefix using original folder name to match descendantFiles format.
+    const subfolderPrefix = `${parentFolder.modelFolderName}/${subfolderName}/`;
+
+    // 4. Filter original descendantFiles, which have leading slashes.
+    const subfolderFilePaths = parentFolder.descendantFiles.filter(f => f.startsWith(subfolderPrefix));
+
+    // 5. Create file objects for buildModelConfig. The `key` must NOT have a leading slash.
+    const subfolderFileObjects = subfolderFilePaths.map(f => ({ key: f.replace(/^\//, '') }));
+
+    // 6. Build config and emit
+    if (subfolderFileObjects.length > 0) {
+        const modelConfig = buildModelConfig(subfolderName, subfolderFileObjects, runtimePath);
+        // Pass the original runtimePath to keep the selection correct in the UI
+        onModelChange(modelConfig, runtimePath);
+    } else {
+        message.warn('在当前文件夹中找不到预览所需的模型文件。');
     }
   };
 
@@ -267,7 +357,13 @@ const ModelParametersPanel = ({ boat,
                             <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择模型进行预览:</div>
                             <Radio.Group
                               value={runtimeModelPath}
-                              onChange={(e) => onModelChange(e.target.value)}
+                              onChange={(e) => {
+                                const selectedKey = e.target.value;
+                                const modelConfig = buildModelConfig(subfolder, subfolderFiles, selectedKey);
+                                if (onModelChange) {
+                                  onModelChange(modelConfig, selectedKey);
+                                }
+                              }}
                               style={{ width: '100%' }}
                             >
                               <Space direction="vertical" style={{ width: '100%' }}>
@@ -373,7 +469,7 @@ const ModelParametersPanel = ({ boat,
                         style={{ flex: 1 }}
                       />
                       <Button
-                        onClick={() => onModelChange(model.modelRuntimePath)}
+                        onClick={() => handleDefaultStylePreview(model.modelRuntimePath)}
                         disabled={!model.modelRuntimePath}
                       >
                         预览

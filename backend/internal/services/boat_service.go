@@ -3,21 +3,30 @@ package services
 import (
 	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/internal/db/models"
+	"context"
 	"fmt"
 	"log"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 type BoatService struct {
-	boatDao *dao.SysBoatDao
+	boatDao      *dao.SysBoatDao
+	boatModelDao *dao.SysBoatModelDao
 }
 
-func NewBoatService(aBoatDao *dao.SysBoatDao) (*BoatService, error) {
-	if aBoatDao == nil {
-		return nil, fmt.Errorf("NewBoatService: aBoatDao is required")
+func NewBoatService(
+	aBoatDao *dao.SysBoatDao,
+	aBoatModelDao *dao.SysBoatModelDao,
+) (*BoatService, error) {
+	if aBoatDao == nil || aBoatModelDao == nil {
+		return nil, fmt.Errorf("NewBoatService: aBoatDao or aBoatModelDao is required")
 	}
 
-	return &BoatService{boatDao: aBoatDao}, nil // 依赖注入
+	return &BoatService{
+		boatDao:      aBoatDao,
+		boatModelDao: aBoatModelDao}, nil // 依赖注入
 }
 
 func (aS *BoatService) GetBoatsByCategoryStrID(
@@ -74,12 +83,32 @@ func (aS *BoatService) AddBoat(aBoat *models.SysBoat) error {
 	return nil
 }
 
-func (aS *BoatService) DeleteBoats(aBoatIDs []uint) error {
+func (aS *BoatService) DeleteBoats(
+	aCtx context.Context,
+	aBoatIDs []uint,
+) error {
 	if len(aBoatIDs) == 0 {
 		return fmt.Errorf("boatIds are required")
 	}
 
-	if err := aS.boatDao.DeleteBoats(aBoatIDs); err != nil {
+	err := aS.boatDao.ExecInTransaction(aCtx, func(tx *gorm.DB) error {
+		if err := aS.boatDao.DeleteBoatsWithTx(tx, aBoatIDs); err != nil {
+			return fmt.Errorf("failed to delete boats: %w", err)
+		}
+
+		//
+		boatEnNames, err := aS.boatDao.GetBoatEnNamesWithTx(tx, aBoatIDs)
+		if err != nil {
+			return fmt.Errorf("failed to get boatEnNames: %w", err)
+		}
+
+		if err := aS.boatModelDao.DeleteByBoatEnNamesWithTx(tx, boatEnNames); err != nil {
+			return fmt.Errorf("failed to delete boat models: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
 		log.Printf("failed to delete boats: %v", err)
 		return fmt.Errorf("failed to delete boats: %w", err)
 	}
@@ -87,13 +116,43 @@ func (aS *BoatService) DeleteBoats(aBoatIDs []uint) error {
 	return nil
 }
 
-func (aS *BoatService) UpdateBoat(aBoat *models.SysBoat) error {
+func (aS *BoatService) UpdateBoat(
+	ctx context.Context,
+	aNewBoat *models.SysBoat,
+) error {
 
-	if err := aS.boatDao.UpdateBoat(aBoat); err != nil {
-		log.Printf("failed to update boat: %v", err)
+	err := aS.boatDao.ExecInTransaction(ctx, func(tx *gorm.DB) error {
+		ids := []uint{aNewBoat.ID}
+		boatEnNames, err := aS.boatDao.GetBoatEnNamesWithTx(tx, ids)
+		if err != nil || len(boatEnNames) == 0 {
+			return fmt.Errorf("failed to get boatEnNames: %w", err)
+		}
+
+		// 1. 更新 boat 表
+		if err := aS.boatDao.UpdateBoatWithTx(tx, aNewBoat); err != nil {
+			return fmt.Errorf("failed to update boat: %w", err)
+		}
+
+		if boatEnNames[0] == aNewBoat.BoatEnName {
+			log.Println("boat table do not change boatEnName,so not update boat models")
+			return nil
+		}
+
+		// 2. 根据 boatEnName 更新 boatModel 表
+		if err := aS.boatModelDao.UpdateBoatEnNameWithTx(
+			tx, boatEnNames[0], aNewBoat.BoatEnName,
+		); err != nil {
+			return fmt.Errorf("failed to update boat models: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("failed to update boat transaction: %v", err)
 		return fmt.Errorf("failed to update boat: %w", err)
 	}
 
-	log.Printf("Successfully updated boat %d", aBoat.ID)
+	log.Printf("Successfully updated boat %d and related models", aNewBoat.ID)
 	return nil
 }

@@ -41,14 +41,17 @@ export default function BoatModelsView() {
   const [boatCategories, setBoatCategories] = useState([]);
   const [modelFolders, setModelFolders] = useState([]);
   const [isLoadingModelFolders, setIsLoadingModelFolders] = useState(false);
-  const [selectedRuntimeModelPath, setSelectedRuntimeModelPath] = useState('');
+  const [previewModelConfig, setPreviewModelConfig] = useState(null);
+  const [selectedPreviewKey, setSelectedPreviewKey] = useState('');
   const [form] = Form.useForm();
 
   const remoteFBXOrigin = import.meta.env.VITE_REMOTE_FBX_ORIGIN;
-  const fbxBaseUrl = `${remoteFBXOrigin}/gltf01/`;
+ 
 
   const boatTypeMap = useMemo(() => {
-    if (!boatCategories) return {};
+    if (!boatCategories) 
+      return {};
+
     const map = boatCategories.reduce((acc, cat) => {
       acc[cat.categoryStrID] = cat.cnName;
       return acc;
@@ -120,9 +123,11 @@ export default function BoatModelsView() {
     }
   };
 
-  const handleRuntimeModelChange = (path) => {
-    console.log("setSelectedRuntimeModelPath=",path)
-    setSelectedRuntimeModelPath(path);
+  const handleRuntimeModelChange = (modelConfig, selectedKey) => {
+    console.log("Received modelConfig:", modelConfig);
+    console.log("Received selectedKey:", selectedKey);
+    setPreviewModelConfig(modelConfig);
+    setSelectedPreviewKey(selectedKey);
   };
 
   const handleUpdateBoat = async (values) => {
@@ -213,7 +218,7 @@ export default function BoatModelsView() {
             modelFolders={modelFolders}
             isLoadingModelFolders={isLoadingModelFolders}
             onModelChange={handleRuntimeModelChange}
-            runtimeModelPath={selectedRuntimeModelPath}
+            runtimeModelPath={selectedPreviewKey}
             cosOrigin={remoteFBXOrigin}
           />
         </div>
@@ -238,7 +243,8 @@ export default function BoatModelsView() {
             onSelectChange={onSelectChange}
             onRowClick={(record) => {
               setCurrentBoat(record);
-              setSelectedRuntimeModelPath(''); // 重置预览模型路径
+              setPreviewModelConfig(null); 
+              setSelectedPreviewKey('');
               messageApi.info(`已选择船舶: ${record.boatName}`);
             }}
             boatTypeMap={boatTypeMap}
@@ -265,13 +271,17 @@ export default function BoatModelsView() {
             <div style={{ flex: 1, position: 'relative' }}>
               {currentBoat ? (
                 <ShipScene
-                  modelConfig={{
-                    id: currentBoat.ID,
-                    model: {
-                      path: selectedRuntimeModelPath ? `${remoteFBXOrigin}${selectedRuntimeModelPath}` : undefined,
-                      format: selectedRuntimeModelPath.split('.').pop()?.toLowerCase(),
-                    },
-                  }}
+                  modelConfig={previewModelConfig ? {
+                    ...previewModelConfig,
+                    partPaths: previewModelConfig.partPaths.map(p => `${remoteFBXOrigin}${p}`),
+                    matSlots: previewModelConfig.matSlots.map(slot => ({
+                      ...slot,
+                      textures: Object.entries(slot.textures).reduce((acc, [key, value]) => {
+                        acc[key] = value ? `${remoteFBXOrigin}${value}` : "";
+                        return acc;
+                      }, {})
+                    }))
+                  } : { id: currentBoat.ID, partPaths: [], matSlots: [] }}
                 />
               ) : (
                 <Empty description="请在左侧选择一个模型进行预览" />

@@ -19,7 +19,7 @@ func NewServiceManager(
 	if err != nil {
 		return nil, err
 	}
-	boatSvc, err := NewBoatService(aBoatDao)
+	boatSvc, err := NewBoatService(aBoatDao, aBoatModelDao)
 	if err != nil {
 		return nil, err
 	}

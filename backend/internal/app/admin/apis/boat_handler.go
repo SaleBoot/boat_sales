@@ -163,7 +163,7 @@ func (aH *BoatHandler) HandleDeleteBoats(c *gin.Context) {
 		return
 	}
 
-	if err := aH.boatSvc.DeleteBoats(input.BoatIDs); err != nil {
+	if err := aH.boatSvc.DeleteBoats(c, input.BoatIDs); err != nil {
 		log.Printf("failed to delete boats: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
@@ -202,7 +202,7 @@ func (aH *BoatHandler) HandleUpdateBoat(c *gin.Context) {
 	boat := input.toModel()
 	boat.ID = boatID
 
-	if err := aH.boatSvc.UpdateBoat(boat); err != nil {
+	if err := aH.boatSvc.UpdateBoat(c, boat); err != nil {
 		log.Printf("failed to update boat: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,

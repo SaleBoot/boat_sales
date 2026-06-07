@@ -1,10 +1,12 @@
 backend/tmp*
+backend/focus-targets
 backend/boatsales-backend
-frontend/doc01/tmp*
+frontend/doc01/
+backend/doc02/
 backups/
 data/
 
-doc01/
+doc0*/
 static/
 scripts/
 service/

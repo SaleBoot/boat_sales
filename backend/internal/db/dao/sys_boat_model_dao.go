@@ -69,3 +69,31 @@ func (s *SysBoatModelDao) GetAllModels() ([]*models.SysBoatModel, error) {
 	}
 	return models, nil
 }
+
+func (s *SysBoatModelDao) UpdateBoatEnNameWithTx(
+	tx *gorm.DB,
+	aOldBoatEnName string,
+	aNewBoatEnName string,
+) error {
+	db := tx
+	if db == nil {
+		db = s.db
+	}
+
+	return db.Model(&models.SysBoatModel{}).
+		Where("boat_en_name = ?", aOldBoatEnName).
+		Update("boat_en_name", aNewBoatEnName).
+		Error
+}
+
+func (s *SysBoatModelDao) DeleteByBoatEnNamesWithTx(
+	tx *gorm.DB,
+	aBoatEnNames []string,
+) error {
+	db := tx
+	if db == nil {
+		db = s.db
+	}
+
+	return db.Delete(&models.SysBoatModel{}, "boat_en_name IN ?", aBoatEnNames).Error
+}
