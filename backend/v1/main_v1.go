@@ -2,6 +2,7 @@ package v1
 
 import (
 	"boatsales-backend/internal/types"
+	"context"
 	"mime"
 	"os"
 	"os/signal"
@@ -76,14 +77,6 @@ func Main_v1() {
 	// 生产环境下关闭调试日志，能显著提升性能。
 	// gin.SetMode(gin.ReleaseMode)
 
-	// 5. 监听系统信号，优雅关闭
-	go func() {
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-		<-ch
-		wsM.Stop() // 关闭Hub
-	}()
-
 	// 步骤四：配置精细化的 HTTP 服务器
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -105,10 +98,35 @@ func Main_v1() {
 		IdleTimeout: 30 * time.Second,
 	}
 
-	log.Println("Go server is running at http://localhost:" + port)
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	// ======================================================================
+	// ✅【标准写法】启动 HTTP 服务 —— 放在协程里
+	// ======================================================================
+	go func() {
+		log.Println("🚀 Go server is running at http://localhost:" + port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	// ======================================================================
+	// ✅【标准写法】信号监听 —— 放在主线程
+	// ======================================================================
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	<-ch
+	log.Println("🛑 正在关闭服务...")
+
+	// 关闭 WebSocket
+	wsM.Stop()
+
+	// 关闭 HTTP 服务
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatal("Server Shutdown Error:", err)
 	}
+
+	log.Println("✅ 服务已安全关闭")
 }
 
 func healthHandler(c *gin.Context) {
