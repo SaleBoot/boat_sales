@@ -19,6 +19,7 @@ type AdminModule struct {
 	boatH         *apis.BoatHandler
 	cosH          *apis.CosHandler
 	boatModelH    *apis.BoatModelHandler
+	modelVCamH    *apis.ModelVCamHandler
 }
 
 func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
@@ -26,6 +27,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 	aBoatSvc *services.BoatService, // 依赖注入
 	aCosPathSyncSvc *services.CosPathService, // 依赖注入
 	aBoatModelSvc *services.BoatModelService, // 依赖注入
+	aModelVCamSvc *services.ModelVCamService, // 依赖注入
 ) (*AdminModule, error) {
 
 	uH, err := apis.NewUserHandler(aUserDao)
@@ -64,6 +66,11 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		return nil, fmt.Errorf("failed to NewBoatModelHandler: %w", err)
 	}
 
+	vcamH, err := apis.NewModelVCamHandler(aModelVCamSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewModelVCamHandler: %w", err)
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &AdminModule{
 		userH:         uH,
@@ -71,6 +78,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		boatH:         bH,
 		cosH:          cosHTmp, // 依赖注入
 		boatModelH:    bmH,     // 依赖注入
+		modelVCamH:    vcamH,   // 依赖注入
 	}
 
 	return adminM, nil

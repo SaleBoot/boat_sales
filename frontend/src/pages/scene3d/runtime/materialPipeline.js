@@ -524,8 +524,8 @@ export function createMaterialPipeline({
    * @returns {THREE.Material} 调整后的材质。
    */
   const applyLiuYunOpaqueFinish = (material, context = {}) => {
-    // 特殊处理：如果子对象的名称是 'Box025'，则应用玻璃材质效果，这是一个针对特定模型的硬编码分支。
-    if (context.child?.name === 'Box025') {
+    // 特殊处理：如果子对象的名称是 'has_glass'，则应用玻璃材质效果，这是一个针对特定模型的硬编码分支。
+    if (context.child?.name === 'has_glass') {
       return applyLiuYunGlassFinish(material)
     }
 
@@ -568,6 +568,7 @@ export function createMaterialPipeline({
    * @returns {Array<{normalizedName: string, name: string}>} - 一个包含材质插槽信息的数组，每个对象包含规范化名称和原始名称。
    */
   const collectRuntimeMaterialSlots = (rootObject) => {
+    console.log("collectRuntimeMaterialSlots::rootObject", rootObject)
     // 使用 Map 来存储材质插槽，键为规范化后的材质名称，值为原始名称。
     // Map 可以确保每个规范化名称只被添加一次，自动处理了重复材质。
     const materialSlots = new Map()
@@ -926,9 +927,10 @@ export function createMaterialPipeline({
                   ? applyFireFightingRailingTransparency // 应用消防船栏杆透明效果
                   : null
             )
-          : modelId === 'LiuYun' && matSlot.id === 'mt' // 如果是流云模型且ID是'mt'
-            ? applyLiuYunOpaqueFinish // 应用流云不透明材质效果
-            : null
+          : applyLiuYunOpaqueFinish
+          // : modelId.startsWith('1198sites') && matSlot.matName === 'mat_part02' // 如果是流云模型且ID是'mt'
+          //   ? applyLiuYunOpaqueFinish // 应用流云不透明材质效果
+          //   : null
 
       // **最终应用**：调用 applyUvSetMaps 函数，将加载好的纹理和转换逻辑应用到场景中匹配的材质上。
       const initialResult = applyUvSetMaps(rootObject, matSlot, textureMap, {

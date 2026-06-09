@@ -31,18 +31,20 @@ export function useFocusTarget(selectedModelGid,
   }, [selectedModelGid, setViewerFocusTarget]);
 
   // 当选中的模型 ID 或其配置变化时，异步加载该模型的焦点目标列表
-  useEffect(() => {
-    if (!selectedModelGid) {
+  useEffect(() => { 
+    const modelPath = primaryModel?.primaryModelInfo?.partPaths?.[0] || '';
+    if (!modelPath) {
       setViewerFocusTargets({});
       return;
-    }
+    }    
 
     let cancelled = false;
 
     const loadFocusTargets = async () => {
       try {
+
         // 使用封装后的 API 函数
-        const payload = await getFocusTargets(selectedModelGid.boatId, selectedModelGid.modelId);
+        const payload = await getFocusTargets( modelPath );
         if (!cancelled) {
           setViewerFocusTargets(payload?.focusTargets ?? {});
         }
@@ -61,7 +63,7 @@ export function useFocusTarget(selectedModelGid,
     return () => {
       cancelled = true;
     };
-  }, [selectedModelGid, runtimeBasePath, primaryModel?.orderConfig?.focusTargets]);
+  }, [primaryModel?.primaryModelInfo?.partPaths, runtimeBasePath, primaryModel?.orderConfig?.focusTargets]);
 
   return { viewerFocusTarget, setViewerFocusTarget, viewerFocusTargets };
 }

@@ -74,7 +74,11 @@ export function buildModel4ShipScene(aModel4Front, remoteFbxOrigin) {
  
     return {
       matName: typeof slot.matName === 'string' ? slot.matName : '',      
-      textures:  textures 
+      textures:  textures ,
+      renderProfile: {
+          // alphaMode: "blend",
+          // side: "double",
+      }
     };
   });
 

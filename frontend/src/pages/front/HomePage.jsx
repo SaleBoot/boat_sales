@@ -111,7 +111,7 @@ export default function HomePage() {
 
     const primaryModelInfo = 
       boatData.models?.find(item => item.id === modelId) 
-      || boatData.models?.[0] 
+      || boatData.models?.[ boatData.models?.length -1 ] 
       || {};
       return {
         ...boatData, // boatData from API now includes id and label

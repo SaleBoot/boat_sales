@@ -22,6 +22,7 @@ import { getBoatCategories, getBoats, addBoat, updateBoat, deleteBoats, getAllCo
 import BoatListSider from '../components/BoatListSider';
 import BoatInfoPanel from '../components/BoatInfoPanel.jsx';
 import ModelParametersPanel from '../components/ModelParametersPanel.jsx';
+import BoatModelEditor from '../components/BoatModelEditor.jsx';
 import Inspector from '../components/Inspector.jsx';
 import Inspector01 from '../components/Inspector01.jsx';
 import AddBoatModal from './BoatAddModal.jsx';
@@ -210,7 +211,23 @@ export default function BoatModelsView() {
     },
     {
       key: '2',
-      label: '模型参数配置',
+      label: '船舶样式模型编辑',
+      children: (
+        <div className="admin-boat-model-tab-pane">
+          <BoatModelEditor
+            boat={currentBoat}
+            modelFolders={modelFolders}
+            isLoadingModelFolders={isLoadingModelFolders}
+            onModelChange={handleRuntimeModelChange}
+            runtimeModelPath={selectedPreviewKey}
+            cosOrigin={remoteFBXOrigin}
+          />
+        </div>
+      ),
+    }, 
+    {
+      key: '3',
+      label: '模型视角参数编辑',
       children: (
         <div className="admin-boat-model-tab-pane">
           <ModelParametersPanel
@@ -223,7 +240,7 @@ export default function BoatModelsView() {
           />
         </div>
       ),
-    }, 
+    },     
   ];
 
   return (
@@ -312,6 +329,7 @@ export default function BoatModelsView() {
       </Row>
 
       <AddBoatModal
+        boatCategories={boatCategories}
         open={isAddModalOpen}
         onCancel={() => setIsAddModalOpen(false)}
         onAddComplete={handleAddComplete}

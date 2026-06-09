@@ -108,10 +108,8 @@ export const getFrontBoatModels = () => {
  * @param {string} [modelId] - The optional ID of the specific model variant.
  * @returns {Promise<Models4Front>} A promise that resolves to the comprehensive boat data object.
  */
-export const getFocusTargets = (boatId, modelId) => {
-  return api.get('/front/model/focus-targets', {
-    params: { boatId, modelId },
-  });
+export const getFocusTargets = (modelPath) => {
+  return api.get(`/front/vcams/${modelPath}`);
 };
 
 

@@ -3,6 +3,7 @@ package v1
 import (
 	"boatsales-backend/internal/app/admin"
 	"boatsales-backend/internal/app/front"
+	"boatsales-backend/internal/app/ws"
 	"boatsales-backend/internal/db"
 	"boatsales-backend/internal/services"
 	"boatsales-backend/pkg/utils"
@@ -35,6 +36,7 @@ type app struct {
 	serviceM *services.ServiceManager
 	adminM   *admin.AdminModule
 	frontM   *front.FrontModule
+	wsM      *ws.WsModule
 }
 
 type projectPaths struct {
@@ -50,10 +52,10 @@ type projectPaths struct {
 	focusTargetsDir        string
 }
 
-func NewApp() (*app, error) {
+func NewApp() (*app, *ws.WsModule, error) {
 	paths, err := discoverProjectPaths()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	application := &app{
@@ -69,51 +71,66 @@ func NewApp() (*app, error) {
 		focusTargetsDir:        paths.focusTargetsDir,
 	}
 
+	// ----
 	dbm, err := db.NewDbManager()
 	if err != nil {
-		return nil, fmt.Errorf("initialize database: %w", err)
+		return nil, nil, fmt.Errorf("initialize database: %w", err)
 	}
 	application.dbm = dbm
 
+	// ----
 	svcMtmp, err := services.NewServiceManager(
 		application.dbm.BoatCategoryDao, // 依赖注入
 		application.dbm.BoatDao,         // 依赖注入
 		application.dbm.CosPathDao,      // 依赖注入
 		application.dbm.BoatModelDao,    // 依赖注入
+		application.dbm.ModelVCamDao,    // 依赖注入
 	)
 	if err != nil {
-		return nil, fmt.Errorf("initialize service manager: %w", err)
+		return nil, nil, fmt.Errorf("initialize service manager: %w", err)
 	}
 	application.serviceM = svcMtmp
 
+	// ----
 	adminMTmp, err := admin.NewAdminModule(application.dbm.UserDao,
 		svcMtmp.BoatCategorySvc,
 		svcMtmp.BoatSvc,
 		svcMtmp.CosPathSvc,
 		svcMtmp.BoatModelSvc,
+		svcMtmp.ModelVCamSvc,
 	) // 依赖注入
 	if err != nil {
-		return nil, fmt.Errorf("initialize admin module: %w", err)
+		return nil, nil, fmt.Errorf("initialize admin module: %w", err)
 	}
 	application.adminM = adminMTmp
 
+	// ----
 	frontMTmp, err := front.NewFrontModule(
 		svcMtmp.BoatCategorySvc, // 依赖注入
 		svcMtmp.BoatSvc,         // 依赖注入
 		svcMtmp.CosPathSvc,      // 依赖注入
 		svcMtmp.BoatModelSvc,    // 依赖注入
+		svcMtmp.ModelVCamSvc,
 	) // 依赖注入
 	if err != nil {
-		return nil, fmt.Errorf("initialize front module: %w", err)
+		return nil, nil, fmt.Errorf("initialize front module: %w", err)
 	}
 	application.frontM = frontMTmp
 
+	//---------
+	// ----
+	wsM, err := ws.NewWsModule()
+	if err != nil {
+		return nil, nil, fmt.Errorf("initialize ws module: %w", err)
+	}
+	application.wsM = wsM
+
 	// 初始化订单数据库
 	if err := application.initializeSalesOrderDatabase(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return application, nil
+	return application, wsM, nil
 }
 
 func discoverProjectPaths() (projectPaths, error) {
@@ -173,6 +190,7 @@ func (a *app) RegisterRoutes(r *gin.Engine) error {
 	a.RegisterAdminRoutes(api)
 
 	a.frontM.RegisterRoutes(api)
+	a.wsM.RegisterRoutes(api)
 
 	a.RegisterContentRoutes(api)
 	a.RegisterOrderRoutes(api)

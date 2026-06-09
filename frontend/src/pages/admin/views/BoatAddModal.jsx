@@ -6,17 +6,12 @@ import { uploadByPresignedUrl } from '../../../apis/pureAxiosApi';
  
 const { Option } = Select;
 
-const boatTypes = [ // 模拟数据，实际应从后端获取
-  { CategoryStrID: "NewEnergy", EnName: "New Energy", CnName: "新能源船" },
-  { CategoryStrID: "EmergencyRescue", EnName: "Emergency Rescue", CnName: "应急救援船" },
-  { CategoryStrID: "OfficialEnforcement", EnName: "Official Law Enforcement", CnName: "公务执法艇" },
-  { CategoryStrID: "Yacht", EnName: "Yacht", CnName: "游艇" },
-];
+
 
 /**
  * 新增/编辑船舶的模态框
  */
-const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
+const AddBoatModal = ({ boatCategories, open, onCancel, onAddComplete, loading }) => {
   const [form] = Form.useForm();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -207,9 +202,9 @@ const AddBoatModal = ({ open, onCancel, onAddComplete, loading }) => {
               style={{ marginBottom: '4px' }}
             >
               <Select placeholder="请选择一个船舶类别">
-                {boatTypes.map((type) => (
-                  <Option key={type.CategoryStrID} value={type.CategoryStrID}>
-                    {type.CnName}
+                {boatCategories.map((type) => (
+                  <Option key={type.categoryStrID} value={type.categoryStrID}>
+                    {type.cnName}
                   </Option>
                 ))}
               </Select>

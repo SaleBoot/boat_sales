@@ -35,6 +35,7 @@ export function useFirstPersonControls(threeContext, canvasRef, modeRef) { // <-
     interiorCamera.position.copy(interiorPose.position);
     interiorCamera.lookAt(interiorLookTarget);
     interiorCamera.updateProjectionMatrix();
+   
   }, [interiorCamera]);
 
   const updateFirstPersonMovement = useCallback((deltaSeconds) => {

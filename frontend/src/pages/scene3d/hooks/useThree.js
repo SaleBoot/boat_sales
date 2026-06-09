@@ -63,6 +63,7 @@ function setupCameras(scene, exteriorCameraPreset, interiorDeckPresetConfig, isS
   exteriorCamera.zoom = exteriorCameraPreset.zoom
   interiorCamera.position.set(...(interiorDeckPresetConfig['1']?.position ?? [0, 0.68, -0.82]))
   
+  
   scene.add(exteriorCamera, interiorCamera)
 
   return {

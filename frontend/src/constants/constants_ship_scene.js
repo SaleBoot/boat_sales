@@ -5,7 +5,7 @@ export const EMPTY_ARRAY = [];
 export const DEFAULT_WATER_TUNING = {
   levelFactor: 0.18,
   radiusScale: 0.84,
-  zOffset: 0.16,
+  zOffset: 0,
   exteriorModelLiftY: 0
 };
 // threejs ALPHA_MODE

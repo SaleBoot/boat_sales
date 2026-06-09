@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom';
-
+import { useFocusTarget } from '../../hooks/useFocusTarget';
 import ShipScene from '../scene3d/ShipScene'
 import { vesselCategoryMenus } from '../../constants/constants_front_homepage.js'
 import { buildModel4ShipScene } from '../../utils/utils_ship_scene'
@@ -74,26 +74,64 @@ const DEFAULT_ORDER_CONFIG = {
       price: 18000
     }
   ],
-  powerOptions: [
+  // -------------------------
+  powerTypes: [
     {
-      id: 'dual-electric-standard',
-      label: '高效巡航动力',
-      description: '兼顾静音巡航、日常接待与中短途运营，适合作为标准交付方案',
-      price: 368000
+      id: 'electric',
+      label: '纯电动力',
+      engines: [
+        {
+          id: 'electric-standard',
+          label: '高效巡航电机',
+          description: '兼顾静音巡航、日常接待与中短途运营，适合作为标准交付方案',
+          price: 36000
+        },
+        {
+          id: 'electric-performance',
+          label: '高性能任务电机',
+          description: '提升加速响应与连续航行稳定性，适合高频使用与复杂水域场景',
+          price: 42000
+        }
+      ]
     },
     {
-      id: 'dual-electric-performance',
-      label: '高性能任务动力',
-      description: '提升加速响应与连续航行稳定性，适合高频使用与更复杂水域',
-      price: 428000
+      id: 'diesel',
+      label: '柴油动力',
+      engines: [
+        {
+          id: 'diesel-d01',
+          label: 'D01 型柴油发动机', // 加个空格更美观
+          description: '适用于救援、巡逻与长时间值守任务，续航与负载能力均衡',
+          price: 68000
+        },
+        {
+          id: 'diesel-d02',
+          label: 'D02 型柴油发动机',
+          description: '适用于救援、巡逻与长时间值守任务，续航与负载能力均衡',
+          price: 58000
+        }
+      ]
     },
     {
-      id: 'hybrid-rescue',
-      label: '混动应急动力',
-      description: '面向救援、巡逻与长时间值守任务，兼顾续航和负载能力',
-      price: 468000
+      id: 'hybrid',
+      label: '混合动力',
+      engines: [
+        {
+          id: 'hybrid-standard',
+          label: '混动应急动力（标准型）',
+          description: '适用于救援、巡逻与长时间值守任务，续航与负载能力均衡',
+          price: 40000
+        },
+        {
+          id: 'hybrid-premium',
+          label: '混动应急动力（增强型）',
+          description: '适用于救援、巡逻与长时间值守任务，续航与负载能力均衡',
+          price: 45000
+        }
+      ]
     }
-  ], 
+  ],  
+  // -----------------
   focusTargets: {}
 }
 
@@ -183,7 +221,7 @@ function normalizeOrderConfig(orderConfig)
     appearanceOptions: Array.isArray(config.appearanceOptions) ? config.appearanceOptions : [],
     colorOptions: Array.isArray(config.colorOptions) ? config.colorOptions : [],
     interiorOptions: Array.isArray(config.interiorOptions) ? config.interiorOptions : [],
-    powerOptions: Array.isArray(config.powerOptions) ? config.powerOptions : [], 
+    powerTypes: Array.isArray(config.powerTypes) ? config.powerTypes : [], 
     focusTargets: config.focusTargets && Object.keys(config.focusTargets).length ? config.focusTargets : {}
   }
 }
@@ -270,20 +308,44 @@ export default function OrderPage() {
 
   // currentOrderConfig
   const currentOrderConfig = useMemo(
-    () => normalizeOrderConfig(currentModel?.primaryModelInfo?.orderConfig), 
+    () => normalizeOrderConfig(DEFAULT_ORDER_CONFIG), //(currentModel?.primaryModelInfo?.orderConfig), 
     [currentModel?.primaryModelInfo])
   const [loadedFocusTargets, setLoadedFocusTargets] = useState(currentOrderConfig.focusTargets)
   const [selectedAppearanceId, setSelectedAppearanceId] = useState(currentOrderConfig.appearanceOptions[0]?.id ?? '')
   const [selectedInteriorId, setSelectedInteriorId] = useState(currentOrderConfig.interiorOptions[0]?.id ?? '')
-  const [selectedPowerId, setSelectedPowerId] = useState(currentOrderConfig.powerOptions[0]?.id ?? '')
+  const [selectedPowerId, setSelectedPowerId] = useState(currentOrderConfig.powerTypes[0]?.id ?? '')
+  // New state for selected engine
+  const [selectedEngineId, setSelectedEngineId] = useState('');
+
+  // Derived state for active power type and engine
+  const activePowerType = useMemo(() => {
+    return DEFAULT_ORDER_CONFIG.powerTypes.find(
+      (type) => type.id === selectedPowerId
+    );
+  }, [selectedPowerId]);
+
+  const activeEngine = useMemo(() => {
+    return activePowerType?.engines.find(
+      (engine) => engine.id === selectedEngineId
+    );
+  }, [activePowerType, selectedEngineId]);
+
+  // Effect to update selectedEngineId when selectedPowerId changes
+  useEffect(() => {
+    if (activePowerType && activePowerType.engines.length > 0) {
+      setSelectedEngineId(activePowerType.engines[0].id);
+    } else {
+      setSelectedEngineId('');
+    }
+  }, [activePowerType]);
  
 
   // 
   const [activeConfigStep, setActiveConfigStep] = useState('船型')
   const [activeOrderStage, setActiveOrderStage] = useState('config')
-  const [exteriorColor, setExteriorColor] = useState('#EAEAEA')      // 船体
-  const [interiorColor, setInteriorColor] = useState('#332E2B') // 内饰
-  const [deckColor, setDeckColor] = useState('#995522')       // 甲板
+  const [exteriorColor, setExteriorColor] = useState('#FFFFFF')      // 船体
+  const [interiorColor, setInteriorColor] = useState('#FFFFFF') // 内饰
+  const [deckColor, setDeckColor] = useState('#FFFFFF')       // 甲板
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -298,6 +360,9 @@ export default function OrderPage() {
     releaseAt: 0,
     timerId: null
   })
+
+  // 视角切换操作台
+  const viewTogglePortalTargetRef = useRef(null)
 
   useEffect(() => {
     if (currentModel) {
@@ -317,8 +382,8 @@ export default function OrderPage() {
     setSelectedInteriorId((current) => nextConfig.interiorOptions.some((item) => item.id === current) 
                   ? current : (nextConfig.interiorOptions[0]?.id ?? ''))
 
-    setSelectedPowerId((current) => nextConfig.powerOptions.some((item) => item.id === current) 
-                  ? current : (nextConfig.powerOptions[0]?.id ?? ''))
+    setSelectedPowerId((current) => nextConfig.powerTypes.some((item) => item.id === current) 
+                  ? current : (nextConfig.powerTypes[0]?.id ?? ''))
 
   }, [currentModel])
 
@@ -410,7 +475,7 @@ export default function OrderPage() {
 
   const handleModelSelectChange = (event) => {
     const newModelId = event.target.value;
-    console.log("handleModelSelectChange:00 newModelId=", newModelId);
+    // console.log("handleModelSelectChange:00 newModelId=", newModelId);
     setSelectedModelIdLocal(newModelId);
     console.log("handleModelSelectChange:01 newModelId=", newModelId);
     
@@ -426,53 +491,19 @@ export default function OrderPage() {
     }
 
   };  
+  // ------------------
+
+  const { viewerFocusTarget, 
+    setViewerFocusTarget, 
+    viewerFocusTargets 
+  } = useFocusTarget( selectedModelGid, activeModel, apiBasePath);
+
 
   //---- orderConfig
   const activeOrderConfig = useMemo(
     () => normalizeOrderConfig(activeModel?.orderConfig), 
     [activeModel])
-
-  const effectiveFocusTargets = loadedFocusTargets && Object.keys(loadedFocusTargets).length
-    ? loadedFocusTargets
-    : activeOrderConfig.focusTargets
-
-  useEffect(() => {
-    setLoadedFocusTargets(activeOrderConfig.focusTargets)
-  }, [activeOrderConfig.focusTargets, currentModel?.id])
-
-  useEffect(() => {
-    if (!currentModel?.id) {
-      setLoadedFocusTargets({})
-      return
-    }
-
-    let cancelled = false
-
-    const loadFocusTargets = async () => {
-      try {
-        const response = await fetch(buildApiUrl(apiBasePath, `api/models/${encodeURIComponent(currentModel.id)}/focus-targets`))
-        if (!response.ok) {
-          throw new Error(`Failed to load focus targets: ${response.status}`)
-        }
-
-        const payload = await response.json()
-        if (!cancelled) {
-          setLoadedFocusTargets(payload?.focusTargets ?? {})
-        }
-      } catch (error) {
-        console.error(`Failed to load focus targets for ${currentModel.id}:`, error)
-        if (!cancelled) {
-          setLoadedFocusTargets(activeOrderConfig.focusTargets)
-        }
-      }
-    }
-
-    loadFocusTargets()
-
-    return () => {
-      cancelled = true
-    }
-  }, [activeOrderConfig.focusTargets, apiBasePath, currentModel?.id])
+ 
 
   const activeAppearance = activeOrderConfig.appearanceOptions.find((item) => item.id === selectedAppearanceId) 
                         ?? activeOrderConfig.appearanceOptions[0]
@@ -480,18 +511,16 @@ export default function OrderPage() {
                         ?? activeOrderConfig.colorOptions[0]
   const activeInterior = activeOrderConfig.interiorOptions.find((item) => item.id === selectedInteriorId) 
                         ?? activeOrderConfig.interiorOptions[0]
-  const activePower = activeOrderConfig.powerOptions.find((item) => item.id === selectedPowerId) 
-                        ?? activeOrderConfig.powerOptions[0]
+  const activePower = activeOrderConfig.powerTypes.find((item) => item.id === selectedPowerId) 
+                        ?? activeOrderConfig.powerTypes[0]
   const activeModelReferencePrice = getModelReferencePrice(activeModel)
   const activeModelReferencePriceLabel = getModelReferencePriceLabel(activeModel)
-  
-  const sceneFocusTarget = 'exterior'
-
+   
   const totalPrice = (activeModelReferencePrice ?? 0)
     + (activeAppearance?.price ?? 0)
     + (activeColor?.surcharge ?? 0)
     + (activeInterior?.price ?? 0)
-    + (activePower?.price ?? 0) 
+    + (activeEngine?.price ?? 0) 
 
   useEffect(() => {
     const updateActiveStage = () => {
@@ -777,6 +806,7 @@ export default function OrderPage() {
  
       <main className="order-shell">
         <section className="order-visual-column">
+            
           <div className="order-visual-sticky">
             <div className="order-scene-panel">
               {activeModel ? (
@@ -787,18 +817,21 @@ export default function OrderPage() {
                   }
                   
                   return (
-                    <main className="capture-screen">
-                      <div className="capture-scene-shell">
+                    <main className="capture-screen" style={{ width: '100%', height: '100%' }}>
+                      <div className="capture-scene-shell" style={{ width: '100%', height: '100%' }}>
                         <ShipScene 
                           modelConfig={modelConfig}
-                          focusTarget={sceneFocusTarget}
-                          focusTargetPresets={effectiveFocusTargets}
+                          focusTarget={viewerFocusTarget}
+                          focusTargetPresets={viewerFocusTargets}
+                          focusTargetStrategy="console-driven"
+                          onFocusTargetChange={setViewerFocusTarget}                          
                           colorConfig={{
                              mat_part01_color : exteriorColor ,
                              mat_part02_color : interiorColor ,
                              mat_part03_color : deckColor  ,                              
                           }}
                           overviewZoomScale={0.82}
+                          viewTogglePortalTarget={viewTogglePortalTargetRef.current}
                         />
                       </div>
                     </main>
@@ -812,6 +845,7 @@ export default function OrderPage() {
         </section>
 
         <section className="order-config-column">
+          <div ref={viewTogglePortalTargetRef} />
           <div className="order-config-nav" aria-label="配置导航">
             {configurationSteps.map((item) => (
               <button
@@ -905,7 +939,7 @@ export default function OrderPage() {
                 <div className="order-config-item" 
                     style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', gap: '8px', flexWrap: 'nowrap' }}>
                   <div className="order-config-item-label" 
-                       style={{ width: '110px', flexShrink: 0 }}>船体颜色：</div>
+                       style={{ width: '110px', flexShrink: 0 }}>外观颜色：</div>
                   <input type="color" value={exteriorColor} 
                          onChange={(e) => setExteriorColor(e.target.value)} 
                          style={{ width: '40px', height: '24px', border: 'none', padding: '0' }} />
@@ -930,26 +964,7 @@ export default function OrderPage() {
                 </div>
               </div>  
             </div>
-
-            <div className="order-option-stack">
-              {activeOrderConfig.appearanceOptions.map((option) => (
-                <label key={option.id} className={`order-radio-card ${selectedAppearanceId === option.id ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="appearanceOption"
-                    checked={selectedAppearanceId === option.id}
-                    onChange={() => setSelectedAppearanceId(option.id)}
-                  />
-                  <div>
-                    <h3>{option.label}</h3>
-                    <p>{option.description}</p>
-                  </div>
-                  <strong>{option.price > 0 ? formatPrice(option.price) : '标准'}</strong>
-                </label>
-              ))}
-            </div>
  
-   
           </section>
 
   
@@ -963,32 +978,62 @@ export default function OrderPage() {
             </div>
 
             <div className="order-option-stack">
-              {activeOrderConfig.powerOptions.map((option) => (
-                <label key={option.id} className={`order-radio-card ${selectedPowerId === option.id ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    name="powerOption"
-                    checked={selectedPowerId === option.id}
-                    onChange={() => setSelectedPowerId(option.id)}
-                  />
-                  <div>
-                    <h3>{option.label}</h3>
-                    <p>{option.description}</p>
-                  </div>
-                  <strong>{formatPrice(option.price)}</strong>
-                </label>
-              ))}
+              <div style={{ marginBottom: '10px' }}>动力类型：</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {DEFAULT_ORDER_CONFIG.powerTypes.map((option, index) => (
+                  <label key={option.id} className={`order-radio-card ${selectedPowerId === option.id ? 'active' : ''}`}
+                    style={{
+                      flexGrow: 1,
+                      flexShrink: 1,
+                      flexBasis: 'calc(33.333% - 6.666px)'
+                    }}>
+                    <input type="radio" name="powerOption"
+                      checked={selectedPowerId === option.id}
+                      onChange={() => setSelectedPowerId(option.id)}
+                    />
+                    <div> <h3>{option.label}</h3>  </div>
+                  </label>
+                ))}
+              </div>
             </div>
+
+            {/* Engine Selection Dropdown and Details */}
+            {activePowerType?.engines?.length > 0 && (
+              <div className="order-option-stack" style={{ marginTop: '20px' }}>
+                <label htmlFor="engine-select" className="order-model-label">选择发动机:</label>
+                <select
+                  id="engine-select"
+                  value={selectedEngineId}
+                  onChange={(e) => setSelectedEngineId(e.target.value)}
+                  className="order-model-dropdown"
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+                >
+                  {activePowerType.engines.map((engine) => (
+                    <option key={engine.id} value={engine.id}>
+                      {engine.label}
+                    </option>
+                  ))}
+                </select>
+
+                {activeEngine && (
+                  <div style={{ marginTop: '15px', padding: '15px', border: '1px solid #eee', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '0.9em', color: '#555' }}>{activeEngine.description}</p>
+                    <p style={{ margin: 0, fontWeight: 'bold', color: '#333' }}>价格: {formatPrice(activeEngine.price)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
           </section>
 
           <section id="order-section-submit" className="order-summary-card">
             <p className="order-kicker">配置摘要</p>
-            <h2>{activeModel?.label ?? '未选择船型'}</h2>
+            <h2>{activeModel?.primaryModelInfo?.label ?? '未选择船型'}</h2>
 
             <div className="order-summary-list">
               <div>
                 <span>船型</span>
-                <strong>{activeModel?.label ?? '-'}</strong>
+                <strong>{activeModel?.primaryModelInfo?.label ?? '-'}</strong>
               </div>
               {activeModelReferencePriceLabel && (
                 <div>
@@ -996,22 +1041,32 @@ export default function OrderPage() {
                   <strong>{formatPrice(activeModelReferencePrice)}</strong>
                 </div>
               )}
-              <div>
-                <span>外观</span>
-                <strong>{activeAppearance?.label ?? '-'}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>外观颜色</span>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ width: '20px', height: '20px', backgroundColor: exteriorColor, border: '1px solid #ccc', marginRight: '8px' }}></div>
+                  <strong>{exteriorColor}</strong>
+                </div>
               </div>
-              <div>
-                <span>内饰</span>
-                <strong>{activeInterior?.label ?? '-'}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>内饰颜色</span>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ width: '20px', height: '20px', backgroundColor: interiorColor, border: '1px solid #ccc', marginRight: '8px' }}></div>
+                  <strong>{interiorColor}</strong>
+                </div>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>甲板颜色</span>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ width: '20px', height: '20px', backgroundColor: deckColor, border: '1px solid #ccc', marginRight: '8px' }}></div>
+                  <strong>{deckColor}</strong>
+                </div>
+              </div>              
               <div>
                 <span>动力</span>
-                <strong>{activePower?.label ?? '-'}</strong>
+                <strong>{activeEngine?.label ?? '-'}</strong>
               </div>
-              <div>
-                <span>船体颜色</span>
-                <strong>{activeColor?.label ?? '-'}</strong>
-              </div>
+
             </div>
  
 

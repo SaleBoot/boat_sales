@@ -10,7 +10,7 @@ const DEFAULT_ADMIN_EMAIL = 'display@preview.com'
  */
 export default function LoginPage() {
   const [email, setEmail] = useState(DEFAULT_ADMIN_EMAIL);
-  const [password, setPassword] = useState('cqjscb2026');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   // isSubmitting 状态是必需的，以防止重复提交并提供用户反馈
   const [isSubmitting, setIsSubmitting] = useState(false);

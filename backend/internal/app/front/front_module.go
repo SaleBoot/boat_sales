@@ -12,6 +12,7 @@ type FrontModule struct {
 	// boatCategoryH *apis.FrontBoatCategoryHandler
 	// boatH         *apis.FrontBoatHandler
 	boatModelFH *apis.BoatModelFrontHandler
+	vcamFH      *apis.ModelVCamFrontHandler
 }
 
 func NewFrontModule(
@@ -19,6 +20,7 @@ func NewFrontModule(
 	aBoatSvc *services.BoatService, // 依赖注入
 	aCosPathSvc *services.CosPathService, // 依赖注入
 	aBoatModelSvc *services.BoatModelService, // 依赖注入
+	aModelVCamSvc *services.ModelVCamService, // 依赖注入
 ) (*FrontModule, error) {
 
 	// bcH, err := apis.NewBoatCategoryHandler(aBoatCategorySvc)
@@ -42,10 +44,11 @@ func NewFrontModule(
 		return nil, fmt.Errorf("failed to NewBoatModelFrontHandler: %w", err)
 	}
 
+	vcamFH, err := apis.NewModelVCamFrontHandler(aCosPathSvc, aModelVCamSvc)
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	frontM := &FrontModule{
-
-		boatModelFH: bmFH, // 依赖注入
+		boatModelFH: bmFH,   // 依赖注入
+		vcamFH:      vcamFH, // 依赖注入
 	}
 
 	return frontM, nil
@@ -68,6 +71,8 @@ func (a *FrontModule) RegisterRoutes(aApiRG *gin.RouterGroup) {
 		// }
 		// 全路径 /api/front/boat-models
 		fontRG.GET("/boat-models", a.boatModelFH.HandleGetModels)
+		// 全路径 /api/front/vcams/*modelPath
+		fontRG.GET("/vcams/*modelPath", a.vcamFH.HandleGetVCamsByModelPath)
 	}
 
 }

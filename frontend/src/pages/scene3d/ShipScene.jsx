@@ -92,7 +92,7 @@ export default function ShipScene({
   debugTransform = null,
   onDebugTransformChange = null
 }) {
-  console.log('ShipScene start, modelConfig:', modelConfig,"::colorConfig=",colorConfig);
+  console.log('ShipScene start, modelConfig:', modelConfig,"::colorConfig=",colorConfig,"THREE.FrontSide=",THREE.FrontSid);
   const assetBaseUrl = getStaticAssetBaseUrl(
     import.meta.env.VITE_REMOTE_FBX_ORIGIN,
     import.meta.env.BASE_URL
@@ -354,7 +354,7 @@ export default function ShipScene({
       setIsLoadingHudVisible(true)
       return undefined
     }
-    console.log('ShipScene render...useEffect-02, modelConfig.id:', modelConfig?.id);
+    
     let isDisposed = false
     const getIsDisposed = () => isDisposed
     if (loadingOverlayTimerRef.current) {
@@ -370,6 +370,7 @@ export default function ShipScene({
     cameraRef.current = activeCamera
 
     controlsRef.current = controls
+
 
     let transformControls = null
     const syncTransformControls = () => {
@@ -699,6 +700,11 @@ console.log("ShipScene..setColorConfigRef nextColorConfig=",nextColorConfig,",lo
       } else {
         updateFirstPersonMovement(deltaSeconds)
       }
+// console.log("exterior相机位置:", exteriorCamera.position.x,",",exteriorCamera.position.y,",",exteriorCamera.position.z);
+// console.log("exterior相机旋转:", exteriorCamera.rotation.x,",",exteriorCamera.rotation.y,",",exteriorCamera.rotation.z);
+// console.log("interior相机位置:", interiorCamera.position.x,",",interiorCamera.position.y,",",interiorCamera.position.z);
+// console.log("interior相机旋转:", interiorCamera.rotation.x,",",interiorCamera.rotation.y,",",interiorCamera.rotation.z);
+// console.log("controls相机看向目标:", controls.target.x,",",controls.target.y,",",controls.target.z); // 如果用了轨道控制器          
       renderer.render(scene, activeCamera)
       frameId = window.requestAnimationFrame(renderLoop)      
     }

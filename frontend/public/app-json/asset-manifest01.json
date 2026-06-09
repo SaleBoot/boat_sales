@@ -126,11 +126,7 @@
       "defaultUvSetId": "tt",
       "uvSets": [
         {
-          "id": "tt",
-          "label": "UV tt",
-          "directory": "/gltf/Cabnet/tt",
-          "materialNameHint": "01 - Default",
-          "materialHintSource": "manual-runtime",
+          "id": "tt", 
           "textures": {
             "baseColor": "/gltf/Cabnet/tt/119_01 - Default_BaseColor.png",
             "emissive": "/gltf/Cabnet/tt/119_01 - Default_Emissive.png",

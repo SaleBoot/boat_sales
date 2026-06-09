@@ -4,6 +4,8 @@ import (
 	"boatsales-backend/internal/types"
 	"mime"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -29,17 +31,17 @@ func Main_v1() {
 	if err != nil {
 		log.Printf("Error loading .env file: %v", err)
 		// 这里不直接返回错误，因为在生产环境中我们可能已经通过其他方式设置了环境变量
-		// export SALESBOAT_COS_SECRET_ID=your_secret_id
-		// export SALESBOAT_COS_SECRET_KEY=your_secret_key
-		// export SALESBOAT_COS_REGION=ap-chengdu
-		// export SALESBOAT_COS_BUCKET=your_bucket
 	}
 	// 核心应用对象创建
-	app, err := NewApp()
+	app, wsM, err := NewApp()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// run ws hub
+	wsM.RunWsHub()
+
+	// create gin router
 	r := gin.Default()
 
 	// 1. cors基础配置：允许所有来源（等同于 Allow-Origin: *）但不允许携带 Credentials (Cookie)。
@@ -73,6 +75,14 @@ func Main_v1() {
 
 	// 生产环境下关闭调试日志，能显著提升性能。
 	// gin.SetMode(gin.ReleaseMode)
+
+	// 5. 监听系统信号，优雅关闭
+	go func() {
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+		<-ch
+		wsM.Stop() // 关闭Hub
+	}()
 
 	// 步骤四：配置精细化的 HTTP 服务器
 	port := os.Getenv("PORT")

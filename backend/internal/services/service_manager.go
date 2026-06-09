@@ -7,6 +7,7 @@ type ServiceManager struct {
 	BoatSvc         *BoatService
 	CosPathSvc      *CosPathService
 	BoatModelSvc    *BoatModelService
+	ModelVCamSvc    *ModelVCamService
 }
 
 func NewServiceManager(
@@ -14,6 +15,7 @@ func NewServiceManager(
 	aBoatDao *dao.SysBoatDao,
 	aCosPathDao *dao.SysCosPathDao,
 	aBoatModelDao *dao.SysBoatModelDao,
+	aModelVCamDao *dao.SysModelVCamDao,
 ) (*ServiceManager, error) {
 	boatCategorySvc, err := NewBoatCategoryService(aBoatCategoryDao)
 	if err != nil {
@@ -34,12 +36,18 @@ func NewServiceManager(
 		return nil, err
 	}
 
+	modelVCamSvc, err := NewModelVCamService(aModelVCamDao)
+	if err != nil {
+		return nil, err
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &ServiceManager{
 		BoatCategorySvc: boatCategorySvc,
 		BoatSvc:         boatSvc,
 		CosPathSvc:      cosPathSvc,
 		BoatModelSvc:    boatModelSvc,
+		ModelVCamSvc:    modelVCamSvc,
 	}
 
 	return adminM, nil
