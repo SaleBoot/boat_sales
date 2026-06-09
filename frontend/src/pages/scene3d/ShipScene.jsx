@@ -1,9 +1,10 @@
-﻿﻿import { useEffect, useMemo, useRef, useState } from 'react'
+﻿﻿﻿﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { createPortal } from 'react-dom'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import { buildUrl } from '../../utils/format.js';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 import {  
   normalizeDebugTransform,  
@@ -34,7 +35,8 @@ import {
 import {
   WATER_SURFACE_ENABLED, 
   EMPTY_ARRAY, 
-  CAMERA_MODE_FIRST_PERSON 
+  CAMERA_MODE_FIRST_PERSON ,
+  WS_URL
 } from '../../constants/constants_ship_scene.js';
 import { useThree } from './hooks/useThree.js';
 import { useFirstPersonControls } from './hooks/useFirstPersonControls.js';
@@ -286,6 +288,8 @@ export default function ShipScene({
   const [isLoadingHudVisible, setIsLoadingHudVisible] = useState(true)
   const [sceneError, setSceneError] = useState('')
 
+  const { sendWsMessage } = useWebSocket( WS_URL );
+
   useEffect(() => {
     if (loadingOverlayTimerRef.current) {
       window.clearTimeout(loadingOverlayTimerRef.current)
@@ -437,7 +441,7 @@ export default function ShipScene({
         resolvedOrderFocusPresetsRef.current,
         focusTargetStrategy
       )
-    )
+    ) 
 
     let loadedRoot = null
     const textureLoader = new THREE.TextureLoader()
@@ -681,8 +685,32 @@ console.log("ShipScene..setColorConfigRef nextColorConfig=",nextColorConfig,",lo
         setIsLoadingHudVisible(true)
         setIsSceneLoading(false)
       })
- 
 
+    //-------------------      
+    // 发送相机位相数据
+    const sendCameraData = () => {
+      if (!cameraRef.current) return;
+      const camera = cameraRef.current;
+
+      const data = {
+        type: 'camera_pose',
+        modelId: 'react_user_001',
+        timestamp: Date.now(),
+        data: {
+          pos: [camera.position.x, camera.position.y, camera.position.z],
+          quat: [
+            camera.quaternion.x,
+            camera.quaternion.y,
+            camera.quaternion.z,
+            camera.quaternion.w,
+          ],
+          fov: camera.fov,
+        },
+      };
+
+      sendWsMessage(data);
+    };
+    //-------------------
     let frameId = 0
     let lastFrameTime = performance.now()
     const renderLoop = () => {
@@ -706,9 +734,14 @@ console.log("ShipScene..setColorConfigRef nextColorConfig=",nextColorConfig,",lo
 // console.log("interior相机旋转:", interiorCamera.rotation.x,",",interiorCamera.rotation.y,",",interiorCamera.rotation.z);
 // console.log("controls相机看向目标:", controls.target.x,",",controls.target.y,",",controls.target.z); // 如果用了轨道控制器          
       renderer.render(scene, activeCamera)
+      
+      sendCameraData()
+
       frameId = window.requestAnimationFrame(renderLoop)      
     }
     renderLoop()
+
+
 
     return () => {
       isDisposed = true

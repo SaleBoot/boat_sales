@@ -33,7 +33,7 @@ export const useWebSocket = (url) => {
     };
   }, [url]);
 
-  const sendMessage = useCallback((data) => {
+  const sendWsMessage = useCallback((data) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.send(JSON.stringify(data));
     } else {
@@ -41,5 +41,5 @@ export const useWebSocket = (url) => {
     }
   }, []);
 
-  return { sendMessage, isConnected };
+  return { sendWsMessage, isConnected };
 };

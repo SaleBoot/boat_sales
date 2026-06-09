@@ -206,14 +206,16 @@ export default function HomePage() {
     if(model4front )
     {
       const finalModel = buildModel4ShipScene(model4front, remoteFbxOrigin)  
-      if(finalModel.modelPartPaths?.length > 0)
+      if(finalModel.partPaths?.length > 0)
       {
         return (
           <main className="capture-screen">
             <div className="capture-scene-shell">
               <ShipScene 
                 modelConfig={ {
-                  modelPartPaths: finalModel.modelPartPaths,
+                  id : finalModel.id,
+                  label : finalModel.label,
+                  partPaths: finalModel.partPaths,
                   matSlots: finalModel.matSlots
                 } } 
               />
