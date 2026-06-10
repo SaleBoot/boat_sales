@@ -20,6 +20,7 @@ type AdminModule struct {
 	cosH          *apis.CosHandler
 	boatModelH    *apis.BoatModelHandler
 	modelVCamH    *apis.ModelVCamHandler
+	videoH        *apis.VideoHandler
 }
 
 func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
@@ -28,6 +29,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 	aCosPathSyncSvc *services.CosPathService, // 依赖注入
 	aBoatModelSvc *services.BoatModelService, // 依赖注入
 	aModelVCamSvc *services.ModelVCamService, // 依赖注入
+	aVideoSvc *services.VideoService, // 依赖注入
 ) (*AdminModule, error) {
 
 	uH, err := apis.NewUserHandler(aUserDao)
@@ -71,6 +73,11 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		return nil, fmt.Errorf("failed to NewModelVCamHandler: %w", err)
 	}
 
+	videoH, err := apis.NewVideoHandler(aVideoSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewVideoHandler: %w", err)
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &AdminModule{
 		userH:         uH,
@@ -79,6 +86,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		cosH:          cosHTmp, // 依赖注入
 		boatModelH:    bmH,     // 依赖注入
 		modelVCamH:    vcamH,   // 依赖注入
+		videoH:        videoH,
 	}
 
 	return adminM, nil
@@ -219,6 +227,14 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			//     在请求体中提供一个 JSON 数组，其中包含该船型所有新的模型定义。
 			//     数组中每个对象的boatEnName 必须与 URL 中的船型英文名匹配。
 			boatModelRG.POST("/:boatEnName", a.boatModelH.HandleUpdateModelWithBoatEnName)
+		}
+
+		videoRG := aAdminRG.Group("/video")
+		{
+			videoRG.GET("", a.videoH.HandleGetVideos)
+			videoRG.POST("", a.videoH.HandleAddVideo)
+			videoRG.POST("/:id", a.videoH.HandleUpdateVideo)
+			videoRG.POST("/delete", a.videoH.HandleDeleteVideos)
 		}
 	}
 

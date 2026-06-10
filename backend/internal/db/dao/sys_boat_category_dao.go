@@ -38,6 +38,17 @@ func (d *SysBoatCategoryDao) UpdateBoatCategory(category *models.SysBoatCategory
 	return d.DB.Save(category).Error
 }
 
+func (d *SysBoatCategoryDao) UpdateBoatCategoryByID(
+	id uint,
+	updateData *models.SysBoatCategory,
+) error {
+
+	return d.DB.Model(&models.SysBoatCategory{}).
+		Where("id = ?", id).
+		Updates(updateData). // Save(updateData)
+		Error
+}
+
 // DeleteBoatCategories deletes boat categories by their IDs.
 func (d *SysBoatCategoryDao) DeleteBoatCategories(ids []uint) error {
 	return d.DB.Delete(&models.SysBoatCategory{}, ids).Error

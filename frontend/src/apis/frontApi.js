@@ -131,3 +131,11 @@ export const getFocusTargets = (modelPath) => {
 export const getSiteContent = async () => {
   return getJsonFile('/app-json/site-content.json');
 };
+
+/**
+ * 获取视频列表
+ * @returns {Promise<any>}
+ */
+export const getFrontVideos = () => {
+  return api.get('/front/videos');
+};

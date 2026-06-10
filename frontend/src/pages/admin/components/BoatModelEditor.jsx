@@ -186,6 +186,9 @@ const BoatModelEditor = ({ boat,
         powerName: '',
         powerDescr: '',
         powerAddedPrice: 0,
+        smartSystemName: '',
+        smartSystemDescr: '',
+        smartSystemAddedPrice: 0,
       },
     ]);
   };
@@ -453,7 +456,9 @@ const BoatModelEditor = ({ boat,
                         <Input.TextArea rows={2} value={model.deckDescr} onChange={(e) => handleModelChange(index, 'deckDescr', e.target.value)} />
                       </Form.Item>
                       <Form.Item label="甲板加价" style={{ marginBottom: '8px' }}>
-                        <InputNumber value={model.deckAddedPrice} onChange={(value) => handleModelChange(index, 'deckAddedPrice', value)} style={{ width: '100%' }} />
+                        <InputNumber value={model.deckAddedPrice} 
+                               onChange={(value) => handleModelChange(index, 'deckAddedPrice', value)} 
+                               style={{ width: '100%' }} />
                       </Form.Item>
                     </Collapse.Panel>
                     <Collapse.Panel header="动力" key="power">
@@ -461,12 +466,31 @@ const BoatModelEditor = ({ boat,
                         <Input value={model.powerName} onChange={(e) => handleModelChange(index, 'powerName', e.target.value)} />
                       </Form.Item>
                       <Form.Item label="动力描述" style={{ marginBottom: '8px' }}>
-                        <Input.TextArea rows={2} value={model.powerDescr} onChange={(e) => handleModelChange(index, 'powerDescr', e.target.value)} />
+                        <Input.TextArea rows={2} value={model.powerDescr} 
+                               onChange={(e) => handleModelChange(index, 'powerDescr', e.target.value)} />
                       </Form.Item>
                       <Form.Item label="动力加价" style={{ marginBottom: '0px' }}>
-                        <InputNumber value={model.powerAddedPrice} onChange={(value) => handleModelChange(index, 'powerAddedPrice', value)} style={{ width: '100%' }} />
+                        <InputNumber value={model.powerAddedPrice} 
+                                onChange={(value) => handleModelChange(index, 'powerAddedPrice', value)} 
+                                style={{ width: '100%' }} />
                       </Form.Item>
                     </Collapse.Panel>
+                    <Collapse.Panel header="智能系统" key="smartSystem">
+                      <Form.Item label="智能系统名称" style={{ marginBottom: '8px' }}>
+                        <Input value={model.smartSystemName} 
+                              onChange={(e) => handleModelChange(index, 'smartSystemName', e.target.value)} />
+                      </Form.Item>
+                      <Form.Item label="智能系统描述" style={{ marginBottom: '8px' }}>
+                        <Input.TextArea rows={2} value={model.smartSystemDescr} 
+                                onChange={(e) => handleModelChange(index, 'smartSystemDescr', e.target.value)} />
+                      </Form.Item>
+                      <Form.Item label="智能系统加价" style={{ marginBottom: '0px' }}>
+                        <InputNumber value={model.smartSystemAddedPrice} 
+                                 onChange={(value) => handleModelChange(index, 'smartSystemAddedPrice', value)} 
+                                 style={{ width: '100%' }} />
+                      </Form.Item>
+                    </Collapse.Panel>
+
                   </Collapse>
                 </Form>
               </Card>

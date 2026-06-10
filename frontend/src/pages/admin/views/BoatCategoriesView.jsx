@@ -14,10 +14,14 @@ import { PlusOutlined, RedoOutlined } from '@ant-design/icons';
 import { getBoatCategories, addBoatCategory, updateBoatCategory, deleteBoatCategories } from '../../../apis/adminApi';
 
 const initialData = [
-    { ID: 1, categoryStrID: "NewEnergy", enName: "New Energy", cnName: "新能源船", CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
-    { ID: 2, categoryStrID: "EmergencyRescue", enName: "Emergency Rescue", cnName: "应急救援船", CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
-    { ID: 3, categoryStrID: "OfficialEnforcement", enName: "Official Law Enforcement", cnName: "公务执法艇", CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
-    { ID: 4, categoryStrID: "Yacht", enName: "Yacht",cnName: "游艇", CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 1, categoryStrID: "NewEnergy", enName: "New Energy", cnName: "新能源船", 
+      CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 2, categoryStrID: "EmergencyRescue", enName: "Emergency Rescue", cnName: "应急救援船", 
+      CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 3, categoryStrID: "OfficialEnforcement", enName: "Official Law Enforcement", cnName: "公务执法艇", 
+      CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
+    { ID: 4, categoryStrID: "Yacht", enName: "Yacht",cnName: "游艇", 
+      CreatedAt: '2023-01-01T00:00:00Z', UpdatedAt: '2023-01-01T00:00:00Z' },
 ];
 
 const BoatCategoriesView = () => {

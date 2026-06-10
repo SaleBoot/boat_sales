@@ -101,33 +101,34 @@ func (aH *BoatCategoryService) UpdateBoatCategory(
 	aEnName string,
 	aCnName string,
 ) error {
-	log.Printf("UpdateBoatCategory: Attempting to update category with ID: %d, new CategoryStrID: %s, EnName: %s, CnName: %s",
+	log.Printf("UpdateBoatCategory: try to update boat category with ID: %d, new CategoryStrID: %s, EnName: %s, CnName: %s",
 		aCategoryIntId, aCategoryStrID, aEnName, aCnName)
 
-	category, err := aH.boatCategoryDao.GetBoatCategoryByID(uint(aCategoryIntId))
+	// 构建更新数据
+	updateData := models.SysBoatCategory{
+		CategoryStrID: aCategoryStrID,
+		EnName:        aEnName,
+		CnName:        aCnName,
+	}
+
+	// 执行更新
+	err := aH.boatCategoryDao.UpdateBoatCategoryByID(
+		uint(aCategoryIntId),
+		&updateData,
+	)
+
 	if err != nil {
+		// GORM 会自动返回 ErrRecordNotFound，你可以直接判断
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Printf("UpdateBoatCategory: Category with ID %d not found.", aCategoryIntId)
 			return fmt.Errorf("category not found")
 		}
 
-		log.Printf("UpdateBoatCategory: failed to find boat category for update (ID: %d): %v", aCategoryIntId, err)
-		return fmt.Errorf("failed to find category")
-	}
-
-	log.Printf("UpdateBoatCategory: Found category (ID: %d, current CategoryStrID: %s, EnName: %s, CnName: %s). Updating fields...",
-		category.ID, category.CategoryStrID, category.EnName, category.CnName)
-
-	category.CategoryStrID = aCategoryStrID
-	category.EnName = aEnName
-	category.CnName = aCnName
-
-	if err := aH.boatCategoryDao.UpdateBoatCategory(category); err != nil {
-		log.Printf("UpdateBoatCategory: failed to update boat category (ID: %d): %v", category.ID, err)
+		log.Printf("UpdateBoatCategory: failed to update boat category (ID: %d): %v", aCategoryIntId, err)
 		return fmt.Errorf("failed to update category: %w", err)
 	}
 
-	log.Printf("UpdateBoatCategory: Successfully updated category with ID: %d", category.ID)
+	log.Printf("UpdateBoatCategory: Successfully updated category with ID: %d", aCategoryIntId)
 	return nil
 }
 

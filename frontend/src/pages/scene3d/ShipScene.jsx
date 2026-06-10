@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
 import { buildUrl } from '../../utils/format.js';
-import { useWebSocket } from '../../hooks/useWebSocket';
+import { useWebSocket, WS_URL } from '../../hooks/useWebSocket';
 
 import {  
   normalizeDebugTransform,  
@@ -35,8 +35,7 @@ import {
 import {
   WATER_SURFACE_ENABLED, 
   EMPTY_ARRAY, 
-  CAMERA_MODE_FIRST_PERSON ,
-  WS_URL
+  CAMERA_MODE_FIRST_PERSON,  
 } from '../../constants/constants_ship_scene.js';
 import { useThree } from './hooks/useThree.js';
 import { useFirstPersonControls } from './hooks/useFirstPersonControls.js';
@@ -254,6 +253,7 @@ export default function ShipScene({
   const canvasRef = useRef(null)
   const controlsRef = useRef(null)
   const cameraRef = useRef(null)
+  const lastSendCamDataTimeRef = useRef(0); // 限制发送频率
   // 
   const modeRef = useRef('exterior')
   const interiorDeckRef = useRef('1')
@@ -288,7 +288,7 @@ export default function ShipScene({
   const [isLoadingHudVisible, setIsLoadingHudVisible] = useState(true)
   const [sceneError, setSceneError] = useState('')
 
-  const { sendWsMessage } = useWebSocket( WS_URL );
+  const { sendWsMessage, isWsConnected } = useWebSocket( WS_URL );
 
   useEffect(() => {
     if (loadingOverlayTimerRef.current) {
@@ -689,22 +689,27 @@ console.log("ShipScene..setColorConfigRef nextColorConfig=",nextColorConfig,",lo
     //-------------------      
     // 发送相机位相数据
     const sendCameraData = () => {
+      const now = Date.now();
+      if (now - lastSendCamDataTimeRef.current < 200) return;
+      lastSendCamDataTimeRef.current = now;
+
       if (!cameraRef.current) return;
       const camera = cameraRef.current;
 
       const data = {
         type: 'camera_pose',
-        modelId: 'react_user_001',
+        modelId: modelConfig?.partPaths?.[0],
         timestamp: Date.now(),
         data: {
-          pos: [camera.position.x, camera.position.y, camera.position.z],
-          quat: [
+          cam_pos: [camera.position.x, camera.position.y, camera.position.z],
+          cam_quat: [
             camera.quaternion.x,
             camera.quaternion.y,
             camera.quaternion.z,
             camera.quaternion.w,
           ],
-          fov: camera.fov,
+          cam_fov: camera.fov,
+          model_color: colorConfig || {},
         },
       };
 

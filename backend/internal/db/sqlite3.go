@@ -33,6 +33,7 @@ func InitSqlite3DB() (*gorm.DB, error) {
 		&models.SysBoatModel{},
 		&models.SalesOrder{},
 		&models.SysModelVCam{},
+		&models.SysVideo{},
 	)
 	if err != nil {
 		log.Fatalf("failed to auto migrate database: %v", err)

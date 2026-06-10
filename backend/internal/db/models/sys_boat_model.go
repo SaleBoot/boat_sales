@@ -15,20 +15,24 @@ type SysBoatModel struct {
 
 	// 外观相关
 	ExteriorName       string `json:"exteriorName" gorm:"type:varchar(255);comment:外观名称"`
-	ExteriorDescr      string `json:"exteriorDescr" gorm:"type:varchar(255);comment:外观描述"`
-	ExteriorAddedPrice int    `json:"exteriorAddedPrice" gorm:"type:decimal(10,2);comment:外观加价"`
+	ExteriorDescr      string `json:"exteriorDescr" gorm:"type:text;comment:外观描述"`
+	ExteriorAddedPrice int    `json:"exteriorAddedPrice" gorm:"type:integer;comment:外观加价"`
 	// 内饰相关
 	InteriorName       string `json:"interiorName" gorm:"type:varchar(255);comment:内饰名称"`
-	InteriorDescr      string `json:"interiorDescr" gorm:"type:varchar(255);comment:内饰描述"`
-	InteriorAddedPrice int    `json:"interiorAddedPrice" gorm:"type:decimal(10,2);comment:内饰加价"`
+	InteriorDescr      string `json:"interiorDescr" gorm:"type:text;comment:内饰描述"`
+	InteriorAddedPrice int    `json:"interiorAddedPrice" gorm:"type:integer;comment:内饰加价"`
 	// 甲板相关
 	DeckName       string `json:"deckName" gorm:"type:varchar(255);comment:甲板名称"`
-	DeckDescr      string `json:"deckDescr" gorm:"type:varchar(255);comment:甲板描述"`
-	DeckAddedPrice int    `json:"deckAddedPrice" gorm:"type:decimal(10,2);comment:甲板加价"`
+	DeckDescr      string `json:"deckDescr" gorm:"type:text;comment:甲板描述"`
+	DeckAddedPrice int    `json:"deckAddedPrice" gorm:"type:integer;comment:甲板加价"`
 	// 动力相关
 	PowerName       string `json:"powerName" gorm:"type:varchar(255);comment:动力名称"`
-	PowerDescr      string `json:"powerDescr" gorm:"type:varchar(255);comment:动力描述"`
-	PowerAddedPrice int    `json:"powerAddedPrice" gorm:"type:decimal(10,2);comment:动力加价"`
+	PowerDescr      string `json:"powerDescr" gorm:"type:text;comment:动力描述"`
+	PowerAddedPrice int    `json:"powerAddedPrice" gorm:"type:integer;comment:动力加价"`
+	// 智能系统相关
+	SmartSystemName       string `json:"smartSystemName" gorm:"type:varchar(255);comment:智能系统名称"`
+	SmartSystemDescr      string `json:"smartSystemDescr" gorm:"type:text;comment:智能系统描述"`
+	SmartSystemAddedPrice int    `json:"smartSystemAddedPrice" gorm:"type:integer;comment:智能系统加价"`
 }
 
 func (*SysBoatModel) TableName() string {

@@ -18,54 +18,29 @@ import {
   DeleteOutlined,
   RedoOutlined,
 } from '@ant-design/icons';
+import { getVideos, addVideo, updateVideo, deleteVideos } from '../../../apis/adminApi'; // Import actual API functions
 
 const { Title, Paragraph } = Typography;
 
-// --- Mock Data and API ---
-const mockVideos = [
-  {
-    id: 1,
-    videoTitle: '智能消防艇全景演示',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // A classic example
-    videoDescription: '展示了最新款智能消防艇的360度操作演示和水炮测试。',
-  },
-  {
-    id: 2,
-    videoTitle: 'Bilibili-船舶制造全过程',
-    videoUrl: 'https://www.bilibili.com/video/BV1GJ411x7h7', // A sample Bilibili video
-    videoDescription: '从第一块钢板到下水仪式的完整记录。',
-  },
-];
-
-const getVideos = async () => {
-  console.log('模拟获取视频列表');
-  return new Promise(resolve => setTimeout(() => resolve({ data: [...mockVideos] }), 500));
-};
-
-const addVideo = async (video) => {
-  console.log('模拟新增视频', video);
-  const newVideo = { ...video, id: Math.random() };
-  mockVideos.push(newVideo);
-  return new Promise(resolve => setTimeout(() => resolve({ success: true }), 500));
-};
-
-const deleteVideos = async (ids) => {
-  console.log('模拟删除视频', ids);
-  // This is a mock, so we don't actually mutate the original `mockVideos` array in a real scenario
-  return new Promise(resolve => setTimeout(() => resolve({ success: true }), 500));
-};
 // --- End Mock ---
 
 
-// --- Add Video Modal ---
-const AddVideoModal = ({ open, onCancel, onFinish, loading }) => {
+// --- Video Form Modal (for Add and Edit) ---
+const VideoFormModal = ({ open, onCancel, onFinish, loading, video }) => {
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (open && video) {
+      form.setFieldsValue(video);
+    } else if (open && !video) {
+      form.resetFields();
+    }
+  }, [open, video, form]);
 
   const handleOk = () => {
     form.validateFields()
       .then(values => {
         onFinish(values);
-        form.resetFields();
       })
       .catch(info => {
         console.log('Validate Failed:', info);
@@ -74,21 +49,21 @@ const AddVideoModal = ({ open, onCancel, onFinish, loading }) => {
 
   return (
     <Modal
-      title="新增视频"
+      title={video ? "编辑视频" : "新增视频"}
       open={open}
       onOk={handleOk}
       onCancel={onCancel}
       confirmLoading={loading}
       destroyOnClose
     >
-      <Form form={form} layout="vertical" name="add_video_form">
-        <Form.Item name="videoTitle" label="视频标题" rules={[{ required: true, message: '请输入视频标题' }]}>
+      <Form form={form} layout="vertical" name="video_form">
+        <Form.Item name="title" label="视频标题" rules={[{ required: true, message: '请输入视频标题' }]}>
           <Input placeholder="例如 智能消防艇全景演示" />
         </Form.Item>
-        <Form.Item name="videoUrl" label="视频链接" rules={[{ required: true, message: '请输入视频链接' }, { type: 'url', message: '请输入有效的链接地址' }]}>
+        <Form.Item name="url" label="视频链接" rules={[{ required: true, message: '请输入视频链接' }, { type: 'url', message: '请输入有效的链接地址' }]}>
           <Input placeholder="输入 YouTube 或 Bilibili 链接" />
         </Form.Item>
-        <Form.Item name="videoDescription" label="视频简介" rules={[{ required: true, message: '请输入视频简介' }]}>
+        <Form.Item name="introduction" label="视频简介" rules={[{ required: true, message: '请输入视频简介' }]}>
           <Input.TextArea rows={4} placeholder="简单介绍一下视频内容..." />
         </Form.Item>
       </Form>
@@ -104,15 +79,18 @@ export default function VideoManagerView() {
   const [loading, setLoading] = useState(false);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // New state for edit modal
+  const [editingVideo, setEditingVideo] = useState(null); // New state for video being edited
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchVideos = async () => {
     setLoading(true);
     try {
-      const response = await getVideos();
-      setVideos(response.data);
-      if (response.data.length > 0) {
-        setCurrentVideo(response.data[0]);
+      const response = await getVideos(); // Use actual API function
+      console.log('Fetched videos:', response); // Log the response to inspect video object structure
+      setVideos(response);
+      if (response.length > 0) {
+        setCurrentVideo(response[0]);
       }
       message.success('视频列表已刷新');
     } catch (error) {
@@ -126,26 +104,39 @@ export default function VideoManagerView() {
     fetchVideos();
   }, []);
 
+  const handleEdit = (record) => {
+    setEditingVideo(record);
+    setIsEditModalOpen(true);
+  };
+
   const handleDelete = async () => {
     if (selectedRowKeys.length === 0) {
       message.warning('请先选择要删除的视频。');
       return;
     }
-    await deleteVideos(selectedRowKeys);
+    await deleteVideos(selectedRowKeys); // Use actual API function
     message.success('删除成功');
     setSelectedRowKeys([]);
     fetchVideos();
   };
 
-  const handleAddFinish = async (values) => {
+  const handleFormFinish = async (values) => { // Renamed from handleAddFinish
     setIsSubmitting(true);
     try {
-      await addVideo(values);
-      message.success('视频添加成功！');
+      if (editingVideo) {
+        console.log('Editing video before update:', editingVideo); // Add this line
+        await updateVideo(editingVideo.ID, values); // Use updateVideo for editing
+        message.success('视频更新成功！');
+      } else {
+        await addVideo(values);
+        message.success('视频添加成功！');
+      }
       setIsAddModalOpen(false);
+      setIsEditModalOpen(false); // Close edit modal
+      setEditingVideo(null); // Clear editing video
       fetchVideos();
     } catch (error) {
-      message.error('添加视频失败');
+      message.error('保存视频失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -161,27 +152,48 @@ export default function VideoManagerView() {
   };
 
   const columns = [
-    { title: '视频标题', dataIndex: 'videoTitle', key: 'videoTitle' },
-    { title: '视频链接', dataIndex: 'videoUrl', key: 'videoUrl', render: (url) => <a href={url} target="_blank" rel="noopener noreferrer">{url}</a> },
-    { title: '视频简介', dataIndex: 'videoDescription', key: 'videoDescription' },
+    { title: '视频标题', dataIndex: 'title', key: 'title' },
+    { title: '视频链接', dataIndex: 'url',   key: 'url', 
+      render: (url) => <a href={url} target="_blank" rel="noopener noreferrer">{url}</a> },
+    { title: '视频简介', dataIndex: 'introduction', key: 'introduction' },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <Space size="middle">
+          <a onClick={() => handleEdit(record)}>编辑</a>
+        </Space>
+      ),
+    },
   ];
 
   const getVideoEmbedElement = (videoUrl) => {
-    if (!videoUrl) return <Empty description="请在左侧选择一个视频以预览" />;
+    if (!videoUrl) 
+      return <Empty description="请在左侧选择一个视频以预览" />;
     let embedUrl = '';
+    
     try {
       const url = new URL(videoUrl);
+
       if (url.hostname.includes('youtube.com')) {
         const videoId = url.searchParams.get('v');
-        if (videoId) embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        if (videoId) 
+          embedUrl = `https://www.youtube.com/embed/${videoId}`;
+
       } else if (url.hostname.includes('bilibili.com')) {
+        
         const videoId = url.pathname.split('/').find(part => part.startsWith('BV'));
-        if (videoId) embedUrl = `//player.bilibili.com/player.html?bvid=${videoId}&page=1&autoplay=0&high_quality=1&danmaku=0`;
+        if (videoId) 
+          embedUrl = `//player.bilibili.com/player.html?bvid=${videoId}&page=1&autoplay=0&high_quality=1&danmaku=0`;
       }
-    } catch (e) { /* Invalid URL */ }
+    } catch (e) { 
+      /* Invalid URL */ 
+    }
 
     if (embedUrl) {
-      return <iframe src={embedUrl} style={{ width: '100%', height: '100%', border: 'none' }} allow="fullscreen;" title="Embedded video" />;
+      return <iframe src={embedUrl} 
+                    style={{ width: '100%', height: '100%', border: 'none' }} 
+                    allow="fullscreen;" title="Embedded video" />;
     }
     return <Empty description="不支持的视频链接或格式错误" />;
   };
@@ -199,15 +211,19 @@ export default function VideoManagerView() {
               <Space>
                 <Button icon={<RedoOutlined />} onClick={fetchVideos}>刷新列表</Button>
                 <Button icon={<PlusOutlined />} onClick={() => setIsAddModalOpen(true)}>增加</Button>
-                <Button icon={<DeleteOutlined />} disabled={selectedRowKeys.length === 0} onClick={handleDelete} danger>删除</Button>
+                <Button icon={<DeleteOutlined />} 
+                        disabled={selectedRowKeys.length === 0} 
+                        onClick={handleDelete} danger>删除</Button>
               </Space>
-              <Input.Search placeholder="按标题查询..." onSearch={() => message.info('查询功能待实现')} style={{ width: 250, float: 'right' }} />
+              <Input.Search placeholder="按标题查询..." 
+                            onSearch={() => message.info('查询功能待实现')} 
+                            style={{ width: 250, float: 'right' }} />
             </div>
             <Table
               rowSelection={rowSelection}
               columns={columns}
               dataSource={videos}
-              rowKey="id"
+              rowKey="ID"
               loading={loading}
               onRow={(record) => ({ onClick: () => setCurrentVideo(record) })}
               pagination={{ pageSize: 5 }}
@@ -218,17 +234,22 @@ export default function VideoManagerView() {
           <Card title="视频预览">
             <div style={{ position: 'relative', paddingTop: '56.25%', backgroundColor: '#000' }}>
               <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-                {getVideoEmbedElement(currentVideo?.videoUrl)}
+                {getVideoEmbedElement(currentVideo?.url)}
               </div>
             </div>
           </Card>
         </Col>
       </Row>
-      <AddVideoModal
-        open={isAddModalOpen}
-        onCancel={() => setIsAddModalOpen(false)}
-        onFinish={handleAddFinish}
+      <VideoFormModal // Use the refactored modal
+        open={isAddModalOpen || isEditModalOpen} // Open if either add or edit is active
+        onCancel={() => {
+          setIsAddModalOpen(false);
+          setIsEditModalOpen(false);
+          setEditingVideo(null);
+        }}
+        onFinish={handleFormFinish}
         loading={isSubmitting}
+        video={editingVideo} // Pass the video for editing
       />
     </div>
   );

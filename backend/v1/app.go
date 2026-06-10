@@ -85,6 +85,7 @@ func NewApp() (*app, *ws.WsModule, error) {
 		application.dbm.CosPathDao,      // 依赖注入
 		application.dbm.BoatModelDao,    // 依赖注入
 		application.dbm.ModelVCamDao,    // 依赖注入
+		application.dbm.VideoDao,        // 依赖注入
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("initialize service manager: %w", err)
@@ -98,6 +99,7 @@ func NewApp() (*app, *ws.WsModule, error) {
 		svcMtmp.CosPathSvc,
 		svcMtmp.BoatModelSvc,
 		svcMtmp.ModelVCamSvc,
+		svcMtmp.VideoSvc,
 	) // 依赖注入
 	if err != nil {
 		return nil, nil, fmt.Errorf("initialize admin module: %w", err)
@@ -111,6 +113,7 @@ func NewApp() (*app, *ws.WsModule, error) {
 		svcMtmp.CosPathSvc,      // 依赖注入
 		svcMtmp.BoatModelSvc,    // 依赖注入
 		svcMtmp.ModelVCamSvc,
+		svcMtmp.VideoSvc,
 	) // 依赖注入
 	if err != nil {
 		return nil, nil, fmt.Errorf("initialize front module: %w", err)

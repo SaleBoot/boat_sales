@@ -222,3 +222,44 @@ export const getModelsByBoatEnName = (boatEnName) => {
 export const updateModelsByBoatEnName = (boatEnName, modelsData) => {
   return api.post(`/admin/boat-model/${boatEnName}`, modelsData);
 };
+
+// -------------------------------------------------------
+// 视频管理 (Videos)
+// -------------------------------------------------------
+
+/**
+ * 获取视频列表
+ * @returns {Promise<any>}
+ */
+export const getVideos = () => {
+  return api.get('/admin/video');
+};
+
+/**
+ * 添加新视频
+ * @param {object} videoData - 视频数据
+ * @returns {Promise<any>}
+ */
+export const addVideo = (videoData) => {
+  return api.post('/admin/video', videoData);
+};
+
+/**
+ * 更新视频信息
+ * @param {string} id - 视频ID
+ * @param {object} videoData - 视频数据
+ * @returns {Promise<any>}
+ */
+export const updateVideo = (id, videoData) => {
+  console.log('updateVideo received - id:', id, 'videoData:', videoData); // Add this line
+  return api.post(`/admin/video/${id}`, videoData);
+};
+
+/**
+ * 删除视频
+ * @param {Array<string>} videoIds - 视频ID列表
+ * @returns {Promise<any>}
+ */
+export const deleteVideos = (videoIds) => {
+  return api.post('/admin/video/delete', { ids: videoIds });
+};

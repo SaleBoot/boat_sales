@@ -159,5 +159,4 @@ export const TEST_HIGH_INTERIOR_DECK_PRESETS = {
     pitch: -0.14
   }
 };
-
-export const  WS_URL='ws://localhost:8082/api/ws'
+ 
