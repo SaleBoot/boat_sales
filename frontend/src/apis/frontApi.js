@@ -30,6 +30,8 @@ import api from '../utils/requestApi';
  * @property {string} boatEnName - The English name of the boat, also the model folder name.
  * @property {string} modelName - The name of the default style.
  * @property {string[]} adImgs - Advertising images.
+ * @property {string[]} engineImgs - engine images.
+ * @property {string[]} smartSysImgs - smart system images.
  * @property {string[]} partPaths - List of runtime paths for model parts.
  * @property {MatSlot[]} matSlots - List of material slots for customization.
  * @property {string} exteriorName - Name of the exterior option.

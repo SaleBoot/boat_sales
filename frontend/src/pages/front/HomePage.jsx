@@ -28,6 +28,8 @@ import HomePageViewerScreen from './homepage/HomePageViewerScreen';
 import DetailSpecShowcase from './homepage/DetailSpecShowcase';
 import DetailCompareStack from './homepage/DetailCompareStack';
 import VideoShowcase from './homepage/VideoShowcase';
+import EnginePowerShowcase from './homepage/EnginePowerShowcase';
+import SmartSystemShowcase from './homepage/SmartSystemShowcase'; // 导入新的智能系统组件
 import ShipScene from '../scene3d/ShipScene';
 
 export default function HomePage() {
@@ -293,6 +295,20 @@ export default function HomePage() {
               selectedModelLabel={selectedModelLabel}
               selectedModelPriceLabel={selectedModelPriceLabel}
               primaryDetailSpecCards={primaryDetailSpecCards}
+            />
+
+            {/* 添加 EnginePowerShowcase 组件 */}
+            <EnginePowerShowcase
+              engineImage={primaryModel?.primaryModelInfo?.engineImgs?.[0]|| '/img/electric-engine01.png'}
+              engineTitle={primaryModel?.primaryModelInfo?.engine?.title || 'Engine'}
+              engineDescription={primaryModel?.primaryModelInfo?.engine?.description || 'Engine'}
+            />
+
+            {/* 添加 SmartSystemShowcase 组件 */}
+            <SmartSystemShowcase
+              smartSystemImage={primaryModel?.primaryModelInfo?.smartSystemImgs?.[0] || '/img/smart-system01.png'}
+              smartSystemTitle={primaryModel?.primaryModelInfo?.smartSystem?.title || '智能系统'}
+              smartSystemDescription={primaryModel?.primaryModelInfo?.smartSystem?.description || '智能系统简介'}
             />
 
             <DetailCompareStack
