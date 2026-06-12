@@ -21,6 +21,7 @@ type AdminModule struct {
 	boatModelH    *apis.BoatModelHandler
 	modelVCamH    *apis.ModelVCamHandler
 	videoH        *apis.VideoHandler
+	boatEngineH   *apis.BoatEngineHandler
 }
 
 func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
@@ -30,6 +31,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 	aBoatModelSvc *services.BoatModelService, // 依赖注入
 	aModelVCamSvc *services.ModelVCamService, // 依赖注入
 	aVideoSvc *services.VideoService, // 依赖注入
+	aBoatEngineSvc *services.BoatEngineService, // 依赖注入
 ) (*AdminModule, error) {
 
 	uH, err := apis.NewUserHandler(aUserDao)
@@ -78,6 +80,11 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		return nil, fmt.Errorf("failed to NewVideoHandler: %w", err)
 	}
 
+	boatEngineH, err := apis.NewBoatEngineHandler(aBoatEngineSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewBoatEngineHandler: %w", err)
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &AdminModule{
 		userH:         uH,
@@ -87,6 +94,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		boatModelH:    bmH,     // 依赖注入
 		modelVCamH:    vcamH,   // 依赖注入
 		videoH:        videoH,
+		boatEngineH:   boatEngineH,
 	}
 
 	return adminM, nil
@@ -179,7 +187,7 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 
 		// 用户管理 (路径自动拼接为 /api/admin/users)
 		usersRG := aAdminRG.Group("/users")
-		{
+		if a.userH != nil {
 			usersRG.GET("", a.userH.HandleGetAllUsers)
 			usersRG.POST("", a.userH.HandleCreateUser)
 			usersRG.POST("/delete", a.userH.HandleDeleteUsers)
@@ -189,7 +197,7 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 
 		// Boat Category routes
 		boatCategories := aAdminRG.Group("/boat-categories")
-		{
+		if a.boatCategoryH != nil {
 			boatCategories.GET("", a.boatCategoryH.HandleGetBoatCategories)
 			boatCategories.POST("", a.boatCategoryH.HandleAddBoatCategory)
 			boatCategories.POST("/:id", a.boatCategoryH.HandleUpdateBoatCategory)
@@ -198,7 +206,7 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 
 		// Boat routes
 		boats := aAdminRG.Group("/boats")
-		{
+		if a.boatH != nil {
 			boats.GET("", a.boatH.HandleGetBoats)
 			boats.POST("", a.boatH.HandleAddBoat)
 			boats.POST("/:id", a.boatH.HandleUpdateBoat)
@@ -206,7 +214,7 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 		}
 
 		cosRG := aAdminRG.Group("/cos")
-		{
+		if a.cosH != nil {
 			cosRG.GET("/sync-cos-dir-tree", a.cosH.HandleSyncCosDirTree)       // 同步 COS 目录树的接口
 			cosRG.GET("/presigned-url", a.cosH.HandleGetCosURL4SingleFile)     // 获取 COS 预签名 URL 的接口
 			cosRG.GET("/model-paths", a.cosH.HandleGetAllModelPaths)           // 列出模型路径的接口
@@ -216,7 +224,7 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 		}
 
 		boatModelRG := aAdminRG.Group("/boat-model")
-		{
+		if a.boatModelH != nil {
 			// api/admin/boat-model/:boatEnName
 			boatModelRG.GET("/:boatEnName", a.boatModelH.HandleGetModelsByBoatEnName)
 			//  api/admin/boat-model/:boatEnName
@@ -230,11 +238,19 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 		}
 
 		videoRG := aAdminRG.Group("/video")
-		{
+		if a.videoH != nil {
 			videoRG.GET("", a.videoH.HandleGetVideos)
 			videoRG.POST("", a.videoH.HandleAddVideo)
 			videoRG.POST("/:id", a.videoH.HandleUpdateVideo)
 			videoRG.POST("/delete", a.videoH.HandleDeleteVideos)
+		}
+
+		engineRG := aAdminRG.Group("/boat-engine")
+		if a.boatEngineH != nil {
+			engineRG.GET("", a.boatEngineH.HandleGetBoatEngines)
+			engineRG.POST("", a.boatEngineH.HandleAddBoatEngine)
+			engineRG.POST("/:id", a.boatEngineH.HandleUpdateBoatEngine)
+			engineRG.POST("/delete", a.boatEngineH.HandleDeleteBoatEngines)
 		}
 	}
 

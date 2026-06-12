@@ -59,25 +59,25 @@ type BoatInput struct {
 	MoldedDepth     *float64 `json:"moldedDepth"`
 	Draft           *float64 `json:"draft"`
 	NavigationArea  string   `json:"navigationArea"`
-	MainEnginePower string   `json:"mainEnginePower"`
-	DesignSpeed     *float64 `json:"designSpeed"`
-	RatedCrew       *int     `json:"ratedCrew"`
-	PropulsionType  string   `json:"propulsionType"`
-	Material        string   `json:"material"`
-	CertificateType string   `json:"certificateType"`
+	// MainEnginePower string   `json:"mainEnginePower"`
+	// DesignSpeed     *float64 `json:"designSpeed"`
+	// RatedCrew       *int     `json:"ratedCrew"`
+	// PropulsionType  string   `json:"propulsionType"`
+	Material        string `json:"material"`
+	CertificateType string `json:"certificateType"`
 }
 
 // toModel converts a BoatInput DTO to a models.SysBoat database model.
 // It handles nil pointers by assigning zero values.
 func (input *BoatInput) toModel() *models.SysBoat {
 	boat := &models.SysBoat{
-		BoatName:        input.BoatName,
-		BoatEnName:      input.BoatEnName,
-		CategoryStrID:   input.CategoryStrID,
-		Description:     input.Description,
-		NavigationArea:  input.NavigationArea,
-		MainEnginePower: input.MainEnginePower,
-		PropulsionType:  input.PropulsionType,
+		BoatName:       input.BoatName,
+		BoatEnName:     input.BoatEnName,
+		CategoryStrID:  input.CategoryStrID,
+		Description:    input.Description,
+		NavigationArea: input.NavigationArea,
+		// MainEnginePower: input.MainEnginePower,
+		// PropulsionType:  input.PropulsionType,
 		Material:        input.Material,
 		CertificateType: input.CertificateType,
 	}
@@ -100,12 +100,12 @@ func (input *BoatInput) toModel() *models.SysBoat {
 	if input.Draft != nil {
 		boat.Draft = *input.Draft
 	}
-	if input.DesignSpeed != nil {
-		boat.DesignSpeed = *input.DesignSpeed
-	}
-	if input.RatedCrew != nil {
-		boat.RatedCrew = *input.RatedCrew
-	}
+	// if input.DesignSpeed != nil {
+	// 	boat.DesignSpeed = *input.DesignSpeed
+	// }
+	// if input.RatedCrew != nil {
+	// 	boat.RatedCrew = *input.RatedCrew
+	// }
 
 	return boat
 }

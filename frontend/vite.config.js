@@ -17,11 +17,12 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [react()],
     base: command === 'build' ? normalizeBaseUrl(publicBaseUrl || '/') : '/',
-    server: {
+    server: { 
       proxy: {
         '/api': {
           target: 'http://localhost:8082',
           changeOrigin: true,
+          ws: true, // 关键：开启 WebSocket 代理
         },
       }
     }

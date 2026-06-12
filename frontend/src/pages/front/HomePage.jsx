@@ -212,7 +212,7 @@ export default function HomePage() {
 
     setOpenCompareSelectId((current) => (current === modelId ? null : current));
   };
-
+console.log("^^^^HomePage::engineImgs for EnginePowerShowcase=", primaryModel?.primaryModelInfo?.engineImgs);
   // --- Original JSX from HomePage.jsx ---
   if (captureMode) 
   {
@@ -299,16 +299,33 @@ export default function HomePage() {
 
             {/* 添加 EnginePowerShowcase 组件 */}
             <EnginePowerShowcase
-              engineImage={primaryModel?.primaryModelInfo?.engineImgs?.[0]|| '/img/electric-engine01.png'}
-              engineTitle={primaryModel?.primaryModelInfo?.engine?.title || 'Engine'}
-              engineDescription={primaryModel?.primaryModelInfo?.engine?.description || 'Engine'}
+              engineImgs={
+                 (primaryModel?.primaryModelInfo?.engineImgs && 
+                  primaryModel.primaryModelInfo.engineImgs.length > 0)
+                ? primaryModel.primaryModelInfo.engineImgs
+                : ['/img/electric-engine01.png']
+              }          
+              engineTitle={ '动力引擎参数'}
+              engineParams={{
+                designSpeed: primaryModel?.primaryModelInfo?.designSpeed || '0',
+                cruiseSpeed: primaryModel?.primaryModelInfo?.cruiseSpeed || '0',
+                cruiseRange: primaryModel?.primaryModelInfo?.cruiseRange || '0',
+                cabinType: primaryModel?.primaryModelInfo?.cabinType || '开放式驾舱',
+                controlMode: primaryModel?.primaryModelInfo?.controlMode || '方向盘操控',
+                passengerNum: primaryModel?.primaryModelInfo?.passengerNum || '0',
+              }}
             />
 
             {/* 添加 SmartSystemShowcase 组件 */}
             <SmartSystemShowcase
-              smartSystemImage={primaryModel?.primaryModelInfo?.smartSystemImgs?.[0] || '/img/smart-system01.png'}
-              smartSystemTitle={primaryModel?.primaryModelInfo?.smartSystem?.title || '智能系统'}
-              smartSystemDescription={primaryModel?.primaryModelInfo?.smartSystem?.description || '智能系统简介'}
+              smartSystemImgs={
+                 (primaryModel?.primaryModelInfo?.smartSystemImgs && 
+                  primaryModel.primaryModelInfo.smartSystemImgs.length > 0)
+                ? primaryModel.primaryModelInfo.smartSystemImgs
+                : ['/img/smart-system01.png', '/img/smart-system02.png']
+              }   
+              smartSystemTitle={primaryModel?.primaryModelInfo?.smartSystemName || '智能系统'}
+              smartSystemDescription={primaryModel?.primaryModelInfo?.smartSystemDescr || '智能系统简介'}
             />
 
             <DetailCompareStack

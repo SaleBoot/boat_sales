@@ -13,8 +13,51 @@ import {
   theme,
 } from 'antd';
 
+import { 
+  BOAT_NAV_AREA_OPTIONS,
+  BOAT_MATERIAL_OPTIONS,
+  BOAT_CERTI_TYPE_OPTIONS
+} from '../../../constants/constants_common.js'
+
+// 模拟后端 GetBoatCertiTypeByNavArea 函数
+const getBoatCertiTypeByNavArea = (aNavAreaID) => {
+  const allCertiTypes = BOAT_CERTI_TYPE_OPTIONS;
+
+  if (aNavAreaID === "InlandClassA" ||
+      aNavAreaID === "InlandClassB" ||
+      aNavAreaID === "RestrictedWaters") {
+    return allCertiTypes.filter(certi =>
+      certi.value === "CCSInlandSurvey" ||
+      certi.value === "LocalShipSurvey" ||
+      certi.value === "MSASmallCraftSurvey"
+    );
+  }
+
+  if (aNavAreaID === "ShelteredArea" ||
+      aNavAreaID === "CoastalArea" ||
+      aNavAreaID === "NearshoreArea") {
+    return allCertiTypes.filter(certi =>
+      certi.value === "CCSSeagoingSurvey"
+    );
+  }
+
+  if (aNavAreaID === "OffshoreArea") {
+    return allCertiTypes.filter(certi =>
+      certi.value === "CCSSeagoingSurvey" ||
+      certi.value === "CCSClassSurvey"
+    );
+  }
+
+  return allCertiTypes;
+}; 
+
 const BoatInfoPanel = ({ boat, boatCategories, form, onUpdate, isSubmitting }) => {
   const { compactAlgorithm } = theme;
+  const navigationArea = Form.useWatch('navigationArea', form);
+
+  const filteredCertiTypes = React.useMemo(() => {
+    return getBoatCertiTypeByNavArea(navigationArea);
+  }, [navigationArea]);
 
   if (!boat) {
     return (
@@ -64,13 +107,39 @@ const BoatInfoPanel = ({ boat, boatCategories, form, onUpdate, isSubmitting }) =
             <Col span={12}><Form.Item name="beam" label="船宽" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
             <Col span={12}><Form.Item name="moldedDepth" label="型深" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
             <Col span={12}><Form.Item name="draft" label="吃水" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="navigationArea" label="航区" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="mainEnginePower" label="主机功率" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="designSpeed" label="设计航速" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="ratedCrew" label="额定乘员"><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="propulsionType" label="动力形式" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="material" label="材质" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="certificateType" label="证书类型" normalize={(v) => v && v.trim()}><Input /></Form.Item></Col>
+            <Col span={12}>
+              <Form.Item name="navigationArea" label="航区">
+                <Select placeholder="请选择航区">
+                  {BOAT_NAV_AREA_OPTIONS.map(option => (
+                    <Select.Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="material" label="材质">
+                <Select placeholder="请选择材质">
+                  {BOAT_MATERIAL_OPTIONS.map(option => (
+                    <Select.Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="certificateType" label="证书类型">
+                <Select placeholder="请选择证书类型" allowClear>
+                  {filteredCertiTypes.map(option => (
+                    <Select.Option key={option.value} value={option.value}>
+                      {option.label}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
           </Row>
         </Form>
       </div>

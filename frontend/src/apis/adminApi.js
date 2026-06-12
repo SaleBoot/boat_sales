@@ -263,3 +263,50 @@ export const updateVideo = (id, videoData) => {
 export const deleteVideos = (videoIds) => {
   return api.post('/admin/video/delete', { ids: videoIds });
 };
+
+// -------------------------------------------------------
+// 船舶引擎型号管理 (Boat Engine)
+// -------------------------------------------------------
+
+/**
+ * 获取船舶引擎型号列表
+ * @param {object} params - 查询参数
+ * @returns {Promise<any>}
+ EngineCategoryID string `json:"engineCategoryID" gorm:"index;comment:关联动力类型"`
+ EngineName       string `json:"engineName" gorm:"type:varchar(128);comment:引擎型号名称"`
+ PowerKW      float64 `json:"powerKW" gorm:"type:decimal(6,2);comment:额定功率(kW)"`
+ BatteryKWh   float64 `json:"batteryKWh" gorm:"type:decimal(6,2);comment:电池容量(kWh，电动用)"`
+ Displacement float64 `json:"displacement" gorm:"type:real;comment:排量(L)，电动机型填0"`
+ Description  string  `json:"description" gorm:"type:text;comment:引擎型号描述"` 
+ */
+export const getBoatEngines = (params) => {
+  return api.get('/admin/boat-engine', { params });
+};
+
+/**
+ * 添加新船舶引擎型号
+ * @param {object} engineData - 船舶引擎型号数据
+ * @returns {Promise<any>}
+ */
+export const addBoatEngine = (engineData) => {
+  return api.post('/admin/boat-engine', engineData);
+};
+
+/**
+ * 更新船舶引擎型号
+ * @param {number} id - 船舶引擎型号ID
+ * @param {object} engineData - 更新的船舶引擎型号数据
+ * @returns {Promise<any>}
+ */
+export const updateBoatEngine = (id, engineData) => {
+  return api.post(`/admin/boat-engine/${id}`, engineData);
+};
+
+/**
+ * 删除船舶引擎型号
+ * @param {Array<number>} ids - 船舶引擎型号ID列表
+ * @returns {Promise<any>}
+ */
+export const deleteBoatEngines = (ids) => { 
+  return api.post('/admin/boat-engine/delete', { ids });
+};

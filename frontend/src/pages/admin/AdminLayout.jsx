@@ -35,11 +35,11 @@ export default function AdminLayout() {
             <NavLink to="/admin/boat-categories" className={getNavLinkClass}>
               <span>船舶类别管理</span>
             </NavLink>
-            {/* 
-            <NavLink to="/admin/boats" className={getNavLinkClass}>
-              <span>船舶管理</span>
+            
+            <NavLink to="/admin/engine" className={getNavLinkClass}>
+              <span>船舶引擎型号管理</span>
             </NavLink> 
-             */}
+            
             <NavLink to="/admin/models" className={getNavLinkClass}>
               <span>船模管理</span>
             </NavLink>

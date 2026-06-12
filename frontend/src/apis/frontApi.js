@@ -8,7 +8,7 @@ import api from '../utils/requestApi';
 // 
 // ------------------------------------------------
 /**
- * @typedef {object} TextureSet - Defines paths for all PBR texture channels.
+ * @typedef {object} FrontTextureSet - Defines paths for all PBR texture channels.
  * @property {string} basecolor - Base color texture path.
  * @property {string} normal - Normal map texture path.
  * @property {string} roughness - Roughness map texture path.
@@ -18,13 +18,13 @@ import api from '../utils/requestApi';
  */
 
 /**
- * @typedef {object} MatSlot - Represents a customizable material slot on a model.
+ * @typedef {object} FrontMatSlot - Represents a customizable material slot on a model.
  * @property {string} matName - The name of the material slot.
  * @property {TextureSet} textures - The set of textures for this material.
  */
 
 /**
- * @typedef {object} ModelInfo - Represents a specific, configurable model variant of a boat.
+ * @typedef {object} FrontModel - Represents a specific, configurable model variant of a boat.
  * @property {string} id - Unique ID for the model (e.g., boatEnName + index).
  * @property {string} label - The display name of the model (ModelName).
  * @property {string} boatEnName - The English name of the boat, also the model folder name.
@@ -43,13 +43,19 @@ import api from '../utils/requestApi';
  * @property {string} deckName - Name of the deck option.
  * @property {string} deckDescr - Description of the deck option.
  * @property {number} deckAddedPrice - Added price for the deck option.
- * @property {string} powerName - Name of the power/engine option.
- * @property {string} powerDescr - Description of the power/engine option.
- * @property {number} powerAddedPrice - Added price for the power/engine option.
- */
-
+ * @property {number} designSpeed - Design speed.
+ * @property {number} cruiseSpeed - Cruise speed.
+ * @property {number} cruiseRange - Cruise range.
+ * @property {string} cabinType - Cabin type.
+ * @property {string} controlMode - Control mode.
+ * @property {number} passengerNum - Passenger number.
+ * @property {string} smartSystemName - Smart system name.
+ * @property {string} smartSystemDescr - Smart system description.  
+ * 
+ * 
+ */  
 /**
- * @typedef {object} BoatInfo - Contains all detailed information for a single boat type.
+ * @typedef {object} FrontBoat - Contains all detailed information for a single boat type.
  * @property {string} id - The boat's English name (boat.boatEnName).
  * @property {string} label - The boat's Chinese name (boat.boatName).
  * @property {string} category - The English name of the boat's category.
@@ -67,11 +73,11 @@ import api from '../utils/requestApi';
  * @property {string} propulsionType - Type of propulsion.
  * @property {string} material - Hull material.
  * @property {string} certificateType - Type of certification.
- * @property {ModelInfo[]} models - A list of available model configurations for this boat.
+ * @property {FrontModel[]} models - A list of available model configurations for this boat.
  */
 
 /**
- * @typedef {Object<string, BoatInfo>} BoatMap
+ * @typedef {Object<string, FrontBoat>} BoatMap
  * A map where the key is the boat's English name (id) and the value is the full BoatInfo object.
  */
 
@@ -89,7 +95,7 @@ import api from '../utils/requestApi';
  */
 
 /**
- * @typedef {object} Models4Front - The root object returned by the getFrontBoatModels API.
+ * @typedef {object} FrontModels - The root object returned by the getFrontBoatModels API.
  * @property {BoatMenu[]} menu - Data structure for building the navigation menu.
  * @property {BoatMap} boatMap - A map for quick lookup of boat details by their ID.
  */

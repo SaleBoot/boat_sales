@@ -79,15 +79,17 @@ const BoatModelEditor = ({ boat,
     setFiles([])
   }, [boat?.boatEnName]);
 
-  useEffect(() => {
+  const handleCollapseChange = (newActiveKeys) => {
+    console.log("newActiveKeys",newActiveKeys)
     if (!selectedModelFolderName) {
       setFiles([])
       return
     }
 
-    const matchedFolder = modelFolders.find((folder) => folder.modelFolderName === selectedModelFolderName)
+    const matchedFolder = modelFolders.find((folder) => selectedModelFolderName.includes(folder.modelFolderName))
     setFiles((matchedFolder?.descendantFiles || []).map((file) => ({ key: file })))
-  }, [modelFolders, selectedModelFolderName]);
+
+  } 
 
   const handlePathSelect = (selectedPath) => {
     setSelectedModelFolderName(selectedPath || '')
@@ -216,7 +218,9 @@ const BoatModelEditor = ({ boat,
               // 这是新代码
               const groupedBySubfolder = files.reduce((acc, file) => {
                 // 构造要查找的父文件夹路径，确保末尾有斜杠
-                const parentPath = `${selectedModelFolderName}/`;
+                const parentPath = selectedModelFolderName.endsWith('/') 
+                                  ? selectedModelFolderName 
+                                  : `${selectedModelFolderName}/`;
                 const parentPathIndex = file.key.indexOf(parentPath);
 
                 // 如果文件路径不包含父文件夹，则跳过
@@ -426,6 +430,7 @@ const BoatModelEditor = ({ boat,
                     </Space.Compact>
                   </Form.Item>
                   <Collapse size="small">
+                    {/* 
                     <Collapse.Panel header="外观" key="exterior">
                       <Form.Item label="外观名称" style={{ marginBottom: '8px' }}>
                         <Input value={model.exteriorName} onChange={(e) => handleModelChange(index, 'exteriorName', e.target.value)} />
@@ -460,16 +465,18 @@ const BoatModelEditor = ({ boat,
                                onChange={(value) => handleModelChange(index, 'deckAddedPrice', value)} 
                                style={{ width: '100%' }} />
                       </Form.Item>
-                    </Collapse.Panel>
-                    <Collapse.Panel header="动力" key="power">
-                      <Form.Item label="动力名称" style={{ marginBottom: '8px' }}>
-                        <Input value={model.powerName} onChange={(e) => handleModelChange(index, 'powerName', e.target.value)} />
+                    </Collapse.Panel> 
+                    */}
+                    <Collapse.Panel header="动力选项" key="power">
+                      <Form.Item label="引擎类别" style={{ marginBottom: '8px' }}>
+                        <Input value={model.powerName} 
+                               onChange={(e) => handleModelChange(index, 'powerName', e.target.value)} />
                       </Form.Item>
-                      <Form.Item label="动力描述" style={{ marginBottom: '8px' }}>
+                      <Form.Item label="引擎型号名称" style={{ marginBottom: '8px' }}>
                         <Input.TextArea rows={2} value={model.powerDescr} 
                                onChange={(e) => handleModelChange(index, 'powerDescr', e.target.value)} />
                       </Form.Item>
-                      <Form.Item label="动力加价" style={{ marginBottom: '0px' }}>
+                      <Form.Item label="引擎详细信息" style={{ marginBottom: '0px' }}>
                         <InputNumber value={model.powerAddedPrice} 
                                 onChange={(value) => handleModelChange(index, 'powerAddedPrice', value)} 
                                 style={{ width: '100%' }} />
@@ -532,7 +539,10 @@ const BoatModelEditor = ({ boat,
         </Descriptions.Item>
       </Descriptions>
 
-      <Collapse defaultActiveKey={['1', '2']} style={{ marginTop: '16px' }} items={collapseItems} />
+      <Collapse defaultActiveKey={['1', '2']} 
+               style={{ marginTop: '16px' }} 
+               onChange={handleCollapseChange}
+               items={collapseItems} />
     </div>
   );
 };

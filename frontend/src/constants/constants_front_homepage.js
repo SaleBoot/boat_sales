@@ -45,11 +45,11 @@ export const legacyFallbackSpecs = {
   depth: '1.20',
   draft: '0.50',
   navigationArea: '',
-  mainEnginePower: '10 - 75 HP',
-  designSpeed: '25',
-  ratedCapacity: '32',
-  // 电动舷外机
-  powerType: '\u7535\u52a8\u8237\u5916\u673a',
+  // mainEnginePower: '10 - 75 HP',
+  // designSpeed: '25',
+  // ratedCapacity: '32',
+  // // 电动舷外机
+  // powerType: '\u7535\u52a8\u8237\u5916\u673a',
   // 铝合金或玻璃钢
   material: '\u94dd\u5408\u91d1\u6216\u73bb\u7483\u94a2',
   // 检验证书
@@ -66,10 +66,10 @@ export const modelSpecGroups = [
     title: '\u5c3a\u5ea6\u4e0e\u822a\u533a',// 尺度与航区
     fields: ['depth', 'draft', 'navigationArea']
   },
-  {
-    title: '\u52a8\u529b\u4e0e\u4e58\u5458',// 动力与乘员
-    fields: ['mainEnginePower', 'designSpeed', 'ratedCapacity', 'powerType']
-  },
+  // {
+  //   title: '\u52a8\u529b\u4e0e\u4e58\u5458',// 动力与乘员
+  //   fields: ['mainEnginePower', 'designSpeed', 'ratedCapacity', 'powerType']
+  // },
   {
     title: '\u6750\u8d28\u4e0e\u8ba4\u8bc1',// 材质与认证
     fields: ['material', 'certificateType']

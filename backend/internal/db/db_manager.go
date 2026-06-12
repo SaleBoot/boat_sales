@@ -13,6 +13,7 @@ type DbManager struct {
 	BoatModelDao    *dao.SysBoatModelDao
 	ModelVCamDao    *dao.SysModelVCamDao
 	VideoDao        *dao.SysVideoDao
+	BoatEngineDao   *dao.SysBoatEngineDao
 }
 
 func NewDbManager() (*DbManager, error) {
@@ -31,6 +32,7 @@ func NewDbManager() (*DbManager, error) {
 		BoatModelDao:    dao.NewSysBoatModelDao(database),
 		ModelVCamDao:    dao.NewSysModelVCamDao(database),
 		VideoDao:        dao.NewSysVideoDao(database),
+		BoatEngineDao:   dao.NewSysBoatEngineDao(database),
 	}
 
 	return adminM, nil

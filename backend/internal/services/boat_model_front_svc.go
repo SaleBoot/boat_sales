@@ -89,12 +89,12 @@ type FrontBoat struct {
 	MoldedDepth     float64 `json:"moldedDepth" gorm:"comment:型深"`
 	Draft           float64 `json:"draft" gorm:"comment:吃水"`
 	NavigationArea  string  `json:"navigationArea" gorm:"type:varchar(64);comment:航区"`
-	MainEnginePower string  `json:"mainEnginePower" gorm:"type:varchar(128);comment:主机功率"`
-	DesignSpeed     float64 `json:"designSpeed" gorm:"comment:设计航速"`
-	RatedCrew       int     `json:"ratedCrew" gorm:"comment:额定乘员"`
-	PropulsionType  string  `json:"propulsionType" gorm:"type:varchar(64);comment:动力形式"`
-	Material        string  `json:"material" gorm:"type:varchar(64);comment:材质"`
-	CertificateType string  `json:"certificateType" gorm:"type:varchar(64);comment:证书类型"`
+	// MainEnginePower string  `json:"mainEnginePower" gorm:"type:varchar(128);comment:主机功率"`
+	// DesignSpeed     float64 `json:"designSpeed" gorm:"comment:设计航速"`
+	// RatedCrew       int     `json:"ratedCrew" gorm:"comment:额定乘员"`
+	// PropulsionType  string  `json:"propulsionType" gorm:"type:varchar(64);comment:动力形式"`
+	Material        string `json:"material" gorm:"type:varchar(64);comment:材质"`
+	CertificateType string `json:"certificateType" gorm:"type:varchar(64);comment:证书类型"`
 	// 其他字段...
 	Models []FrontModel `json:"models"`
 }
@@ -114,10 +114,10 @@ func (b *FrontBoat) FromModel(aSysBoat *models.SysBoat) {
 	b.MoldedDepth = aSysBoat.MoldedDepth
 	b.Draft = aSysBoat.Draft
 	b.NavigationArea = aSysBoat.NavigationArea
-	b.MainEnginePower = aSysBoat.MainEnginePower
-	b.DesignSpeed = aSysBoat.DesignSpeed
-	b.RatedCrew = aSysBoat.RatedCrew
-	b.PropulsionType = aSysBoat.PropulsionType
+	// b.MainEnginePower = aSysBoat.MainEnginePower
+	// b.DesignSpeed = aSysBoat.DesignSpeed
+	// b.RatedCrew = aSysBoat.RatedCrew
+	// b.PropulsionType = aSysBoat.PropulsionType
 	b.Material = aSysBoat.Material
 	b.CertificateType = aSysBoat.CertificateType
 }
@@ -154,9 +154,21 @@ type FrontModel struct {
 	DeckDescr      string `json:"deckDescr"`      // 甲板描述
 	DeckAddedPrice int    `json:"deckAddedPrice"` // 甲板加价
 	// 动力相关
-	PowerName       string `json:"powerName"`       // 动力名称
-	PowerDescr      string `json:"powerDescr"`      // 动力描述
-	PowerAddedPrice int    `json:"powerAddedPrice"` // 动力加价
+	// PowerName       string `json:"powerName"`       // 动力名称
+	// PowerDescr      string `json:"powerDescr"`      // 动力描述
+	// PowerAddedPrice int    `json:"powerAddedPrice"` // 动力加价
+
+	// ===== Panel 2：动力与性能（针对该3D模型的默认参数）=====
+	DesignSpeed  float64 `json:"designSpeed"`
+	CruiseSpeed  float64 `json:"cruiseSpeed"`
+	CruiseRange  float64 `json:"cruiseRange"`
+	CabinType    string  `json:"cabinType"`
+	ControlMode  string  `json:"controlMode"`
+	PassengerNum int     `json:"passengerNum"`
+
+	// ===== Panel 3：智能系统（针对该3D模型的默认配置）=====
+	SmartSystemName  string `json:"smartSystemName"`
+	SmartSystemDescr string `json:"smartSystemDescr"`
 }
 
 type FrontMatSlot struct {
@@ -192,9 +204,20 @@ func (b *FrontModel) FromModel(aSysBoatModel *models.SysBoatModel) {
 	b.DeckName = aSysBoatModel.DeckName
 	b.DeckDescr = aSysBoatModel.DeckDescr
 	b.DeckAddedPrice = int(aSysBoatModel.DeckAddedPrice)
-	b.PowerName = aSysBoatModel.PowerName
-	b.PowerDescr = aSysBoatModel.PowerDescr
-	b.PowerAddedPrice = int(aSysBoatModel.PowerAddedPrice)
+	// b.PowerName = aSysBoatModel.PowerName
+	// b.PowerDescr = aSysBoatModel.PowerDescr
+	// b.PowerAddedPrice = int(aSysBoatModel.PowerAddedPrice)
+
+	// 动力与性能相关
+	b.DesignSpeed = aSysBoatModel.DesignSpeed
+	b.CruiseSpeed = aSysBoatModel.CruiseSpeed
+	b.CruiseRange = aSysBoatModel.CruiseRange
+	b.CabinType = aSysBoatModel.CabinType
+	b.ControlMode = aSysBoatModel.ControlMode
+	b.PassengerNum = aSysBoatModel.PassengerNum
+	// 智能系统相关
+	b.SmartSystemName = aSysBoatModel.SmartSystemName
+	b.SmartSystemDescr = aSysBoatModel.SmartSystemDescr
 }
 
 func filterModelMatSlots(

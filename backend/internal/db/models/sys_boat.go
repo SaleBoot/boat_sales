@@ -18,22 +18,27 @@ type SysBoat struct {
 	BoatName string `json:"boatName" gorm:"type:varchar(128);comment:船舶名称"`
 	// todo:BoatEnName改成BoatID
 	BoatEnName string `json:"boatEnName" gorm:"type:varchar(128);comment:无空格英文，也是模型文件夹名;unique"`
-	// Category 改成 CategoryStrID
-	CategoryStrID   string  `json:"categoryStrID" gorm:"type:varchar(64);comment:船舶类型英文名"`
-	Price           int     `json:"price" gorm:"type:int;comment:价格" `
-	Description     string  `json:"description" gorm:"type:text;comment:简介"`
+	//
+	CategoryStrID string `json:"categoryStrID" gorm:"type:varchar(64);comment:船舶类型英文名"`
+	//
+	Price       int    `json:"price" gorm:"type:int;comment:价格" `
+	Description string `json:"description" gorm:"type:text;comment:简介"`
+	// ===== Panel 1：总体参数 =====
 	OverallLength   float64 `json:"overallLength" gorm:"comment:总长"`
 	WaterlineLength float64 `json:"waterlineLength" gorm:"comment:水线长"`
 	Beam            float64 `json:"beam" gorm:"comment:船宽"`
 	MoldedDepth     float64 `json:"moldedDepth" gorm:"comment:型深"`
 	Draft           float64 `json:"draft" gorm:"comment:吃水"`
-	NavigationArea  string  `json:"navigationArea" gorm:"type:varchar(64);comment:航区"`
-	MainEnginePower string  `json:"mainEnginePower" gorm:"type:varchar(128);comment:主机功率"`
-	DesignSpeed     float64 `json:"designSpeed" gorm:"comment:设计航速"`
-	RatedCrew       int     `json:"ratedCrew" gorm:"comment:额定乘员"`
-	PropulsionType  string  `json:"propulsionType" gorm:"type:varchar(64);comment:动力形式"`
-	Material        string  `json:"material" gorm:"type:varchar(64);comment:材质"`
-	CertificateType string  `json:"certificateType" gorm:"type:varchar(64);comment:证书类型"`
+	// 航区与材质
+	NavigationArea  string `json:"navigationArea" gorm:"type:varchar(64);comment:航区"`
+	Material        string `json:"material" gorm:"type:varchar(64);comment:材质"`
+	CertificateType string `json:"certificateType" gorm:"type:varchar(64);comment:证书类型"`
+
+	// ===== move to sys_boat_model
+	// MainEnginePower string  `json:"mainEnginePower" gorm:"type:varchar(128);comment:主机功率"`
+	// DesignSpeed     float64 `json:"designSpeed" gorm:"comment:设计航速"`
+	// RatedCrew       int     `json:"ratedCrew" gorm:"comment:额定乘员"`
+	// PropulsionType  string  `json:"propulsionType" gorm:"type:varchar(64);comment:动力形式"`
 }
 
 func (*SysBoat) TableName() string {
