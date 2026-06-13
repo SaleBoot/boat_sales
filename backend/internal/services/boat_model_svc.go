@@ -8,15 +8,31 @@ import (
 )
 
 type BoatModelService struct {
-	BoatModelDao *dao.SysBoatModelDao
+	BoatModelDao          *dao.SysBoatModelDao
+	ModelEngineOptionsDao *dao.SysModelEngineOptionsDao
+	EngineDao             *dao.SysBoatEngineDao
 }
 
-func NewBoatModelService(aDao *dao.SysBoatModelDao) (*BoatModelService, error) {
-	if aDao == nil {
-		return nil, fmt.Errorf("aDao is nil")
+func NewBoatModelService(
+	aModelDao *dao.SysBoatModelDao,
+	aModelEngineOptionsDao *dao.SysModelEngineOptionsDao,
+	aEngineDao *dao.SysBoatEngineDao,
+) (*BoatModelService, error) {
+	if aModelDao == nil {
+		return nil, fmt.Errorf("aModelDao is nil")
+	}
+	if aModelEngineOptionsDao == nil {
+		return nil, fmt.Errorf("aModelEngineOptionsDao is nil")
+	}
+	if aEngineDao == nil {
+		return nil, fmt.Errorf("aEngineDao is nil")
 	}
 
-	return &BoatModelService{BoatModelDao: aDao}, nil // 依赖注入
+	return &BoatModelService{BoatModelDao: aModelDao,
+		ModelEngineOptionsDao: aModelEngineOptionsDao,
+		EngineDao:             aEngineDao,
+	}, nil
+
 }
 
 func (aH *BoatModelService) GetModelsByBoatEnName(aBoatEnName string,

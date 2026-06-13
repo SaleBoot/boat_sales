@@ -4,6 +4,8 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getModelsByBoatEnName, updateModelsByBoatEnName } from '../../../apis/adminApi';
 import { getGrandparentPath } from '../../../utils/utils_admin';
 import { buildModelConfig4AdminPage } from '../runtime/tool_admin';
+import { BOAT_ENGINE_CATEGORY_OPTIONS } from '../../../constants/constants_common';
+import { getBoatEngines } from '../../../apis/adminApi';
 
 const { Title } = Typography;
 
@@ -20,6 +22,10 @@ const BoatModelEditor = ({ boat,
   const [boatModels, setBoatModels] = useState([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [loadingBoatEngines, setLoadingBoatEngines] = useState(false);
+  const [boatEngines, setBoatEngines] = useState([]);
+
  
   useEffect(() => {
     if (!boat?.boatEnName) {
@@ -79,6 +85,31 @@ const BoatModelEditor = ({ boat,
     setFiles([])
   }, [boat?.boatEnName]);
 
+
+  // 获取列表数据（支持分页参数）
+  const fetchBoatEngines = async (params = {}) => {
+    setLoadingBoatEngines(true);
+    try {
+      const reqParams = { 
+        ...params,
+      };
+      const response = await getBoatEngines(reqParams);
+      console.log('Fetched boat-engines:', response);
+
+      setBoatEngines( Array.isArray(response) ? response : []); 
+      message.success('列表刷新成功！');
+    } catch (error) {
+      console.error('Failed to fetch boat engines:', error);
+      message.error('获取船舶引擎列表失败。');
+    } finally {
+      setLoadingBoatEngines(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBoatEngines();
+  }, []);
+
   const handleCollapseChange = (newActiveKeys) => {
     console.log("newActiveKeys",newActiveKeys)
     if (!selectedModelFolderName) {
@@ -86,9 +117,9 @@ const BoatModelEditor = ({ boat,
       return
     }
 
-    const matchedFolder = modelFolders.find((folder) => selectedModelFolderName.includes(folder.modelFolderName))
+    const matchedFolder = modelFolders.find(
+      (folder) => selectedModelFolderName.includes(folder.modelFolderName))
     setFiles((matchedFolder?.descendantFiles || []).map((file) => ({ key: file })))
-
   } 
 
   const handlePathSelect = (selectedPath) => {
@@ -160,45 +191,92 @@ const BoatModelEditor = ({ boat,
   };
 
   const handleModelChange = (index, field, value) => {
-    const newModels = [...boatModels];
-    newModels[index] = { ...newModels[index], [field]: value };
-    setBoatModels(newModels);
+    setBoatModels(prevModels => {
+      const newModels = [...prevModels];
+      // 基于最新 prevModels 更新单个字段，其余字段全部保留
+      newModels[index] = { ...newModels[index], [field]: value };
+      return newModels;
+    });
   };
 
-  const addDefaultStyleModel = () => {
-    if (boatModels.length >= 4) {
-      message.warning('最多只能添加4个默认样式模型');
-      return;
-    }
-    setBoatModels([
-      ...boatModels,
-      {
-        boatEnName: boat?.boatEnName || '',
-        modelName: '',
-        modelRuntimePath: '',
-        exteriorName: '',
-        exteriorDescr: '',
-        exteriorAddedPrice: 0,
-        interiorName: '',
-        interiorDescr: '',
-        interiorAddedPrice: 0,
-        deckName: '',
-        deckDescr: '',
-        deckAddedPrice: 0,
-        powerName: '',
-        powerDescr: '',
-        powerAddedPrice: 0,
-        smartSystemName: '',
-        smartSystemDescr: '',
-        smartSystemAddedPrice: 0,
-      },
-    ]);
-  };
+
+
+const addDefaultStyleModel = () => {
+  if (boatModels.length >= 4) {
+    message.warning('最多只能添加4个默认样式模型');
+    return;
+  }
+  setBoatModels([
+    ...boatModels,
+    {
+      boatEnName: boat?.boatEnName || '',
+      modelName: '',
+      modelRuntimePath: '',
+      exteriorName: '',
+      exteriorDescr: '',
+      exteriorAddedPrice: 0,
+      interiorName: '',
+      interiorDescr: '',
+      interiorAddedPrice: 0,
+      deckName: '',
+      deckDescr: '',
+      deckAddedPrice: 0,
+      DesignSpeed: 0,
+      CruiseSpeed: 0,
+      CruiseRange: 0,
+      CabinType: '',
+      ControlMode: '',
+      PassengerNum: 0,
+      smartSystemName: '',
+      smartSystemDescr: '',
+      smartSystemAddedPrice: 0,
+      // 关键：初始化绑定动力数组，防止 undefined
+      boundEngines: []
+    },
+  ]);
+};
 
   const removeDefaultStyleModel = (index) => {
     const newModels = boatModels.filter((_, i) => i !== index);
     setBoatModels(newModels);
   };
+
+
+  /**
+ * 给指定样式 添加一个动力
+ * @param styleIndex 样式下标
+ * @param engineItem 选中的引擎完整对象
+ */
+const addEngineToModel = (styleIndex, engineItem) => {
+  setBoatModels(prev => {
+    const newModels = [...prev];
+    const style = { ...newModels[styleIndex] };
+    // 去重：避免重复添加同一个引擎
+    const exists = style.boundEngines.some(e => e.id === engineItem.id);
+    if (exists) {
+      message.warning("该动力已添加");
+      return prev;
+    }
+    style.boundEngines = [...style.boundEngines, engineItem];
+    newModels[styleIndex] = style;
+    return newModels;
+  });
+};
+
+/**
+ * 从样式中 删除一条动力
+ * @param styleIndex 样式下标
+ * @param engineId 引擎ID
+ */
+const removeEngineFromModel = (styleIndex, engineId) => {
+  setBoatModels(prev => {
+    const newModels = [...prev];
+    const style = { ...newModels[styleIndex] };
+    style.boundEngines = style.boundEngines.filter(e => e.id !== engineId);
+    newModels[styleIndex] = style;
+    return newModels;
+  });
+};
 
 
   if (!boat) {
@@ -312,7 +390,7 @@ const BoatModelEditor = ({ boat,
                               value={runtimeModelPath}
                               onChange={(e) => {
                                 const selectedKey = e.target.value;
-                                const modelConfig = buildModelConfig(subfolder, subfolderFiles, selectedKey);
+                                const modelConfig = buildModelConfig4AdminPage(subfolder, subfolderFiles, selectedKey);
                                 if (onModelChange) {
                                   onModelChange(modelConfig, selectedKey);
                                 }
@@ -377,6 +455,16 @@ const BoatModelEditor = ({ boat,
                 file.key.startsWith(`${selectedModelFolderName}`)
               )
               .map(file => ({ label: file.key, value: file.key }));
+              
+            // 
+            const filterEngines = model.engineCategory
+              ? boatEngines.filter(eng => eng.engineCategoryID === model.engineCategory)
+              : boatEngines;
+
+            const engineNameOptions = filterEngines.map(engine => ({
+              label: engine.engineName,
+              value: engine.engineName
+            }));              
 
             return (
               <Card
@@ -468,20 +556,43 @@ const BoatModelEditor = ({ boat,
                     </Collapse.Panel> 
                     */}
                     <Collapse.Panel header="动力选项" key="power">
-                      <Form.Item label="引擎类别" style={{ marginBottom: '8px' }}>
-                        <Input value={model.powerName} 
-                               onChange={(e) => handleModelChange(index, 'powerName', e.target.value)} />
-                      </Form.Item>
-                      <Form.Item label="引擎型号名称" style={{ marginBottom: '8px' }}>
-                        <Input.TextArea rows={2} value={model.powerDescr} 
-                               onChange={(e) => handleModelChange(index, 'powerDescr', e.target.value)} />
-                      </Form.Item>
+
+                    <Form.Item label="引擎类别" style={{ marginBottom: '8px' }}>
+                      <Select
+                        value={model.engineCategory || undefined}
+                        onChange={(value) => {
+                          // 切换类别时，清空已选引擎型号（防止不匹配）
+                          handleModelChange(index, 'engineCategory', value);
+                          handleModelChange(index, 'engineName', undefined);
+                        }}
+                        options={BOAT_ENGINE_CATEGORY_OPTIONS.map(option => ({ 
+                                label: option.Label, value: option.StrID }))}
+                        placeholder="请选择引擎类别"
+                        allowClear
+                      />
+                    </Form.Item>
+
+                    <Form.Item label="引擎型号名称" style={{ marginBottom: '8px' }}>
+                      <Select
+                        value={model.engineName || undefined}
+                        onChange={(value) => handleModelChange(index, 'engineName', value)}
+                        // 转为标准 {label, value} 结构
+                        options={engineNameOptions}
+                        placeholder="请选择引擎型号"
+                        allowClear
+                      />
+                    </Form.Item>
+                      
                       <Form.Item label="引擎详细信息" style={{ marginBottom: '0px' }}>
-                        <InputNumber value={model.powerAddedPrice} 
-                                onChange={(value) => handleModelChange(index, 'powerAddedPrice', value)} 
+                        <Input.TextArea value={model.powerDescr}                                  
                                 style={{ width: '100%' }} />
                       </Form.Item>
+
                     </Collapse.Panel>
+ 
+
+
+
                     <Collapse.Panel header="智能系统" key="smartSystem">
                       <Form.Item label="智能系统名称" style={{ marginBottom: '8px' }}>
                         <Input value={model.smartSystemName} 

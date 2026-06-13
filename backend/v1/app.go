@@ -80,13 +80,14 @@ func NewApp() (*app, *ws.WsModule, error) {
 
 	// ----
 	svcMtmp, err := services.NewServiceManager(
-		application.dbm.BoatCategoryDao, // 依赖注入
-		application.dbm.BoatDao,         // 依赖注入
-		application.dbm.CosPathDao,      // 依赖注入
-		application.dbm.BoatModelDao,    // 依赖注入
-		application.dbm.ModelVCamDao,    // 依赖注入
-		application.dbm.VideoDao,        // 依赖注入
-		application.dbm.BoatEngineDao,   // 依赖注入
+		application.dbm.BoatCategoryDao,       // 依赖注入
+		application.dbm.BoatDao,               // 依赖注入
+		application.dbm.CosPathDao,            // 依赖注入
+		application.dbm.BoatModelDao,          // 依赖注入
+		application.dbm.ModelVCamDao,          // 依赖注入
+		application.dbm.VideoDao,              // 依赖注入
+		application.dbm.BoatEngineDao,         // 依赖注入
+		application.dbm.ModelEngineOptionsDao, // 依赖注入
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("initialize service manager: %w", err)

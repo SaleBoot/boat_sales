@@ -13,7 +13,9 @@ import {
   InputNumber
 } from 'antd';
 import { PlusOutlined, RedoOutlined } from '@ant-design/icons';
-import { getBoatEngines, addBoatEngine, updateBoatEngine, deleteBoatEngines } from '../../../apis/adminApi';
+import { 
+  getBoatEngines, addBoatEngine, 
+  updateBoatEngine, deleteBoatEngines } from '../../../apis/adminApi';
 import { BOAT_ENGINE_CATEGORY_OPTIONS } from '../../../constants/constants_common.js'
 
 // 公共时间格式化方法

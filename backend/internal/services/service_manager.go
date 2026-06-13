@@ -20,6 +20,7 @@ func NewServiceManager(
 	aModelVCamDao *dao.SysModelVCamDao,
 	aVideoDao *dao.SysVideoDao,
 	aBoatEngineDao *dao.SysBoatEngineDao,
+	aModelEngineOptionsDao *dao.SysModelEngineOptionsDao,
 ) (*ServiceManager, error) {
 	boatCategorySvc, err := NewBoatCategoryService(aBoatCategoryDao)
 	if err != nil {
@@ -35,7 +36,8 @@ func NewServiceManager(
 		return nil, err
 	}
 
-	boatModelSvc, err := NewBoatModelService(aBoatModelDao)
+	boatModelSvc, err := NewBoatModelService(aBoatModelDao,
+		aModelEngineOptionsDao, aBoatEngineDao)
 	if err != nil {
 		return nil, err
 	}

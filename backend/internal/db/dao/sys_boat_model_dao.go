@@ -31,10 +31,16 @@ func (s *SysBoatModelDao) GetModelsByBoatEnName(boatEnName string,
 // ReplaceModelsByBoatEnName atomically replaces all models for a given boatEnName.
 // It does this within a transaction by first deleting all existing models for the boatEnName,
 // and then creating the new ones from the provided slice.
-func (s *SysBoatModelDao) ReplaceModelsByBoatEnName(boatEnName string, aModels []*models.SysBoatModel) error {
+func (s *SysBoatModelDao) ReplaceModelsByBoatEnName(
+	boatEnName string,
+	aModels []*models.SysBoatModel,
+) error {
+
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Delete all old records for the given boat_en_name
-		if err := tx.Where("boat_en_name = ?", boatEnName).Delete(&models.SysBoatModel{}).Error; err != nil {
+		err := tx.Where("boat_en_name = ?", boatEnName).
+			Delete(&models.SysBoatModel{}).Error
+		if err != nil {
 			return err
 		}
 

@@ -60,12 +60,10 @@ export default function VideoShowcase({ videos })
               {playingVideoId === video.id ? (
                 <iframe
                   className="video-frame"
-                  src={getVideoEmbedSrc(video.url, 1)}
-                  title={video.title}
-                  loading="lazy"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
+                  src={getVideoEmbedSrc(video.url, 0)}
+                  title={video.title} 
+                  allow="fullscreen;"
+                  style={{ width: '100%', height: '100%', border: 'none' }}
                 />
               ) : (
                 <div
