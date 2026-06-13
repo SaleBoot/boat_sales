@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Descriptions, Input, Button, Empty, message as staticMessage, Select, Typography, App, Space, Collapse, Radio, Card, Form, InputNumber, Popconfirm, Image } from 'antd';
+import { 
+  Descriptions, Input, Button, Empty, 
+  message as staticMessage, Select, Typography, App, Space, Collapse, 
+  Radio, Card, Modal, Form, InputNumber, Popconfirm, Image 
+} from 'antd';
+
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getModelsByBoatEnName, updateModelsByBoatEnName } from '../../../apis/adminApi';
 import { getGrandparentPath } from '../../../utils/utils_admin';
@@ -22,9 +27,15 @@ const BoatModelEditor = ({ boat,
   const [boatModels, setBoatModels] = useState([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
+  // 引擎型号状态
   const [loadingBoatEngines, setLoadingBoatEngines] = useState(false);
   const [boatEngines, setBoatEngines] = useState([]);
+
+  // modal状态
+  const [addEngineVisible, setAddEngineVisible] = useState(false);
+  const [currentStyleIndex, setCurrentStyleIndex] = useState(-1);
+  const [selectEngineCategoryId, setSelectEngineCategoryId] = useState(undefined);
+  const [selectEngineId, setSelectEngineId] = useState(undefined);
 
  
   useEffect(() => {
@@ -251,13 +262,18 @@ const addEngineToModel = (styleIndex, engineItem) => {
   setBoatModels(prev => {
     const newModels = [...prev];
     const style = { ...newModels[styleIndex] };
+    
+    // 确保 boundEngines 是一个数组
+    const currentBoundEngines = Array.isArray(style.boundEngines) ? style.boundEngines : [];
+
     // 去重：避免重复添加同一个引擎
-    const exists = style.boundEngines.some(e => e.id === engineItem.id);
+    const exists = currentBoundEngines.some(e => e.ID === engineItem.ID);
     if (exists) {
       message.warning("该动力已添加");
       return prev;
     }
-    style.boundEngines = [...style.boundEngines, engineItem];
+
+    style.boundEngines = [...currentBoundEngines, engineItem];
     newModels[styleIndex] = style;
     return newModels;
   });
@@ -272,10 +288,37 @@ const removeEngineFromModel = (styleIndex, engineId) => {
   setBoatModels(prev => {
     const newModels = [...prev];
     const style = { ...newModels[styleIndex] };
-    style.boundEngines = style.boundEngines.filter(e => e.id !== engineId);
+
+    // 确保 boundEngines 是一个数组
+    const currentBoundEngines = Array.isArray(style.boundEngines) ? style.boundEngines : [];
+
+    style.boundEngines = currentBoundEngines.filter(e => e.ID !== engineId);
     newModels[styleIndex] = style;
+
     return newModels;
   });
+};
+
+
+
+// 打开选择弹窗
+const openAddEngineModal = (styleIndex) => {
+  setCurrentStyleIndex(styleIndex);
+  setSelectEngineId(undefined);
+  setAddEngineVisible(true);
+};
+
+// 确认添加
+const confirmAddEngine = () => {
+  if (!selectEngineId) {
+    message.warning('请选择引擎型号');
+    return;
+  }
+  const targetEngine = boatEngines.find(eng => eng.ID === selectEngineId);
+  if (targetEngine) {
+    addEngineToModel(currentStyleIndex, targetEngine);
+  }
+  setAddEngineVisible(false);
 };
 
 
@@ -455,16 +498,7 @@ const removeEngineFromModel = (styleIndex, engineId) => {
                 file.key.startsWith(`${selectedModelFolderName}`)
               )
               .map(file => ({ label: file.key, value: file.key }));
-              
-            // 
-            const filterEngines = model.engineCategory
-              ? boatEngines.filter(eng => eng.engineCategoryID === model.engineCategory)
-              : boatEngines;
-
-            const engineNameOptions = filterEngines.map(engine => ({
-              label: engine.engineName,
-              value: engine.engineName
-            }));              
+                 
 
             return (
               <Card
@@ -555,41 +589,62 @@ const removeEngineFromModel = (styleIndex, engineId) => {
                       </Form.Item>
                     </Collapse.Panel> 
                     */}
-                    <Collapse.Panel header="动力选项" key="power">
+                    
+<Collapse.Panel header="动力选项" key="power">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    {/* 循环渲染每一组动力配置，UI 和原有表单一致 */}
+    {model.boundEngines?.map((powerItem, powerIdx) => {
+      // 引擎类别 + 型号 联动过滤（沿用原有逻辑）
+      const filterEngines = powerItem.engineCategoryID
+        ? boatEngines.filter(eng => eng.engineCategoryID === powerItem.engineCategoryID)
+        : boatEngines;
 
-                    <Form.Item label="引擎类别" style={{ marginBottom: '8px' }}>
-                      <Select
-                        value={model.engineCategory || undefined}
-                        onChange={(value) => {
-                          // 切换类别时，清空已选引擎型号（防止不匹配）
-                          handleModelChange(index, 'engineCategory', value);
-                          handleModelChange(index, 'engineName', undefined);
-                        }}
-                        options={BOAT_ENGINE_CATEGORY_OPTIONS.map(option => ({ 
-                                label: option.Label, value: option.StrID }))}
-                        placeholder="请选择引擎类别"
-                        allowClear
-                      />
-                    </Form.Item>
+      const engineNameOptions = filterEngines.map(engine => ({
+        label: engine.engineName,
+        value: engine.engineName
+      }));
 
-                    <Form.Item label="引擎型号名称" style={{ marginBottom: '8px' }}>
-                      <Select
-                        value={model.engineName || undefined}
-                        onChange={(value) => handleModelChange(index, 'engineName', value)}
-                        // 转为标准 {label, value} 结构
-                        options={engineNameOptions}
-                        placeholder="请选择引擎型号"
-                        allowClear
-                      />
-                    </Form.Item>
-                      
-                      <Form.Item label="引擎详细信息" style={{ marginBottom: '0px' }}>
-                        <Input.TextArea value={model.powerDescr}                                  
-                                style={{ width: '100%' }} />
-                      </Form.Item>
+      return (
+        <div key={powerItem.ID} 
+        style={{ border: '1px solid #e5e6eb', 
+                 borderRadius: 6,  padding: 1, position: 'relative' }}
+        >
+          {/* 组标题 + 删除按钮 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Typography.Text
+              strong // 等同于 fontWeight: 500
+              data-value={powerItem.ID} // 将 ID 存储为自定义属性
+              style={{ width: 'auto', margin: 0, padding: 0, lineHeight: 1 }}
+            >
+              动力配置 {powerIdx + 1}: {powerItem.engineName || ''}
+            </Typography.Text>
+            <Popconfirm  title="确定移除该组动力？"
+              onConfirm={() => removeEngineFromModel(index, powerItem.ID)}
+              okText="确定"  cancelText="取消"
+            >
+              <Button icon={<DeleteOutlined />} danger type="link" size="small">移除</Button>
+            </Popconfirm>
+          </div>          
+        </div>
+      );
+    })}
 
-                    </Collapse.Panel>
- 
+    {/* 空状态提示 */}
+    {model.boundEngines?.length === 0 && (
+      <Empty description="暂无动力配置，请点击下方按钮添加" 
+      style={{ margin: '4px 0' }} size="small" />
+    )}
+
+    {/* 新增动力按钮，和页面原有「添加样式」视觉统一 */}
+    <Button  type="dashed"  icon={<PlusOutlined />}
+      onClick={() => openAddEngineModal(index)}    block 
+    >
+      添加动力配置
+    </Button>
+  </div>
+</Collapse.Panel>
+
+
 
 
 
@@ -614,11 +669,64 @@ const removeEngineFromModel = (styleIndex, engineId) => {
               </Card>
             );
           })}
-          <Button type="dashed" onClick={addDefaultStyleModel} icon={<PlusOutlined />} disabled={boatModels.length >= 4}>
+          <Button type="dashed" onClick={addDefaultStyleModel} 
+          icon={<PlusOutlined />} disabled={boatModels.length >= 4}>
             添加默认样式
           </Button>
+
+<Modal
+  title="选择要添加的动力型号"
+  open={addEngineVisible}
+  onOk={confirmAddEngine}
+  onCancel={() => setAddEngineVisible(false)}
+> 
+<Form layout="horizontal" size="small">
+        <Form.Item label="引擎类别" labelCol={{ span: 6 }} 
+        wrapperCol={{ span: 18 }} style={{ marginBottom: '8px' }}>
+          <Select
+            value={selectEngineCategoryId || undefined}
+            onChange={(value) => {
+              // 更新类别，同时清空型号
+              setSelectEngineCategoryId(value);
+              setSelectEngineId(undefined);
+            }}
+            options={BOAT_ENGINE_CATEGORY_OPTIONS.map(option => ({
+              label: option.Label, value: option.StrID }))}
+            placeholder="请选择引擎类别"
+            allowClear  style={{ width: '100%' }}
+          />
+        </Form.Item>
+
+        <Form.Item label="引擎型号名称" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }} 
+        style={{ marginBottom: '8px' }}>
+          <Select 
+            value={selectEngineId || undefined}
+            onChange={(value) => setSelectEngineId(value)}
+            options={ 
+              boatEngines.filter(eng => eng.engineCategoryID === selectEngineCategoryId)
+              .map(engine => ({ label: engine.engineName, value: engine.ID}))
+             }
+            placeholder="请选择引擎型号"
+            allowClear   style={{ width: '100%' }}
+          />
+        </Form.Item>
+
+        <Form.Item label="引擎详细信息" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }} 
+        style={{ marginBottom: '0px' }}>
+          <Input.TextArea
+            value={
+              boatEngines.find(eng => eng.ID === selectEngineId)?.description || ''              
+            }
+            style={{ width: '100%' }} disabled  rows={2}
+          />
+        </Form.Item>
+    </Form>
+</Modal>          
         </div>
-      ),
+
+
+
+      ), 
     },
   ];
 

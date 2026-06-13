@@ -254,8 +254,8 @@ const BoatEngineView = () => {
             label="引擎型号名称"
             rules={[
               { required: true, message: '请输入引擎型号名称' },
-              { pattern: /^[\u4e00-\u9fa5a-zA-Z0-9_]+$/,  
-                message: '只能输入中文、字母、数字和下划线，禁止输入空格' 
+              { pattern: /^[\u4e00-\u9fa5a-zA-Z0-9_-]+$/,  
+                message: '只能输入中文、字母、数字、短横线、下划线，禁止输入空格' 
               },
             ]}
           >
