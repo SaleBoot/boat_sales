@@ -14,6 +14,7 @@ type FrontModule struct {
 	boatModelFH *apis.BoatModelFrontHandler
 	vcamFH      *apis.ModelVCamFrontHandler
 	videoFH     *apis.VideoFrontHandler
+	saleOrderFH *apis.SalesOrderFrontHandler
 }
 
 func NewFrontModule(
@@ -25,6 +26,7 @@ func NewFrontModule(
 	aVideoSvc *services.VideoService, // 依赖注入
 	aEngineSvc *services.BoatEngineService, // 依赖注入
 	aEngineOptionSvc *services.ModelEngineOptionsService, // 依赖注入
+	aSalesOrderSvc *services.SalesOrderService, // 依赖注入
 ) (*FrontModule, error) {
 
 	// bcH, err := apis.NewBoatCategoryHandler(aBoatCategorySvc)
@@ -58,11 +60,17 @@ func NewFrontModule(
 		return nil, fmt.Errorf("failed to NewVideoFrontHandler: %w", err)
 	}
 
+	saleOrderFH, err := apis.NewSalesOrderFrontHandler(aSalesOrderSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewSalesOrderFrontHandler: %w", err)
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	frontM := &FrontModule{
-		boatModelFH: bmFH,    // 依赖注入
-		vcamFH:      vcamFH,  // 依赖注入
-		videoFH:     videoFH, // 依赖注入
+		boatModelFH: bmFH,        // 依赖注入
+		vcamFH:      vcamFH,      // 依赖注入
+		videoFH:     videoFH,     // 依赖注入
+		saleOrderFH: saleOrderFH, // 依赖注入
 	}
 
 	return frontM, nil
@@ -89,6 +97,9 @@ func (a *FrontModule) RegisterRoutes(aApiRG *gin.RouterGroup) {
 		fontRG.GET("/vcams/*modelPath", a.vcamFH.HandleGetVCamsByModelPath)
 		// 全路径 /api/front/videos
 		fontRG.GET("/videos", a.videoFH.HandleGetVideos)
+
+		// 全路径 /api/front/sale-orders
+		fontRG.POST("/sale-orders", a.saleOrderFH.HandleAddSalesOrder)
 	}
 
 }

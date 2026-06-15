@@ -7,6 +7,7 @@ import { buildModel4ShipScene } from '../../utils/utils_ship_scene'
 import { 
   BOAT_ENGINE_CATEGORY_OPTIONS
 } from '../../constants/constants_common.js'
+import { addSaleOrder } from '../../apis/frontApi';
  
 const configurationSteps = ['船型', '外观', '内饰', '动力' ]
 
@@ -798,40 +799,33 @@ export default function OrderPage() {
     setSubmitError('')
 
     try {
-      const response = await fetch(buildApiUrl(apiBasePath, '/api/orders'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          modelId: activeModel.id,
-          modelLabel: activeModel.label,
-          customerName: normalizedCustomerName,
-          customerContact: normalizedCustomerContact,
-          category: activeModel.type || getCategoryForModel(activeModel),
-          appearanceLabel: activeAppearance?.label ?? '',
-          colorLabel: activeColor?.label ?? '',
-          colorHex: activeColor?.hex ?? '',
-          interiorLabel: activeInterior?.label ?? '',
-          powerLabel: activePower?.label ?? '',
-          totalPrice,
-          source: 'showcase-web'
-        })
-      })
-      const payload = await response.json().catch(() => null)
+      const saleOrderData = {
+        modelID: activeModel.primaryModelInfo?.id ?? '',
+        modelLabel: activeModel.primaryModelInfo?.label ?? '',
+        model3DPath: activeModel?.primaryModelInfo?.partPaths?.[0] ?? '',
+        status: 'new',
+        customerName: normalizedCustomerName,
+        customerContact: normalizedCustomerContact,
+        category: activeModel.category,
+        ExteriorColor: exteriorColor ?? '',
+        InteriorColor: interiorColor ?? '',
+        DeckColor: deckColor ?? '',
+        EngineCategoryID: activeEngine?.engineCategoryID ?? '',
+        EngineName: activeEngine?.engineName ?? '',
+        totalPrice,
+        source: 'showcase-web'
+      };
 
-      if (!response.ok) {
-        throw new Error(payload?.error ?? `提交失败，状态码 ${response.status}`)
-      }
+      const payload = await addSaleOrder(saleOrderData);
 
-      const orderId = `${payload?.order?.id ?? ''}`.trim()
+      const orderId = `${payload?.order?.id ?? ''}`.trim();
       window.location.hash = orderId
         ? `#/order-success?order=${encodeURIComponent(orderId)}`
-        : '#/order-success'
+        : '#/order-success';
     } catch (error) {
-      setSubmitError(error.message || '提交方案意向失败，请稍后再试。')
+      setSubmitError(error.message || '提交方案意向失败，请稍后再试。');
     } finally {
-      setIsSubmittingOrder(false)
+      setIsSubmittingOrder(false);
     }
   } 
  

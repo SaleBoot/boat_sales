@@ -147,3 +147,14 @@ export const getSiteContent = async () => {
 export const getFrontVideos = () => {
   return api.get('/front/videos');
 };
+
+// ----------------------
+/**
+ * 添加新销售订单
+ * // 全路径 /api/front/sale-orders  
+ * @param {object} SaleOrder - 销售订单数据
+ * @returns {Promise<any>}
+ */
+export const addSaleOrder = (SaleOrder) => {
+  return api.post('/front/sale-orders', SaleOrder);
+};

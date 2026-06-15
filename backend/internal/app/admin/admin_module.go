@@ -22,6 +22,7 @@ type AdminModule struct {
 	modelVCamH    *apis.ModelVCamHandler
 	videoH        *apis.VideoHandler
 	boatEngineH   *apis.BoatEngineHandler
+	salesOrderH   *apis.SalesOrderHandler
 }
 
 func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
@@ -32,6 +33,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 	aModelVCamSvc *services.ModelVCamService, // 依赖注入
 	aVideoSvc *services.VideoService, // 依赖注入
 	aBoatEngineSvc *services.BoatEngineService, // 依赖注入
+	aSalesOrderSvc *services.SalesOrderService, // 依赖注入
 ) (*AdminModule, error) {
 
 	uH, err := apis.NewUserHandler(aUserDao)
@@ -85,6 +87,11 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		return nil, fmt.Errorf("failed to NewBoatEngineHandler: %w", err)
 	}
 
+	saleOrderH, err := apis.NewSalesOrderHandler(aSalesOrderSvc, aCosPathSyncSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to NewSalesOrderHandler: %w", err)
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &AdminModule{
 		userH:         uH,
@@ -95,6 +102,7 @@ func NewAdminModule(aUserDao *dao.SysUserDao, // 依赖注入
 		modelVCamH:    vcamH,   // 依赖注入
 		videoH:        videoH,
 		boatEngineH:   boatEngineH,
+		salesOrderH:   saleOrderH,
 	}
 
 	return adminM, nil
@@ -251,6 +259,15 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			engineRG.POST("", a.boatEngineH.HandleAddBoatEngine)
 			engineRG.POST("/:id", a.boatEngineH.HandleUpdateBoatEngine)
 			engineRG.POST("/delete", a.boatEngineH.HandleDeleteBoatEngines)
+		}
+
+		salesOrderRG := aAdminRG.Group("/sales-order")
+		if a.salesOrderH != nil {
+			salesOrderRG.GET("", a.salesOrderH.HandleGetSalesOrders)
+			//  api/admin/sales-order/by-contact
+			salesOrderRG.GET("/by-contact", a.salesOrderH.GetSaleOrdersByCustomerContact)
+			salesOrderRG.POST("/:id", a.salesOrderH.HandleUpdateSaleOrders)
+			salesOrderRG.POST("/delete", a.salesOrderH.HandleDeleteSalesOrders)
 		}
 	}
 

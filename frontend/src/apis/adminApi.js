@@ -310,3 +310,43 @@ export const updateBoatEngine = (id, engineData) => {
 export const deleteBoatEngines = (ids) => { 
   return api.post('/admin/boat-engine/delete', { ids });
 };
+// -------------------------------------------------------
+// 销售订单管理 (Sales Orders)
+// -------------------------------------------------------
+
+/**
+ * 获取销售订单列表
+ * @param {object} params - 查询参数
+ * @returns {Promise<any>}
+ */
+export const getSalesOrders = (params) => {
+  return api.get('/admin/sales-order', { params });
+};
+
+/**
+ * 更新销售订单
+ * @param {number} id - 销售订单ID
+ * @param {object} orderData - 更新的销售订单数据
+ * @returns {Promise<any>}
+ */
+export const updateSaleOrder = (id, orderData) => {
+  return api.post(`/admin/sales-order/${id}`, orderData);
+};
+
+/**
+ * 删除销售订单
+ * @param {Array<number>} ids - 销售订单ID列表
+ * @returns {Promise<any>}
+ */
+export const deleteSalesOrders = (ids) => { 
+  return api.post('/admin/sales-order/delete', { ids });
+};
+
+/**
+ * 根据客户联系方式获取销售订单
+ * @param {string} contact - 客户联系方式
+ * @returns {Promise<any>}
+ */
+export const getSaleOrdersByContact = (contact) => {
+  return api.get('/admin/sales-order/by-contact', { params: { contact } });
+};

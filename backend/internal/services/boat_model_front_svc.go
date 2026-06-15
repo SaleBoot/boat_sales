@@ -395,8 +395,8 @@ func filterModelPartPaths(
 	return partPaths, nil
 }
 
-func filterModelAdImgs(
-	aModelRuntimePath string,
+func FilterModelAdImgs(
+	aModelRuntimePath string, // fbx/glb path
 	aCosFilePaths []models.CosPathMeta,
 ) ([]string, error) {
 	modelDirPath := filepath.Dir(aModelRuntimePath)
@@ -615,7 +615,7 @@ func ModelsDbData2FrontData(
 			}
 
 			// 加载模型的宣传图
-			adImgs, err := filterModelAdImgs(dbModel.ModelRuntimePath, aDbCosFilePaths)
+			adImgs, err := FilterModelAdImgs(dbModel.ModelRuntimePath, aDbCosFilePaths)
 			if err != nil {
 				log.Printf("模型 %s 加载宣传图失败: %v", dbModel.ModelRuntimePath, err)
 				modelinfo.AdImgs = []string{} // 空切片，保证前端安全

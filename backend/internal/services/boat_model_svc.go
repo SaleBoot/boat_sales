@@ -110,9 +110,7 @@ func (aF *AdminBoatModel) fromDb(aDbModel *models.SysBoatModel) {
 
 func (aF *AdminBoatModel) toDb() *models.SysBoatModel {
 	dbModel := &models.SysBoatModel{
-		Model: gorm.Model{
-			ID: aF.ID, // ID 写在内嵌 gorm.Model 里
-		},
+		Model:              gorm.Model{ID: aF.ID}, // ID 写在内嵌 gorm.Model 里
 		BoatEnName:         aF.BoatEnName,
 		ModelName:          aF.ModelName,
 		ModelRuntimePath:   aF.ModelRuntimePath,

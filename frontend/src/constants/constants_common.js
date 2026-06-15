@@ -41,3 +41,18 @@ export const BOAT_ENGINE_CATEGORY_OPTIONS = [
     { StrID: "gasoline", Label: "汽油", Descr: "汽油引擎"},
     { StrID: "gasoline-electric-hybrid", Label: "油电混动", Descr: "汽油+电混动引擎"},
 ];
+
+export function getBoatEngineCategoryLabelByID(aStrID)
+{
+  return BOAT_ENGINE_CATEGORY_OPTIONS.find(item => item.StrID === aStrID)?.Label || "";
+}
+
+export const SALES_ORDER_STATUS_LIST = [     
+ 	{StrID: "new", Label: "新提交"},
+	{StrID: "processing", Label: "跟进中"},
+	{StrID: "finished", Label: "已完成"},
+];
+
+export function getSalesOrderStatusLabelByID(statusID) {
+  return SALES_ORDER_STATUS_LIST.find(item => item.StrID === statusID)?.Label || "";
+}

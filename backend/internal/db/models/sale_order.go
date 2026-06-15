@@ -5,12 +5,15 @@ import "gorm.io/gorm"
 // SalesOrder 完全对应 sales_order 表
 type SalesOrder struct {
 	gorm.Model
-	Status          string `json:"status" gorm:"column:status;type:TEXT;not null"`
-	ModelID         string `json:"modelID" gorm:"column:model_id;type:TEXT;not null;default:''"`
-	ModelLabel      string `json:"modelLabel" gorm:"column:model_label;type:TEXT;not null;default:''"`
+	Status      string `json:"status" gorm:"column:status;type:TEXT;not null"`
+	ModelID     string `json:"modelID" gorm:"column:model_id;type:TEXT;not null;default:''"`
+	ModelLabel  string `json:"modelLabel" gorm:"column:model_label;type:TEXT;not null;default:''"`
+	Model3DPath string `json:"model3DPath" gorm:"column:model_3d_path;type:TEXT;default:''"`
+	Category    string `json:"category" gorm:"column:category;type:TEXT;not null;default:''"`
+	// 客户信息
 	CustomerName    string `json:"customerName" gorm:"column:customer_name;type:TEXT;not null"`
 	CustomerContact string `json:"customerContact" gorm:"column:customer_contact;type:TEXT;not null"`
-	Category        string `json:"category" gorm:"column:category;type:TEXT;not null;default:''"`
+	Source          string `json:"source" gorm:"column:source;type:TEXT;not null;default:'showcase-web'"`
 	//
 	ExteriorLabel      string `json:"exteriorLabel" gorm:"column:exterior_label;type:TEXT;not null;default:''"`
 	ExteriorColorLabel string `json:"exteriorColorLabel" gorm:"column:exterior_color_label;type:TEXT;default:''"`
@@ -24,12 +27,10 @@ type SalesOrder struct {
 	DeckColorLabel string `json:"deckColorLabel" gorm:"column:deck_color_label;type:TEXT;default:''"`
 	DeckColor      string `json:"deckColor" gorm:"column:deck_color;type:TEXT;default:''"`
 	//
-	PowerLabel string `json:"powerLabel" gorm:"column:power_label;type:TEXT;not null;default:''"`
+	EngineCategoryID string `json:"engineCategoryID" gorm:"column:engine_category_id;type:TEXT;default:''"`
+	EngineName       string `json:"engineName" gorm:"column:engine_name;type:TEXT;default:''"` //
 	//
-	OptionalPackageLabels []string `json:"optionalPackageLabels" gorm:"column:optional_package_labels;type:JSON;not null;default:'[]'"` // 改这里
-	//
-	TotalPrice int    `json:"totalPrice" gorm:"column:total_price;type:INTEGER;not null;default:0"`
-	Source     string `json:"source" gorm:"column:source;type:TEXT;not null;default:'showcase-web'"`
+	TotalPrice int `json:"totalPrice" gorm:"column:total_price;type:INTEGER;not null;default:0"`
 }
 
 // 绑定表名
