@@ -13,7 +13,7 @@ import (
 
 func (aH *BoatModelService) GetAllModels() ([]*models.SysBoatModel, error) {
 
-	models, err := aH.BoatModelDao.GetAllModels()
+	models, err := aH.boatModelDao.GetAllModels()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get models: %w", err)
 	}
@@ -169,6 +169,8 @@ type FrontModel struct {
 	// ===== Panel 3：智能系统（针对该3D模型的默认配置）=====
 	SmartSystemName  string `json:"smartSystemName"`
 	SmartSystemDescr string `json:"smartSystemDescr"`
+	//
+	BoundEngines []models.SysBoatEngine `json:"boundEngines"`
 }
 
 type FrontMatSlot struct {
@@ -545,11 +547,26 @@ func ModelsDbData2FrontData(
 	aDbBoats []models.SysBoat,
 	aDbModels []*models.SysBoatModel,
 	aDbCosFilePaths []models.CosPathMeta,
+	aDbOptions []models.SysModelEngineOption,
+	aDbEngines []models.SysBoatEngine,
 ) *FrontModels {
 	outputData := &FrontModels{} // 响应的数据结构
 
 	boatMenuMap := make(BoatMenuMap) // category.EnlishName -> list of BoatMenu
 	boatMap := make(FrontBoatMap)    // boatEnName -> list of FrontBoat
+
+	//
+	mapModelID2EngineIDs := make(map[uint][]uint, 20)
+	for _, option := range aDbOptions {
+		mapModelID2EngineIDs[option.ModelID] = append(
+			mapModelID2EngineIDs[option.ModelID], option.EngineID)
+	}
+
+	// build mapEngineID2Engine
+	mapEngineID2Engine := make(map[uint]models.SysBoatEngine)
+	for _, engine := range aDbEngines {
+		mapEngineID2Engine[engine.ID] = engine
+	}
 
 	for _, boat := range aDbBoats {
 		// construct boatMenuMap
@@ -635,6 +652,16 @@ func ModelsDbData2FrontData(
 				modelinfo.MatSlots = []FrontMatSlot{} // 空切片，保证前端安全
 			} else {
 				modelinfo.MatSlots = slots
+			}
+
+			// modelinfo.BoundEngines
+			modelinfo.BoundEngines = make([]models.SysBoatEngine, 0, 10)
+			engineIDs, ok := mapModelID2EngineIDs[dbModel.ID]
+			if ok {
+				for _, engineID := range engineIDs {
+					modelinfo.BoundEngines = append(
+						modelinfo.BoundEngines, mapEngineID2Engine[engineID])
+				}
 			}
 
 			//

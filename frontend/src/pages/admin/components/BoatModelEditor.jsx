@@ -27,12 +27,14 @@ const BoatModelEditor = ({ boat,
   const [boatModels, setBoatModels] = useState([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [collapseActiveKeys, setCollapseActiveKeys] = useState([ '2']);
+
   // 引擎型号状态
   const [loadingBoatEngines, setLoadingBoatEngines] = useState(false);
   const [boatEngines, setBoatEngines] = useState([]);
 
   // modal状态
-  const [addEngineVisible, setAddEngineVisible] = useState(false);
+  const [addEngineModalVisible, setAddEngineModalVisible] = useState(false);
   const [currentStyleIndex, setCurrentStyleIndex] = useState(-1);
   const [selectEngineCategoryId, setSelectEngineCategoryId] = useState(undefined);
   const [selectEngineId, setSelectEngineId] = useState(undefined);
@@ -49,7 +51,7 @@ const BoatModelEditor = ({ boat,
       try {
         const models = await getModelsByBoatEnName(boat.boatEnName);
         setBoatModels(models || []);
-
+        
         if (models && models.length > 0) {
           message.success(`成功获取 ${models.length} 个船型样式`);
           // 自动设置模型文件夹路径
@@ -60,7 +62,7 @@ const BoatModelEditor = ({ boat,
           ); 
           if (targetm) {
             console.log("targetm=",targetm)
-            const parentPath = getGrandparentPath(targetm.modelRuntimePath);
+            const parentPath = getGrandparentPath(targetm.modelRuntimePath) || '';
             setSelectedModelFolderName(parentPath);
           } else {
             // 如果船型有样式模型，但在COS路径列表中找不到对应的文件夹，则清空选择
@@ -92,12 +94,19 @@ const BoatModelEditor = ({ boat,
   ), [modelFolders]);
 
   useEffect(() => {
+    setCollapseActiveKeys([  '2']);
     setSelectedModelFolderName('')
     setFiles([])
+
+    // 新增：重置引擎选择、弹窗状态
+    setSelectEngineCategoryId(undefined);
+    setSelectEngineId(undefined);
+    setAddEngineModalVisible(false);
+    setCurrentStyleIndex(-1);    
   }, [boat?.boatEnName]);
 
 
-  // 获取列表数据（支持分页参数）
+  // 获取列表数据 
   const fetchBoatEngines = async (params = {}) => {
     setLoadingBoatEngines(true);
     try {
@@ -305,11 +314,16 @@ const removeEngineFromModel = (styleIndex, engineId) => {
 const openAddEngineModal = (styleIndex) => {
   setCurrentStyleIndex(styleIndex);
   setSelectEngineId(undefined);
-  setAddEngineVisible(true);
+  setAddEngineModalVisible(true);
 };
 
 // 确认添加
 const confirmAddEngine = () => {
+  // 基础校验
+  if (!selectEngineCategoryId) {
+    message.warning('请选择引擎类别');
+    return;
+  }  
   if (!selectEngineId) {
     message.warning('请选择引擎型号');
     return;
@@ -317,8 +331,11 @@ const confirmAddEngine = () => {
   const targetEngine = boatEngines.find(eng => eng.ID === selectEngineId);
   if (targetEngine) {
     addEngineToModel(currentStyleIndex, targetEngine);
+  }else {
+    message.error('未找到对应引擎数据'); 
   }
-  setAddEngineVisible(false);
+
+  setAddEngineModalVisible(false);
 };
 
 
@@ -409,7 +426,11 @@ const confirmAddEngine = () => {
                                         key={image.key}
                                         width={80}
                                         height={80}
-                                        src={`${cosOrigin}/${image.key}`}
+                                        src={
+                                          cosOrigin.endsWith('/') 
+                                            ? `${cosOrigin}${image.key}` 
+                                            : `${cosOrigin}/${image.key}`
+                                        }
                                         alt={image.key}
                                         style={{ objectFit: 'cover' }}
                                         loading="lazy"
@@ -593,7 +614,7 @@ const confirmAddEngine = () => {
 <Collapse.Panel header="动力选项" key="power">
   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
     {/* 循环渲染每一组动力配置，UI 和原有表单一致 */}
-    {model.boundEngines?.map((powerItem, powerIdx) => {
+    {(model.boundEngines || []).map((powerItem, powerIdx) => {
       // 引擎类别 + 型号 联动过滤（沿用原有逻辑）
       const filterEngines = powerItem.engineCategoryID
         ? boatEngines.filter(eng => eng.engineCategoryID === powerItem.engineCategoryID)
@@ -630,7 +651,7 @@ const confirmAddEngine = () => {
     })}
 
     {/* 空状态提示 */}
-    {model.boundEngines?.length === 0 && (
+    {(model.boundEngines || []).length === 0 && (
       <Empty description="暂无动力配置，请点击下方按钮添加" 
       style={{ margin: '4px 0' }} size="small" />
     )}
@@ -676,9 +697,9 @@ const confirmAddEngine = () => {
 
 <Modal
   title="选择要添加的动力型号"
-  open={addEngineVisible}
+  open={addEngineModalVisible}
   onOk={confirmAddEngine}
-  onCancel={() => setAddEngineVisible(false)}
+  onCancel={() => setAddEngineModalVisible(false)}
 > 
 <Form layout="horizontal" size="small">
         <Form.Item label="引擎类别" labelCol={{ span: 6 }} 
@@ -703,8 +724,10 @@ const confirmAddEngine = () => {
             value={selectEngineId || undefined}
             onChange={(value) => setSelectEngineId(value)}
             options={ 
-              boatEngines.filter(eng => eng.engineCategoryID === selectEngineCategoryId)
-              .map(engine => ({ label: engine.engineName, value: engine.ID}))
+              selectEngineCategoryId
+                ? boatEngines.filter(eng => eng.engineCategoryID === selectEngineCategoryId)
+                    .map(engine => ({ label: engine.engineName, value: engine.ID}))
+                : []
              }
             placeholder="请选择引擎型号"
             allowClear   style={{ width: '100%' }}
@@ -758,7 +781,7 @@ const confirmAddEngine = () => {
         </Descriptions.Item>
       </Descriptions>
 
-      <Collapse defaultActiveKey={['1', '2']} 
+      <Collapse defaultActiveKey={collapseActiveKeys} 
                style={{ marginTop: '16px' }} 
                onChange={handleCollapseChange}
                items={collapseItems} />

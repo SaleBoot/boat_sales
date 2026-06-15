@@ -10,6 +10,7 @@ type ServiceManager struct {
 	ModelVCamSvc    *ModelVCamService
 	VideoSvc        *VideoService
 	BoatEngineSvc   *BoatEngineService
+	EngineOptionSvc *ModelEngineOptionsService
 }
 
 func NewServiceManager(
@@ -26,7 +27,7 @@ func NewServiceManager(
 	if err != nil {
 		return nil, err
 	}
-	boatSvc, err := NewBoatService(aBoatDao, aBoatModelDao)
+	boatSvc, err := NewBoatService(aBoatDao, aBoatModelDao, aModelEngineOptionsDao)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +58,11 @@ func NewServiceManager(
 		return nil, err
 	}
 
+	engineOptionSvc, err := NewModelEngineOptionsService(aModelEngineOptionsDao)
+	if err != nil {
+		return nil, err
+	}
+
 	// 这里可以添加一些初始化逻辑，比如确保默认用户存在等
 	adminM := &ServiceManager{
 		BoatCategorySvc: boatCategorySvc,
@@ -66,6 +72,7 @@ func NewServiceManager(
 		ModelVCamSvc:    modelVCamSvc,
 		VideoSvc:        videoSvc,
 		BoatEngineSvc:   boatEngineSvc,
+		EngineOptionSvc: engineOptionSvc,
 	}
 
 	return adminM, nil

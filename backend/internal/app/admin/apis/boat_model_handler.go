@@ -1,10 +1,11 @@
 package apis
 
 import (
-	"boatsales-backend/internal/db/models"
 	"boatsales-backend/internal/services"
 	"boatsales-backend/internal/types"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -60,7 +61,7 @@ func (aH *BoatModelHandler) HandleUpdateModelWithBoatEnName(c *gin.Context) {
 		return
 	}
 
-	var modelsToUpdate []*models.SysBoatModel
+	var modelsToUpdate []*services.AdminBoatModel
 	if err := c.ShouldBindJSON(&modelsToUpdate); err != nil {
 		c.JSON(http.StatusBadRequest, types.ApiResponse{
 			Code:    http.StatusBadRequest,
@@ -73,14 +74,20 @@ func (aH *BoatModelHandler) HandleUpdateModelWithBoatEnName(c *gin.Context) {
 	for _, model := range modelsToUpdate {
 		if model.BoatEnName != boatEnName {
 			c.JSON(http.StatusBadRequest, types.ApiResponse{
-				Code:    http.StatusBadRequest,
-				Message: fmt.Sprintf("boatEnName in path (%s) does not match boatEnName in payload (%s)", boatEnName, model.BoatEnName),
+				Code: http.StatusBadRequest,
+				Message: fmt.Sprintf("boatEnName(%s) not match boatEnName (%s) in payload",
+					boatEnName, model.BoatEnName),
 			})
 			return
 		}
 	}
+	// 5. 优化日志：转json输出，可读性更强
+	jsonData, _ := json.MarshalIndent(modelsToUpdate, "", "  ")
+	log.Printf("ReplaceModelsByBoatEnName boatEnName=%s, data:\n%s", boatEnName, string(jsonData))
 
-	if err := aH.boatModelSvc.ReplaceModelsByBoatEnName(boatEnName, modelsToUpdate); err != nil {
+	err := aH.boatModelSvc.ReplaceModelsByBoatEnName(c.Request.Context(),
+		boatEnName, modelsToUpdate)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: fmt.Sprintf("Failed to update boat (%s) models: %s ", boatEnName, err.Error()),

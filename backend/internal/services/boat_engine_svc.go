@@ -35,6 +35,18 @@ func (aS *BoatEngineService) GetBoatEngines() ([]models.SysBoatEngine, error) {
 	return engines, nil
 }
 
+func (aS *BoatEngineService) GetEnginesByIDs(
+	aIDs []uint,
+) ([]models.SysBoatEngine, error) {
+	engines, err := aS.boatEngineDao.GetEnginesByIDs(aIDs)
+	if err != nil {
+		log.Printf("BoatEngineService:failed to get boat engines: %v", err)
+		return nil, err
+	}
+
+	return engines, nil
+}
+
 func (aS *BoatEngineService) AddBoatEngine(
 	aEngine *models.SysBoatEngine,
 ) error {

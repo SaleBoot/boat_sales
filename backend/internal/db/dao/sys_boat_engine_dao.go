@@ -2,6 +2,7 @@ package dao
 
 import (
 	"boatsales-backend/internal/db/models"
+	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
@@ -18,7 +19,9 @@ func NewSysBoatEngineDao(db *gorm.DB) *SysBoatEngineDao {
 // GetAllBoatEngines retrieves all boat engines.
 func (d *SysBoatEngineDao) GetAllBoatEngines() ([]models.SysBoatEngine, error) {
 	var engines []models.SysBoatEngine
-	result := d.DB.Find(&engines)
+	result := d.DB.
+		Model(&models.SysBoatEngine{}).
+		Find(&engines)
 	return engines, result.Error
 }
 
@@ -48,9 +51,27 @@ func (d *SysBoatEngineDao) GetBoatEngineByID(id uint) (*models.SysBoatEngine, er
 	return &engine, result.Error
 }
 
+func (d *SysBoatEngineDao) GetEnginesByIDs(
+	aIDs []uint,
+) ([]models.SysBoatEngine, error) {
+	if len(aIDs) == 0 {
+		return []models.SysBoatEngine{}, nil
+	}
+
+	var engines []models.SysBoatEngine
+	result := d.DB.
+		Model(&models.SysBoatEngine{}).
+		Where("id IN (?)", aIDs).
+		Find(&engines)
+
+	return engines, result.Error
+}
+
 // UpdateBoatCategory updates an existing boat category.
 func (d *SysBoatEngineDao) UpdateBoatCategory(engine *models.SysBoatEngine) error {
-	return d.DB.Save(engine).Error
+	return d.DB.
+		Model(&models.SysBoatEngine{}).
+		Save(engine).Error
 }
 
 func (d *SysBoatEngineDao) UpdateBoatEngineByID(
@@ -65,14 +86,34 @@ func (d *SysBoatEngineDao) UpdateBoatEngineByID(
 }
 
 // DeleteBoatEngines deletes boat engines by their IDs.
-func (d *SysBoatEngineDao) DeleteBoatEngines(ids []uint) error {
-	return d.DB.Delete(&models.SysBoatEngine{}, ids).Error
+func (d *SysBoatEngineDao) DeleteBoatEngines(aIDs []uint) error {
+	if len(aIDs) == 0 {
+		return nil
+	}
+
+	result := d.DB.
+		Where("id IN ?", aIDs).
+		Delete(&models.SysBoatEngine{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("no boat engine deleted")
+	}
+
+	return nil
 }
 
 // Count returns the total number of boat engines.
 func (d *SysBoatEngineDao) Count() (int64, error) {
 	var count int64
-	if err := d.DB.Model(&models.SysBoatEngine{}).Count(&count).Error; err != nil {
+	err := d.DB.
+		Model(&models.SysBoatEngine{}).
+		Count(&count).
+		Error
+	if err != nil {
 		return 0, err
 	}
 	return count, nil

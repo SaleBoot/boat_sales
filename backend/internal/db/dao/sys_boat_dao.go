@@ -94,7 +94,8 @@ func (dao *SysBoatDao) DeleteBoatsWithTx(tx *gorm.DB, ids []uint) error {
 	if db == nil {
 		db = dao.db
 	}
-	return db.Delete(&models.SysBoat{}, "id IN ?", ids).Error
+	return db.Where("id IN ?", ids).
+		Delete(&models.SysBoat{}).Error
 }
 
 func (dao *SysBoatDao) GetBoatEnNamesWithTx(tx *gorm.DB, ids []uint) ([]string, error) {
@@ -103,8 +104,10 @@ func (dao *SysBoatDao) GetBoatEnNamesWithTx(tx *gorm.DB, ids []uint) ([]string, 
 		db = dao.db
 	}
 	var boatEnNames []string
-	if err := db.Model(&models.SysBoat{}).
-		Where("id IN ?", ids).Pluck("boat_en_name", &boatEnNames).Error; err != nil {
+	err := db.Model(&models.SysBoat{}).
+		Where("id IN ?", ids).
+		Pluck("boat_en_name", &boatEnNames).Error
+	if err != nil {
 		return nil, err
 	}
 	return boatEnNames, nil

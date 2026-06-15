@@ -117,6 +117,8 @@ func NewApp() (*app, *ws.WsModule, error) {
 		svcMtmp.BoatModelSvc,    // 依赖注入
 		svcMtmp.ModelVCamSvc,
 		svcMtmp.VideoSvc,
+		svcMtmp.BoatEngineSvc,
+		svcMtmp.EngineOptionSvc,
 	) // 依赖注入
 	if err != nil {
 		return nil, nil, fmt.Errorf("initialize front module: %w", err)

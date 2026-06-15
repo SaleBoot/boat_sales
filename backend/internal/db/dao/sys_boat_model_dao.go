@@ -2,6 +2,8 @@ package dao
 
 import (
 	"boatsales-backend/internal/db/models"
+	"context"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -14,15 +16,49 @@ func NewSysBoatModelDao(db *gorm.DB) *SysBoatModelDao {
 	return &SysBoatModelDao{db: db}
 }
 
-func (s *SysBoatModelDao) GetModelsByBoatEnName(boatEnName string,
-) ([]*models.SysBoatModel, error) {
+func (dao *SysBoatModelDao) ExecInTransaction(
+	ctx context.Context,
+	aF func(tx *gorm.DB) error,
+) error {
+	return dao.db.WithContext(ctx).Transaction(aF)
+}
 
-	var models []*models.SysBoatModel
-	err := s.db.Where("boat_en_name = ?", boatEnName).Find(&models).Error
+func (s *SysBoatModelDao) GetModelsByBoatEnName(
+	aBoatEnName string,
+) ([]models.SysBoatModel, error) {
+
+	if len(strings.TrimSpace(aBoatEnName)) == 0 {
+		return []models.SysBoatModel{}, nil
+	}
+
+	// 指明从 models.SysBoatModel 对应表查询
+	var models []models.SysBoatModel
+	err := s.db.
+		Where("boat_en_name = ?", aBoatEnName).
+		Find(&models).Error
+
 	if err != nil {
 		return nil, err
 	}
 	return models, nil
+}
+
+func (s *SysBoatModelDao) GetModelIDsByBoatEnNameWithTx(
+	aTx *gorm.DB,
+	aBoatEnNames []string,
+) ([]uint, error) {
+	var modelIDs []uint
+
+	// 指明从 models.SysBoatModel 对应表查询，只查 id 字段
+	err := aTx.
+		Model(&models.SysBoatModel{}).
+		Where("boat_en_name IN ?", aBoatEnNames).
+		Pluck("id", &modelIDs).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return modelIDs, nil
 }
 
 // ReplaceModelsByBoatEnName atomically replaces all models for a given boatEnName.
@@ -101,5 +137,7 @@ func (s *SysBoatModelDao) DeleteByBoatEnNamesWithTx(
 		db = s.db
 	}
 
-	return db.Delete(&models.SysBoatModel{}, "boat_en_name IN ?", aBoatEnNames).Error
+	return tx.Where("boat_en_name IN ?", aBoatEnNames).
+		Delete(&models.SysBoatModel{}).
+		Error
 }

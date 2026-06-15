@@ -17,6 +17,8 @@ type BoatModelFrontHandler struct {
 	cosPathSvc      *services.CosPathService
 	boatSvc         *services.BoatService
 	boatModelSvc    *services.BoatModelService
+	engineSvc       *services.BoatEngineService
+	engineOptionSvc *services.ModelEngineOptionsService
 }
 
 func NewBoatModelFrontHandler(
@@ -24,15 +26,19 @@ func NewBoatModelFrontHandler(
 	aCosPathSvc *services.CosPathService,
 	aBoatSvc *services.BoatService,
 	aModelSvc *services.BoatModelService,
+	aEngineSvc *services.BoatEngineService,
+	aEngineOptionSvc *services.ModelEngineOptionsService,
 ) (*BoatModelFrontHandler, error) {
 
 	if aBoatCategorySvc == nil ||
 		aCosPathSvc == nil ||
 		aBoatSvc == nil ||
-		aModelSvc == nil {
+		aModelSvc == nil ||
+		aEngineSvc == nil ||
+		aEngineOptionSvc == nil {
 
-		log.Printf("NewBoatModelFrontHandler: one or more params cannot be nil: %v, %v, %v, %v",
-			aBoatCategorySvc, aCosPathSvc, aBoatSvc, aModelSvc)
+		log.Printf("NewBoatModelFrontHandler: one or more params cannot be nil: %v, %v, %v, %v, %v, %v",
+			aBoatCategorySvc, aCosPathSvc, aBoatSvc, aModelSvc, aEngineOptionSvc, aEngineSvc)
 		return nil, fmt.Errorf("NewBoatModelFrontHandler: one or more params cannot be nil")
 	}
 
@@ -41,6 +47,8 @@ func NewBoatModelFrontHandler(
 		cosPathSvc:      aCosPathSvc,
 		boatSvc:         aBoatSvc,
 		boatModelSvc:    aModelSvc,
+		engineSvc:       aEngineSvc,
+		engineOptionSvc: aEngineOptionSvc,
 	}, nil
 }
 
@@ -86,6 +94,38 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 		return
 	}
 
+	// get dbOptions
+	modelIDs := make([]uint, 0, 100)
+	for _, dbModel := range dbModels {
+		modelIDs = append(modelIDs, dbModel.ID)
+	}
+	dbOptions, err := aH.engineOptionSvc.GetEngineOptionsByModelIDs(modelIDs)
+	if err != nil {
+		log.Printf("engineOptionSvc.GetEngineOptionsByModelIDs() err=%w", err)
+		c.JSON(http.StatusInternalServerError,
+			types.ApiResponse{Code: http.StatusInternalServerError,
+				Message: fmt.Sprintf("failed to get model-engine-options: %s", err.Error())})
+		return
+	}
+
+	// get dbEngines
+	engineIDs := make([]uint, 0, 100)
+	for _, dbOpt := range dbOptions {
+		engineIDs = append(engineIDs, dbOpt.EngineID)
+	}
+	dbEngines, err := aH.engineSvc.GetEnginesByIDs(engineIDs)
+	if err != nil {
+		log.Printf("Error getting engines %v from db", err)
+		c.JSON(http.StatusInternalServerError,
+			types.ApiResponse{
+				Code:    http.StatusInternalServerError,
+				Message: fmt.Sprintf("Error getting engines from db: %v", err),
+				Data:    nil,
+			})
+		return
+	}
+
+	//
 	dbCosFilePaths, err := aH.cosPathSvc.GetAllFilePaths(c.Request.Context())
 	if err != nil {
 		log.Printf("Error getting all model file paths: %v from db", err)
@@ -101,6 +141,7 @@ func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 	//------+ 内存拼接,构造响应数据 +-----------
 	outputData := services.ModelsDbData2FrontData(
 		categoryMapStrID2Cn, dbBoats, dbModels, dbCosFilePaths,
+		dbOptions, dbEngines,
 	)
 
 	c.JSON(http.StatusOK, types.ApiResponse{

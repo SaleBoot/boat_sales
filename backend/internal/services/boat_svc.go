@@ -14,19 +14,23 @@ import (
 type BoatService struct {
 	boatDao      *dao.SysBoatDao
 	boatModelDao *dao.SysBoatModelDao
+	optionDao    *dao.SysModelEngineOptionsDao
 }
 
 func NewBoatService(
 	aBoatDao *dao.SysBoatDao,
 	aBoatModelDao *dao.SysBoatModelDao,
+	aOptionDao *dao.SysModelEngineOptionsDao,
 ) (*BoatService, error) {
-	if aBoatDao == nil || aBoatModelDao == nil {
-		return nil, fmt.Errorf("NewBoatService: aBoatDao or aBoatModelDao is required")
+	if aBoatDao == nil || aBoatModelDao == nil || aOptionDao == nil {
+		return nil, fmt.Errorf("NewBoatService: aBoatDao or aBoatModelDao or aOptionDao is required")
 	}
 
 	return &BoatService{
 		boatDao:      aBoatDao,
-		boatModelDao: aBoatModelDao}, nil // 依赖注入
+		boatModelDao: aBoatModelDao,
+		optionDao:    aOptionDao,
+	}, nil // 依赖注入
 }
 
 func (aS *BoatService) GetBoatsByCategoryStrID(
@@ -83,6 +87,7 @@ func (aS *BoatService) AddBoat(aBoat *models.SysBoat) error {
 	return nil
 }
 
+// boat -> boatModel -> option -> engine
 func (aS *BoatService) DeleteBoats(
 	aCtx context.Context,
 	aBoatIDs []uint,
@@ -92,19 +97,31 @@ func (aS *BoatService) DeleteBoats(
 	}
 
 	err := aS.boatDao.ExecInTransaction(aCtx, func(tx *gorm.DB) error {
-		if err := aS.boatDao.DeleteBoatsWithTx(tx, aBoatIDs); err != nil {
-			return fmt.Errorf("failed to delete boats: %w", err)
-		}
-
 		//
 		boatEnNames, err := aS.boatDao.GetBoatEnNamesWithTx(tx, aBoatIDs)
 		if err != nil {
 			return fmt.Errorf("failed to get boatEnNames: %w", err)
 		}
 
+		if err := aS.boatDao.DeleteBoatsWithTx(tx, aBoatIDs); err != nil {
+			return fmt.Errorf("failed to delete boats: %w", err)
+		}
+
+		//
+		modelIDs, err := aS.boatModelDao.GetModelIDsByBoatEnNameWithTx(tx, boatEnNames)
+		if err != nil {
+			return fmt.Errorf("failed to get modelIDs by boatEnName: %w", err)
+		}
+
 		if err := aS.boatModelDao.DeleteByBoatEnNamesWithTx(tx, boatEnNames); err != nil {
 			return fmt.Errorf("failed to delete boat models: %w", err)
 		}
+
+		//
+		if err := aS.optionDao.DeleteByBoatModelIDs(tx, modelIDs); err != nil {
+			return fmt.Errorf("failed to delete options: %w", err)
+		}
+
 		return nil
 	})
 
@@ -117,11 +134,11 @@ func (aS *BoatService) DeleteBoats(
 }
 
 func (aS *BoatService) UpdateBoat(
-	ctx context.Context,
+	aCtx context.Context,
 	aNewBoat *models.SysBoat,
 ) error {
 
-	err := aS.boatDao.ExecInTransaction(ctx, func(tx *gorm.DB) error {
+	err := aS.boatDao.ExecInTransaction(aCtx, func(tx *gorm.DB) error {
 		ids := []uint{aNewBoat.ID}
 		boatEnNames, err := aS.boatDao.GetBoatEnNamesWithTx(tx, ids)
 		if err != nil || len(boatEnNames) == 0 {

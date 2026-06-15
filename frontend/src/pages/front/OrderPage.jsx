@@ -4,6 +4,9 @@ import { useFocusTarget } from '../../hooks/useFocusTarget';
 import ShipScene from '../scene3d/ShipScene'
 import { vesselCategoryMenus } from '../../constants/constants_front_homepage.js'
 import { buildModel4ShipScene } from '../../utils/utils_ship_scene'
+import { 
+  BOAT_ENGINE_CATEGORY_OPTIONS
+} from '../../constants/constants_common.js'
  
 const configurationSteps = ['船型', '外观', '内饰', '动力' ]
 
@@ -85,13 +88,7 @@ const DEFAULT_ORDER_CONFIG = {
           label: '高效巡航电机',
           description: '兼顾静音巡航、日常接待与中短途运营，适合作为标准交付方案',
           price: 36000
-        },
-        {
-          id: 'electric-performance',
-          label: '高性能任务电机',
-          description: '提升加速响应与连续航行稳定性，适合高频使用与复杂水域场景',
-          price: 42000
-        }
+        } 
       ]
     },
     {
@@ -111,28 +108,15 @@ const DEFAULT_ORDER_CONFIG = {
           price: 58000
         }
       ]
-    },
-    {
-      id: 'hybrid',
-      label: '混合动力',
-      engines: [
-        {
-          id: 'hybrid-standard',
-          label: '混动应急动力（标准型）',
-          description: '适用于救援、巡逻与长时间值守任务，续航与负载能力均衡',
-          price: 40000
-        },
-        {
-          id: 'hybrid-premium',
-          label: '混动应急动力（增强型）',
-          description: '适用于救援、巡逻与长时间值守任务，续航与负载能力均衡',
-          price: 45000
-        }
-      ]
     }
   ],  
   // -----------------
   focusTargets: {}
+}
+
+function getEngineCategoryLabel(engineCategory) {
+  const category = BOAT_ENGINE_CATEGORY_OPTIONS.find(item => item.StrID === engineCategory)
+  return category?.Label ?? ''
 }
 
 function formatPrice(value) {
@@ -242,6 +226,36 @@ function createAugmentedModel(boat) {
   };
 }
 
+// 1. 定义一个独立的发动机详情组件
+function EngineDetails({ engine }) {
+  if (!engine) return null;
+
+  const isFuel = engine.engineCategoryID === "diesel" || engine.engineCategoryID === "gasoline";
+
+  return (
+    <div style={{ marginTop: '15px', padding: '15px', border: '1px solid #eee',
+                  borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
+      <p style={{ margin: '0 0 8px 0', fontSize: '0.9em', color: '#555' }}>
+        {engine.description}
+      </p>
+      <p style={{ margin: '0 0 8px 0', fontSize: '0.9em', color: '#555' }}>
+        额定功率：{engine.powerKW}KW
+      </p>
+      
+      {/* 巧用三元或与运算符，避免大段重复的 HTML */}
+      {isFuel ? (
+        <p style={{ margin: '0 0 8px 0', fontSize: '0.9em', color: '#555' }}>
+          燃油排量：{engine.displacement}L
+        </p>
+      ) : (
+        <p style={{ margin: '0 0 8px 0', fontSize: '0.9em', color: '#555' }}>
+          额定电池容量：{engine.batteryKWh}kWh
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function OrderPage() {
   const {
     categoryMenus,
@@ -313,33 +327,12 @@ export default function OrderPage() {
   const [loadedFocusTargets, setLoadedFocusTargets] = useState(currentOrderConfig.focusTargets)
   const [selectedAppearanceId, setSelectedAppearanceId] = useState(currentOrderConfig.appearanceOptions[0]?.id ?? '')
   const [selectedInteriorId, setSelectedInteriorId] = useState(currentOrderConfig.interiorOptions[0]?.id ?? '')
+
   const [selectedPowerId, setSelectedPowerId] = useState(currentOrderConfig.powerTypes[0]?.id ?? '')
-  // New state for selected engine
   const [selectedEngineId, setSelectedEngineId] = useState('');
 
   // Derived state for active power type and engine
-  const activePowerType = useMemo(() => {
-    return DEFAULT_ORDER_CONFIG.powerTypes.find(
-      (type) => type.id === selectedPowerId
-    );
-  }, [selectedPowerId]);
-
-  const activeEngine = useMemo(() => {
-    return activePowerType?.engines.find(
-      (engine) => engine.id === selectedEngineId
-    );
-  }, [activePowerType, selectedEngineId]);
-
-  // Effect to update selectedEngineId when selectedPowerId changes
-  useEffect(() => {
-    if (activePowerType && activePowerType.engines.length > 0) {
-      setSelectedEngineId(activePowerType.engines[0].id);
-    } else {
-      setSelectedEngineId('');
-    }
-  }, [activePowerType]);
- 
-
+   
   // 
   const [activeConfigStep, setActiveConfigStep] = useState('船型')
   const [activeOrderStage, setActiveOrderStage] = useState('config')
@@ -371,21 +364,6 @@ export default function OrderPage() {
     }
   }, [currentModel])
 
-  useEffect(() => {
-    const nextConfig = normalizeOrderConfig(currentModel?.orderConfig)
-
-    setSelectedAppearanceId(
-      (current) => nextConfig.appearanceOptions.some((item) => item.id === current) 
-                  ? current : (nextConfig.appearanceOptions[0]?.id ?? ''))
- 
-
-    setSelectedInteriorId((current) => nextConfig.interiorOptions.some((item) => item.id === current) 
-                  ? current : (nextConfig.interiorOptions[0]?.id ?? ''))
-
-    setSelectedPowerId((current) => nextConfig.powerTypes.some((item) => item.id === current) 
-                  ? current : (nextConfig.powerTypes[0]?.id ?? ''))
-
-  }, [currentModel])
 
   const filteredBoats = useMemo(
     () => Array.isArray(boats) 
@@ -417,6 +395,73 @@ export default function OrderPage() {
       remoteFbxOrigin
     );
   }, [activeModel?.primaryModelInfo?.id, remoteFbxOrigin]);
+
+  // -----------
+
+  useEffect(() => {
+    const nextConfig = normalizeOrderConfig(activeModel?.orderConfig)
+
+    setSelectedAppearanceId(
+      (current) => nextConfig.appearanceOptions.some((item) => item.id === current) 
+                  ? current : (nextConfig.appearanceOptions[0]?.id ?? ''))
+ 
+
+    setSelectedInteriorId((current) => nextConfig.interiorOptions.some((item) => item.id === current) 
+                  ? current : (nextConfig.interiorOptions[0]?.id ?? ''))
+
+    setSelectedPowerId((current) => boundEngines?.some((item) => item.engineCategoryID === current) 
+                  ? current : (boundEngines?.[0]?.engineCategoryID ?? ''))
+
+  }, [activeModel])  
+
+  // --- 引擎 ---- 
+  const { boundEngines, uniqueEngineCategoryIds } = useMemo(() => {
+    const engines = activeModel?.primaryModelInfo?.boundEngines || [];
+    const categories = [...new Set(engines.map(item => item.engineCategoryID))];
+    console.log("useMemo: boundEngines=", engines, "uniqueEngineCategoryIds=", categories);
+    return {
+      boundEngines: engines,
+      uniqueEngineCategoryIds: categories
+    };
+  }, [activeModel]);
+
+  const activeCategoryEngines = useMemo(() => {  
+    const filtered = boundEngines?.filter(
+        (engine) => `${engine.engineCategoryID}` === `${selectedPowerId}`
+      )  
+    console.log("useMemo: activeCategoryEngines=", filtered, "selectedPowerId=", selectedPowerId);
+    return filtered;
+  }, [boundEngines, selectedPowerId]);
+
+  const activeEngine = useMemo(() => { 
+    if (!activeCategoryEngines || activeCategoryEngines.length === 0) {
+        console.log("useMemo: activeEngine=null (no activeCategoryEngines)");
+        return null;
+    }
+    
+    // 优先根据用户选择的 selectedEngineId 匹配
+    const found = activeCategoryEngines.find(e => `${e.ID}` === `${selectedEngineId}`);
+    if (found) {
+      console.log("useMemo: activeEngine=found", found);
+      return found;
+    }
+
+    // 如果找不到（说明刚切换了动力类型，ID对不上），则保底返回当前动力类型下的第一个 
+    console.log("useMemo: activeEngine=first in category", activeCategoryEngines[0]);
+    return activeCategoryEngines[0] || null; 
+  }, [activeCategoryEngines, selectedEngineId]);
+
+  // Effect to update selectedEngineId when selectedPowerId changes
+  useEffect(() => {
+    console.log("useEffect: activeCategoryEngines changed", activeCategoryEngines);
+    if (activeCategoryEngines && activeCategoryEngines.length > 0) {
+      console.log("useEffect: Setting selectedEngineId to", activeCategoryEngines[0].id);
+      setSelectedEngineId(activeCategoryEngines[0].id);
+    } else {
+      console.log("useEffect: Clearing selectedEngineId");
+      setSelectedEngineId('');
+    }
+  }, [activeCategoryEngines]);
 
   // ---- category 选择
   const handleCategorySelect = (aCategory) => {
@@ -717,7 +762,22 @@ export default function OrderPage() {
     document.getElementById('order-section-submit')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const handleSubmitOrder = async () => {
+  const handlePowerCategorySelect = (cateId) => {
+    // 1. 先更新动力类型
+    setSelectedPowerId(cateId); 
+    
+    // 2. 🌟 核心修复：找出这个新动力类型下的所有发动机
+    const newBoundEngines = boundEngines.filter(e => e.engineCategoryID === cateId);
+    
+    // 3. 如果有发动机，就把选择的发动机 ID 默认设为第一个；如果没有，就设为空字符串
+    if (newBoundEngines.length > 0) {
+      setSelectedEngineId(newBoundEngines[0].ID);
+    } else {
+      setSelectedEngineId('');
+    }
+  }
+
+   const handleSubmitOrder = async () => {
     if (!activeModel) {
       setSubmitError('当前没有可提交的船型，请先选择船型。')
       return
@@ -773,16 +833,17 @@ export default function OrderPage() {
     } finally {
       setIsSubmittingOrder(false)
     }
-  }
+  } 
+ 
 
-  if (!currentModel) {
-    return (
-      <div className="page-loading" style={{ textAlign: 'center', paddingTop: '100px', color: '#f5f5f7' }}>
-        <h2>正在加载模型数据...</h2>
-        <p>如果长时间没有响应，请尝试 <Link to="/">返回首页</Link> 并重新选择。</p>
-      </div>
-    );
-  }
+  // if (!activeModel) {
+  //   return (
+  //     <div className="page-loading" style={{ textAlign: 'center', paddingTop: '100px', color: '#f5f5f7' }}>
+  //       <h2>正在加载模型数据...</h2>
+  //       <p>如果长时间没有响应，请尝试 <Link to="/">返回首页</Link> 并重新选择。</p>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="order-page">
@@ -848,9 +909,7 @@ export default function OrderPage() {
           <div ref={viewTogglePortalTargetRef} />
           <div className="order-config-nav" aria-label="配置导航">
             {configurationSteps.map((item) => (
-              <button
-                key={item}
-                type="button"
+              <button  key={item}  type="button"
                 className={`order-config-nav-item ${activeConfigStep === item ? 'active' : ''}`}
                 onClick={() => handleStepJump(item)}
               >
@@ -870,9 +929,7 @@ export default function OrderPage() {
 
             <div className="order-category-row" role="tablist" aria-label="船型类别">
             {productCategories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
+              <button key={category.id} type="button"
                 className={`order-category-chip ${selectedCategory === category.id ? 'active' : ''}`}
                 onClick={() => handleCategorySelect(category)}
               >
@@ -885,9 +942,7 @@ export default function OrderPage() {
 
           <div className="order-model-selection-row">
             <label htmlFor="boat-select" className="order-model-label">{'选择船型'}:</label>
-            <select
-              id="boat-select"
-              value={selectedBoatIdLocal}
+            <select id="boat-select"  value={selectedBoatIdLocal}
               onChange={handleBoatSelectChange}
               className="order-model-dropdown"
             >
@@ -901,9 +956,7 @@ export default function OrderPage() {
 
           <div className="order-model-selection-row">
             <label htmlFor="boat-select" className="order-model-label">{'选择样式'}:</label>
-            <select
-              id="model-select"
-              value={selectedModelIdLocal}
+            <select id="model-select"  value={selectedModelIdLocal}
               onChange={handleModelSelectChange}
               className="order-model-dropdown"
             >
@@ -980,47 +1033,53 @@ export default function OrderPage() {
             <div className="order-option-stack">
               <div style={{ marginBottom: '10px' }}>动力类型：</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {DEFAULT_ORDER_CONFIG.powerTypes.map((option, index) => (
-                  <label key={option.id} className={`order-radio-card ${selectedPowerId === option.id ? 'active' : ''}`}
-                    style={{
-                      flexGrow: 1,
-                      flexShrink: 1,
-                      flexBasis: 'calc(33.333% - 6.666px)'
-                    }}>
-                    <input type="radio" name="powerOption"
-                      checked={selectedPowerId === option.id}
-                      onChange={() => setSelectedPowerId(option.id)}
-                    />
-                    <div> <h3>{option.label}</h3>  </div>
-                  </label>
-                ))}
+                {uniqueEngineCategoryIds.length === 0 ? (
+                  <span style={{ color: '#999' }}>暂无动力类型</span>
+                ) : (
+                  uniqueEngineCategoryIds.map((cateId, index) => {
+                    // 建议：直接把判断选中的逻辑提出来，清晰可读
+                    const isChecked = selectedPowerId === cateId; 
+                    const labelText = getEngineCategoryLabel(cateId);
+
+                    return (
+                      <label key={`power-cate-${cateId}`} 
+                        className={`order-radio-card ${isChecked ? 'active' : ''}`}
+                        style={{ flex: '1 1 calc(33.333% - 10px)', boxSizing: 'border-box', cursor: 'pointer' }} // 增加手势
+                      >
+                        <input  type="radio" checked={isChecked}
+                          onChange={() => handlePowerCategorySelect(cateId)} 
+                        />
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '14px' }}>
+                            {labelText}
+                          </h3>
+                        </div>
+                      </label>
+                    );
+                  })
+                )}
               </div>
             </div>
-
-            {/* Engine Selection Dropdown and Details */}
-            {activePowerType?.engines?.length > 0 && (
+            {/* Engine Selection Dropdown and Details */} 
+            { activeCategoryEngines.length > 0 && (
               <div className="order-option-stack" style={{ marginTop: '20px' }}>
                 <label htmlFor="engine-select" className="order-model-label">选择发动机:</label>
-                <select
-                  id="engine-select"
-                  value={selectedEngineId}
+                <select id="engine-select" value={selectedEngineId}
                   onChange={(e) => setSelectedEngineId(e.target.value)}
                   className="order-model-dropdown"
                   style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
-                  {activePowerType.engines.map((engine) => (
-                    <option key={engine.id} value={engine.id}>
-                      {engine.label}
-                    </option>
-                  ))}
+                  {/* 🌟 修改 2：在这里直接一边过滤一边 map */}
+                  {activeCategoryEngines .map((engine) => (
+                      <option key={engine.ID} value={engine.ID}>
+                        {engine.engineName}
+                      </option>
+                    ))
+                  }
                 </select>
 
-                {activeEngine && (
-                  <div style={{ marginTop: '15px', padding: '15px', border: '1px solid #eee', borderRadius: '8px', backgroundColor: '#f9f9f9' }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '0.9em', color: '#555' }}>{activeEngine.description}</p>
-                    <p style={{ margin: 0, fontWeight: 'bold', color: '#333' }}>价格: {formatPrice(activeEngine.price)}</p>
-                  </div>
-                )}
+                {/* 当前发动机的详情子组件 */}
+                <EngineDetails engine={activeEngine} />
               </div>
             )}
             
@@ -1064,7 +1123,18 @@ export default function OrderPage() {
               </div>              
               <div>
                 <span>动力</span>
-                <strong>{activeEngine?.label ?? '-'}</strong>
+                
+                { (() => {                   
+                  // 如果找不到（比如刚切换了动力类型，ID还没对上），就什么都不渲染，防止报错
+                  if (!activeEngine) return (
+                    <strong>{'-'}</strong>
+                  );
+                  
+                  return (
+                    <strong>{activeEngine?.engineName }</strong>
+                  );
+                })()}
+                
               </div>
 
             </div>

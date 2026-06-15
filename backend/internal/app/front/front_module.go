@@ -23,6 +23,8 @@ func NewFrontModule(
 	aBoatModelSvc *services.BoatModelService, // 依赖注入
 	aModelVCamSvc *services.ModelVCamService, // 依赖注入
 	aVideoSvc *services.VideoService, // 依赖注入
+	aEngineSvc *services.BoatEngineService, // 依赖注入
+	aEngineOptionSvc *services.ModelEngineOptionsService, // 依赖注入
 ) (*FrontModule, error) {
 
 	// bcH, err := apis.NewBoatCategoryHandler(aBoatCategorySvc)
@@ -41,7 +43,7 @@ func NewFrontModule(
 	// }
 
 	bmFH, err := apis.NewBoatModelFrontHandler(aBoatCategorySvc,
-		aCosPathSvc, aBoatSvc, aBoatModelSvc)
+		aCosPathSvc, aBoatSvc, aBoatModelSvc, aEngineSvc, aEngineOptionSvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to NewBoatModelFrontHandler: %w", err)
 	}
