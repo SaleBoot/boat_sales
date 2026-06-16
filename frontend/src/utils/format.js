@@ -81,7 +81,7 @@ function getParentDirName(path) {
 /**
  * 构建单个 URL
  */
-export function buildUrl(baseUrl, relativePath) 
+export function buildOneUrl(baseUrl, relativePath) 
 {
   // 参数验证
   if (typeof relativePath !== 'string') {
@@ -129,8 +129,8 @@ export function buildUrls(baseUrl, relativePaths) {
     throw new Error('baseUrl must be a string');
   }
 
-  // 使用 buildUrl 处理每个路径，并过滤空结果
+  // 使用 buildOneUrl 处理每个路径，并过滤空结果
   return relativePaths
-    .map(path => buildUrl(baseUrl, path))
+    .map(path => buildOneUrl(baseUrl, path))
     .filter(url => url.length > 0); // 更明确的过滤条件
 }

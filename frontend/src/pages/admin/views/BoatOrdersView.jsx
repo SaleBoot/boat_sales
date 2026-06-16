@@ -27,6 +27,8 @@ import {
   getSalesOrderStatusLabelByID 
 } from '../../../constants/constants_common';
 
+import { buildOneUrl, buildUrls} from '../../../utils/format'
+
 import {  
   getSalesOrders, 
   deleteSalesOrders, 
@@ -42,6 +44,8 @@ export default function BoatOrdersView() {
   const [loading, setLoading] = useState(false);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+
+  const remoteFBXOrigin = import.meta.env.VITE_REMOTE_FBX_ORIGIN;
 
   const fetchOrders = async (page = 1, pageSize = 10) => {
     setLoading(true);
@@ -225,7 +229,7 @@ export default function BoatOrdersView() {
                   <Carousel autoplay style={{ marginBottom: '16px' }}>
                     {currentOrder.adImgs.map((img, index) => (
                       <div key={index}>
-                        <Image width="100%" src={img} />
+                        <Image width="100%" src={buildOneUrl(remoteFBXOrigin, img)} />
                       </div>
                     ))}
                   </Carousel>

@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { createPortal } from 'react-dom'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
-import { buildUrl } from '../../utils/format.js';
+import { buildOneUrl } from '../../utils/format.js';
 import { useWebSocket, WS_URL } from '../../hooks/useWebSocket';
 
 import {  
@@ -93,7 +93,9 @@ export default function ShipScene({
   debugTransform = null,
   onDebugTransformChange = null
 }) {
-  console.log('ShipScene start, modelConfig:', modelConfig,"::colorConfig=",colorConfig,"THREE.FrontSide=",THREE.FrontSid);
+  console.log('ShipScene start, modelConfig:', modelConfig,
+    "::colorConfig=",colorConfig,
+    "THREE.FrontSide=",THREE.FrontSide);
   const assetBaseUrl = getStaticAssetBaseUrl(
     import.meta.env.VITE_REMOTE_FBX_ORIGIN,
     import.meta.env.BASE_URL
@@ -102,7 +104,7 @@ export default function ShipScene({
   // 在 React 或前端项目中，它的核心任务是：确保无论传入什么样的资源路径（assetPath），
   // 最终都能拼凑出一个可以正常访问的完整 URL。
   const resolveAssetUrl = (assetPath) => { 
-    return buildUrl(assetBaseUrl, assetPath)
+    return buildOneUrl(assetBaseUrl, assetPath)
   }
 
   // (1)modelConfig?.id ,,,先检查 modelConfig 是否存在（即不是 null 或 undefined）

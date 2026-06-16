@@ -3,7 +3,7 @@ import { useLocation, Outlet } from 'react-router-dom';
 import { getFrontBoatModels, getSiteContent, getFrontVideos } from '../../apis/frontApi';
 import { usePointerGlow, useGlobalMenuClose } from '../../hooks/useUIEvents';
 import { MODEL_STORAGE_KEY } from '../../constants/constants_front_homepage';
-import { buildUrl, buildUrls} from '../../utils/format'
+import { buildOneUrl, buildUrls} from '../../utils/format'
 import { buildModel4ShipScene } from '../../utils/utils_ship_scene.js'
 
 import {
@@ -58,7 +58,7 @@ export default function HomePage() {
   const [categoryMenus, setCategoryMenus] = useState([]);
   // Model GlobalId 包含2个字段 boatId、modelId 
   const [selectedModelGid, setSelectedModelGid] = useState(() => getRequestedModelId());
-  const [videos, setVideos] = useState([]); // New state for videos
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,24 +98,14 @@ export default function HomePage() {
       }
     };
 
-    const fetchVideos = async () => { // New function to fetch videos
-      try {
-        const response = await getFrontVideos();
-        setVideos(response || []);
-      } catch (error) {
-        console.error("Failed to fetch videos:", error);
-        setVideos([]);
-      }
-    };
 
-    fetchData();
-    fetchVideos(); // Call the new fetchVideos function
+
+    fetchData(); 
   }, []);
 
   usePointerGlow();
   useGlobalMenuClose(setOpenCategoryId, setOpenCompareSelectId);
 
-  // const videos = siteContent?.videos ?? []; // Replaced by state
   const siteSettings = normalizeSiteSettings(siteContent?.settings);
   const heroContent = normalizeHeroContent(siteContent?.hero);
 
@@ -338,7 +328,7 @@ console.log("^^^^HomePage::engineImgs for EnginePowerShowcase=", primaryModel?.p
               resolveStaticPath={resolveStaticPath}
             />
 
-            <VideoShowcase videos={videos} />
+            <VideoShowcase />
           </div>
         </section>
       </main>

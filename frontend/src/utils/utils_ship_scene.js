@@ -19,7 +19,7 @@ import {
   FOCUS_COORDINATE_SPACE_MODEL_LOCAL 
 } from '../constants/constants_ship_scene.js';
 
-import { buildUrl, buildUrls} from './format'
+import { buildOneUrl, buildUrls} from './format'
  
 /**
  * 构建船舶场景的模型数据
