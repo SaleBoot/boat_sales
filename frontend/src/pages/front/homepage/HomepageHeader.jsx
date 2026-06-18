@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getModelDisplayLabel } from '../../../utils/utils_homepage';
+import { getBoatDisplayLabel } from '../../../utils/utils_homepage';
 
 export default function HomepageHeader({
   categoryMenus = [],
@@ -9,7 +9,7 @@ export default function HomepageHeader({
   setOpenCategoryId,
   handleModelSelect,
   scrollToExperience,
-  selectedModelId,  
+  selectedModelGid,  
   brochurePath,
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -66,7 +66,7 @@ export default function HomepageHeader({
                   key={category.id}
                   className={`site-category-group ${isActiveCategory ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`}
                   onMouseEnter={() => setOpenCategoryId(category.id)}
-                  onMouseLeave={() => setOpenCategoryId((current) => (current === category.id ? null : current))}
+                  onMouseLeave={() => setOpenCategoryId((current) => (current === category.id ? null : current))}      
                 >
                   <button
                     type="button"
@@ -79,9 +79,14 @@ export default function HomepageHeader({
                     <span className="site-category-caret" aria-hidden="true">▾</span>
                   </button>
 
-                  <div className="site-category-dropdown" role="menu" aria-label={category.label}>
+                  <div
+                    className="site-category-dropdown"
+                    role="menu"
+                    aria-label={category.label}
+                  
+                  >
                     {category.boats?.map((boat) => {
-                      const isActiveModel = boat.id === selectedModelId;
+                      const isActiveModel = boat.id === selectedModelGid.boatId;
 
                       return (
                         <button
@@ -91,7 +96,9 @@ export default function HomepageHeader({
                           onClick={() => handleCategoryItemClick(boat.id)}
                           role="menuitem"
                         >
-                          <span>{getModelDisplayLabel(boat)}</span>
+                          <span>
+                            {getBoatDisplayLabel(boat)}
+                          </span>
                         </button>
                       );
                     })}

@@ -24,10 +24,10 @@ export default function HomePageViewerScreen({
  
   const modelConfig = useMemo(() => {
     return buildModel4ShipScene(
-      primaryModel?.primaryModelInfo,
+      primaryModel?.modelInf,
       remoteFbxOrigin
     );
-  }, [primaryModel?.primaryModelInfo?.id, remoteFbxOrigin]);
+  }, [primaryModel?.modelInf?.id, remoteFbxOrigin]);
 
   useEffect(() => { 
     console.log('HomePageViewerScreen.jsx modelConfig', modelConfig);

@@ -80,7 +80,11 @@ export function useFirstPersonControls(threeContext, canvasRef, modeRef) { // <-
     };
 
     const onPointerMove = (event) => {
-      if (modeRef.current !== 'interior' || interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON || !interiorPose.dragging) return;
+      if (modeRef.current !== 'interior' || 
+          interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON || 
+          !interiorPose.dragging) 
+          return;
+
       const deltaX = event.clientX - interiorPose.lastX;
       const deltaY = event.clientY - interiorPose.lastY;
       interiorPose.lastX = event.clientX;
@@ -97,7 +101,9 @@ export function useFirstPersonControls(threeContext, canvasRef, modeRef) { // <-
     };
 
     const onKeyDown = (event) => {
-      if (modeRef.current !== 'interior' || interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON || !['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown'].includes(event.code)) return;
+      if (modeRef.current !== 'interior' || 
+          interiorPose.cameraMode !== CAMERA_MODE_FIRST_PERSON || 
+          !['KeyW', 'KeyS', 'ArrowUp', 'ArrowDown'].includes(event.code)) return;
       interiorPose.keys.add(event.code);
       event.preventDefault();
     };

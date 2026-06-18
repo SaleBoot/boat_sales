@@ -126,7 +126,7 @@ func (aS *ModelVCamService) TmpInitModelVCamTable() error {
 	}
 
 	if len(allVCams) > 0 {
-		return aS.AddModelVCams(context.Background(), allVCams)
+		return aS.UpdateModelVCams(context.Background(), allVCams)
 	}
 
 	return nil

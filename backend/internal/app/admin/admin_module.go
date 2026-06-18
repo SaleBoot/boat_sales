@@ -269,6 +269,10 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			salesOrderRG.POST("/:id", a.salesOrderH.HandleUpdateSaleOrders)
 			salesOrderRG.POST("/delete", a.salesOrderH.HandleDeleteSalesOrders)
 		}
+
+		// 更新模型相机配置 (POST /api/admin/vcams)
+		aAdminRG.POST("/vcams", a.modelVCamH.HandleUpdateVCams)
+		aAdminRG.GET("/vcams/*modelPath", a.modelVCamH.HandleGetVCam)
 	}
 
 }

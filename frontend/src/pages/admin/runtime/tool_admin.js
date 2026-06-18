@@ -1,5 +1,9 @@
 
-export const buildModelConfig4AdminPage = (subfolderName, subfolderFiles, sourcePath) => {
+export const buildModelConfig4AdminPage = (subfolderName, 
+  subfolderFiles, 
+  sourcePath, 
+  aViewType,
+  viewSettings = {}) => {
   // 1. Determine the required extension from the source path
   const requiredExtension = sourcePath.split('.').pop()?.toLowerCase();
 
@@ -48,7 +52,11 @@ export const buildModelConfig4AdminPage = (subfolderName, subfolderFiles, source
   return {
     id: subfolderName,
     label: subfolderName,
+    
     partPaths: partPaths,
-    matSlots: matSlots
+    matSlots: matSlots,
+
+    focusTarget: aViewType,
+    focusTargetPresets: viewSettings,
   };
 };

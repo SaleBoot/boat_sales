@@ -234,8 +234,7 @@ export default function BoatModelsView() {
             boat={currentBoat}
             modelFolders={modelFolders}
             isLoadingModelFolders={isLoadingModelFolders}
-            onModelChange={handleRuntimeModelChange}
-            runtimeModelPath={selectedPreviewKey}
+            onModelChange={handleRuntimeModelChange} 
             cosOrigin={remoteFBXOrigin}
           />
         </div>
@@ -247,7 +246,7 @@ export default function BoatModelsView() {
     <div style={{ height: 'calc(100vh - 160px)', display: 'flex', flexDirection: 'column', padding: '1px' }}>
       <Row gutter={16} style={{ flex: 1, overflow: 'hidden' }}>
         {/* 左侧列表 */}
-        <Col span={8} style={{ height: '100%' }}>
+        <Col span={6} style={{ height: '100%' }}>
           <BoatListSider
             loading={loading}
             boats={boats}
@@ -269,7 +268,7 @@ export default function BoatModelsView() {
         </Col>
 
         {/* 中间预览 */}
-        <Col span={8} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Col span={10} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <div style={{ 
             border: '1px solid #f0f0f0', 
             borderRadius: '8px', 
@@ -290,15 +289,17 @@ export default function BoatModelsView() {
                 <ShipScene
                   modelConfig={previewModelConfig ? {
                     ...previewModelConfig,
-                    partPaths: previewModelConfig.partPaths.map(p => `${remoteFBXOrigin}${p}`),
-                    matSlots: previewModelConfig.matSlots.map(slot => ({
+                    partPaths: previewModelConfig.partPaths?.map(p => `${remoteFBXOrigin}${p}`),
+                    matSlots: previewModelConfig.matSlots?.map(slot => ({
                       ...slot,
-                      textures: Object.entries(slot.textures).reduce((acc, [key, value]) => {
+                      textures: Object.entries(slot.textures || {}).reduce((acc, [key, value]) => {
                         acc[key] = value ? `${remoteFBXOrigin}${value}` : "";
                         return acc;
                       }, {})
                     }))
                   } : { id: currentBoat.ID, partPaths: [], matSlots: [] }}
+                  focusTarget={previewModelConfig?.focusTarget}
+                  focusTargetPresets={previewModelConfig?.focusTargetPresets}
                 />
               ) : (
                 <Empty description="请在左侧选择一个模型进行预览" />

@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react';
 import { buildComparisonCardItems, getModelDisplayLabel } from '../../../utils/utils_homepage';
 
 export default function DetailCompareCard({
@@ -17,8 +18,8 @@ export default function DetailCompareCard({
 
   return (
       <article
-        key={model.id}
-        className={`detail-compare-card ${enteringCompareModelId === model.id ? 'is-entering' : ''}`}
+        key={model.modelId}
+        className={`detail-compare-card ${enteringCompareModelId === model.modelId ? 'is-entering' : ''}`}
       >
         {compareImagePath && (
           <div className="detail-compare-image-shell">
@@ -33,7 +34,7 @@ export default function DetailCompareCard({
         <div className="detail-compare-card-head">
           <div>
             <p className="detail-compare-card-kicker">{model.type || '船型对比'}</p>
-            <h4>{getModelDisplayLabel(model)}</h4>
+            <h4 style={{color: '#FFFFFF'}}>{getModelDisplayLabel(model)}</h4>
             {comparePriceLabel && (
               <p className="detail-compare-card-price">{comparePriceLabel}</p>
             )}
@@ -41,30 +42,47 @@ export default function DetailCompareCard({
               <span className="detail-compare-select-label">切换对比船型</span>
               <div
                 className={`detail-compare-select-group ${isCompareSelectOpen ? 'is-open' : ''}`}
-                onMouseEnter={() => setOpenCompareSelectId(model.id)}
-                onMouseLeave={() => setOpenCompareSelectId((current) => (current === model.id ? null : current))}
+                onMouseEnter={() => setOpenCompareSelectId(
+                  {
+                    boatId: model.boatId, 
+                    modelId:model.modelId
+                })}
+                onMouseLeave={() => setOpenCompareSelectId((current) => 
+                  ( current?.boatId === model.boatId &&current?.modelId === model.modelId ? null : current))}
               >
                 <button type="button" 
                   className="detail-compare-select-trigger"
-                  onClick={() => handleCompareSelectToggle(model.id)}
+                  onClick={() => handleCompareSelectToggle({
+                    boatId: model.boatId, 
+                    modelId:model.modelId
+                })}
                   aria-expanded={isCompareSelectOpen}
                   aria-haspopup="menu"
                 >
-                  <span>{getModelDisplayLabel(model)}</span>
+                  <span style={{color: '#FFFFFF'}}>{getModelDisplayLabel(model)}</span>
                   <span className="detail-compare-select-caret" aria-hidden="true">▾</span>
                 </button>
 
                 <div className="detail-compare-select-dropdown" role="menu" aria-label="船型选择">
                   {selectableModels.map((candidate) => {
-                    const isActiveCandidate = candidate.id === model.id
+                    const isActiveCandidate = candidate.boatId === model.boatId && candidate.modelId === model.modelId
 
                     return (
-                      <button  key={candidate.id}  type="button"
+                      <button  key={candidate.modelId}  type="button"
                         className={`detail-compare-select-option ${isActiveCandidate ? 'active' : ''}`}
-                        onClick={() => handleCompareModelChange(model.id, candidate.id)}
+                        onClick={() => {
+                          handleCompareModelChange(
+                            { boatId: model.boatId, modelId:model.modelId }, 
+                            { boatId: candidate.boatId, modelId: candidate.modelId }
+                          );
+                          // 延迟关闭下拉列表，以避免潜在的竞争条件
+                          setTimeout(() => {
+                            setOpenCompareSelectId(null);
+                          }, 0);
+                        }}
                         role="menuitem"
                       >
-                        <span>{getModelDisplayLabel(candidate)}</span>
+                        <span style={{color: '#FFFFFF'}}>{getModelDisplayLabel(candidate)}</span>
                       </button>
                     )
                   })}
@@ -76,13 +94,19 @@ export default function DetailCompareCard({
           <div className="detail-compare-card-actions">
             <button  type="button"
               className="mini-btn detail-compare-focus-btn"
-              onClick={() => handleModelSelect(model.id)}
+              onClick={() => handleModelSelect({
+                boatId: model.boatId, 
+                modelId:model.modelId
+              })}
             >
               {'\u8bbe\u4e3a\u4e3b\u5c55\u793a'}
             </button>
             <button
               type="button"  className="mini-btn detail-compare-remove-btn"
-              onClick={() => handleCompareToggle(model.id)}
+              onClick={() => handleCompareToggle({
+                boatId: model.boatId, 
+                modelId:model.modelId
+              })}
             >
               {'\u79fb\u9664'}
             </button>

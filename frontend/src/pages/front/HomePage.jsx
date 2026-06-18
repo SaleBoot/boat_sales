@@ -5,12 +5,12 @@ import { usePointerGlow, useGlobalMenuClose } from '../../hooks/useUIEvents';
 import { MODEL_STORAGE_KEY } from '../../constants/constants_front_homepage';
 import { buildOneUrl, buildUrls} from '../../utils/format'
 import { buildModel4ShipScene } from '../../utils/utils_ship_scene.js'
+import { createStructuredModel } from '../../utils/utils_homepage.js'
 
 import {
   buildComparisonSpecSections,
   buildViewerSpecItems,
-  getCategoryIdForModel,
-  getModelDetailImageAssetPath,
+  getCategoryIdForModel, 
   getModelDisplayLabel,
   getModelPriceLabel,
   getRouteFromHash,
@@ -109,32 +109,32 @@ export default function HomePage() {
   const siteSettings = normalizeSiteSettings(siteContent?.settings);
   const heroContent = normalizeHeroContent(siteContent?.hero);
 
-  const primaryModel = useMemo(() => {
-    const createStructuredModel = (boatData,modelId) => {
-      if (!boatData) return null;
-
-    const primaryModelInfo = 
-      boatData.models?.find(item => item.id === modelId) 
-      || boatData.models?.[ boatData.models?.length -1 ] 
-      || {};
-      return {
-        ...boatData, // boatData from API now includes id and label
-        primaryModelInfo: primaryModelInfo, // Nest the specific model info
-      };
-    };
-
+  const primaryModel = useMemo(() => {    
     if (!boatsMap) 
       return null;
 
     const selectBoat = boatsMap?.[selectedModelGid.boatId];
     if (selectBoat) {
-      return createStructuredModel(selectBoat, selectedModelGid.modelId);
+      const modelCnt = selectBoat.models?.length ?? 0 
+      let  selectModel = modelCnt >0 ? selectBoat?.models?.[modelCnt -1] : {};  
+
+      if(selectedModelGid.modelId)
+      {
+        selectModel = selectBoat.models?.find(
+          item => item.id === selectedModelGid.modelId
+        ) || {};
+      }
+
+      return createStructuredModel(selectBoat, selectModel);
     }
 
     // Fallback to the first boat 
     const firstBoatKey = Object.keys(boatsMap)[0];
     if (firstBoatKey) {
-      return createStructuredModel(boatsMap[firstBoatKey], selectedModelGid.modelId || "");
+      const firstBoat = boatsMap[firstBoatKey];
+      const lastModel = firstBoat?.models?.[firstBoat.models?.length -1] ?? {};
+
+      return createStructuredModel(firstBoat, lastModel);
     }
     return null; // 如果整个 map 确实是空的，安全返回 null
   }, [selectedModelGid, boatsMap]);
@@ -158,7 +158,7 @@ export default function HomePage() {
   const selectedModelPriceLabel = getModelPriceLabel(primaryModel);
   
   const specImagePaths = primaryModel
-    ?  primaryModel.primaryModelInfo?.adImgs?.map( (adImgPath)=>  resolveStaticPath(adImgPath))
+    ?  primaryModel.modelInf?.adImgs?.map( (adImgPath)=>  resolveStaticPath(adImgPath))
     : '';
   console.log("^^^^HomePage::specImagePaths=",specImagePaths)    
   const viewerSpecItems = buildViewerSpecItems(primaryModel);
@@ -195,18 +195,12 @@ export default function HomePage() {
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleCompareSelectToggle = (modelId) => {
-    if (!modelId) {
-      return;
-    }
 
-    setOpenCompareSelectId((current) => (current === modelId ? null : current));
-  };
-console.log("^^^^HomePage::engineImgs for EnginePowerShowcase=", primaryModel?.primaryModelInfo?.engineImgs);
+console.log("^^^^HomePage::engineImgs for EnginePowerShowcase=", primaryModel?.modelInf?.engineImgs);
   // --- Original JSX from HomePage.jsx ---
   if (captureMode) 
   {
-    const model4front  = primaryModel?.primaryModelInfo ; 
+    const model4front  = primaryModel?.modelInf ; 
     if(model4front )
     {
       const finalModel = buildModel4ShipScene(model4front, remoteFbxOrigin)  
@@ -290,40 +284,41 @@ console.log("^^^^HomePage::engineImgs for EnginePowerShowcase=", primaryModel?.p
             {/* 添加 EnginePowerShowcase 组件 */}
             <EnginePowerShowcase
               engineImgs={
-                 (primaryModel?.primaryModelInfo?.engineImgs && 
-                  primaryModel.primaryModelInfo.engineImgs.length > 0)
-                ? primaryModel.primaryModelInfo.engineImgs
+                 (primaryModel?.modelInf?.engineImgs && 
+                  primaryModel.modelInf.engineImgs.length > 0)
+                ? primaryModel.modelInf.engineImgs
                 : ['/img/electric-engine01.png']
               }          
               engineTitle={ '动力引擎参数'}
               engineParams={{
-                designSpeed: primaryModel?.primaryModelInfo?.designSpeed || '0',
-                cruiseSpeed: primaryModel?.primaryModelInfo?.cruiseSpeed || '0',
-                cruiseRange: primaryModel?.primaryModelInfo?.cruiseRange || '0',
-                cabinType: primaryModel?.primaryModelInfo?.cabinType || '开放式驾舱',
-                controlMode: primaryModel?.primaryModelInfo?.controlMode || '方向盘操控',
-                passengerNum: primaryModel?.primaryModelInfo?.passengerNum || '0',
+                designSpeed: primaryModel?.modelInf?.designSpeed || '0',
+                cruiseSpeed: primaryModel?.modelInf?.cruiseSpeed || '0',
+                cruiseRange: primaryModel?.modelInf?.cruiseRange || '0',
+                cabinType: primaryModel?.modelInf?.cabinType || '开放式驾舱',
+                controlMode: primaryModel?.modelInf?.controlMode || '方向盘操控',
+                passengerNum: primaryModel?.modelInf?.passengerNum || '0',
               }}
             />
 
             {/* 添加 SmartSystemShowcase 组件 */}
             <SmartSystemShowcase
               smartSystemImgs={
-                 (primaryModel?.primaryModelInfo?.smartSystemImgs && 
-                  primaryModel.primaryModelInfo.smartSystemImgs.length > 0)
-                ? primaryModel.primaryModelInfo.smartSystemImgs
+                 (primaryModel?.modelInf?.smartSystemImgs && 
+                  primaryModel.modelInf.smartSystemImgs.length > 0)
+                ? primaryModel.modelInf.smartSystemImgs
                 : ['/img/smart-system01.png', '/img/smart-system02.png']
               }   
-              smartSystemTitle={primaryModel?.primaryModelInfo?.smartSystemName || '智能系统'}
-              smartSystemDescription={primaryModel?.primaryModelInfo?.smartSystemDescr || '智能系统简介'}
+              smartSystemTitle={primaryModel?.modelInf?.smartSystemName || '智能系统'}
+              smartSystemDescription={primaryModel?.modelInf?.smartSystemDescr || '智能系统简介'}
             />
 
             <DetailCompareStack
-              models={Object.values(boatsMap)}
+              boats={Object.values(boatsMap)}
               selectedModelGid={selectedModelGid}
               maxCompareModelCount={maxCompareModelCount}
               openCompareSelectId={openCompareSelectId}
               setOpenCompareSelectId={setOpenCompareSelectId}
+              // handleCompareSelectToggle={handleCompareSelectToggle}
               handleModelSelect={handleModelSelect}
               resolveStaticPath={resolveStaticPath}
             />

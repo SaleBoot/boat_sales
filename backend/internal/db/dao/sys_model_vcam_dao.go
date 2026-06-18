@@ -25,7 +25,7 @@ func NewSysModelVCamDao(db *gorm.DB) *SysModelVCamDao {
 // @param ctx 上下文
 // @param aModelVCam 模型相机配置列表
 // @return error 错误信息
-func (d *SysModelVCamDao) AddModelVCams(
+func (d *SysModelVCamDao) UpdateModelVCams(
 	ctx context.Context,
 	aModelVCam []*models.SysModelVCam,
 ) error {
@@ -44,8 +44,18 @@ func (d *SysModelVCamDao) AddModelVCams(
 			).First(&existing).Error
 
 			if err == nil {
-				// 已存在，可以选择更新或跳过
-				continue
+				// 已存在，更新记录
+				existing.Zoom = vcam.Zoom
+				existing.TargetX = vcam.TargetX
+				existing.TargetY = vcam.TargetY
+				existing.TargetZ = vcam.TargetZ
+				existing.RotationX = vcam.RotationX
+				existing.RotationY = vcam.RotationY
+				existing.RotationZ = vcam.RotationZ
+				existing.CameraMode = vcam.CameraMode
+				if err := tx.WithContext(ctx).Save(&existing).Error; err != nil {
+					return err
+				}
 			} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return err
 			}

@@ -4,6 +4,7 @@ import { useFocusTarget } from '../../hooks/useFocusTarget';
 import ShipScene from '../scene3d/ShipScene'
 import { vesselCategoryMenus } from '../../constants/constants_front_homepage.js'
 import { buildModel4ShipScene } from '../../utils/utils_ship_scene'
+import { createStructuredModel } from '../../utils/utils_homepage.js'
 import { 
   BOAT_ENGINE_CATEGORY_OPTIONS
 } from '../../constants/constants_common.js'
@@ -211,20 +212,13 @@ function normalizeOrderConfig(orderConfig)
   }
 }
  
-// 创建一个增强的模型对象，包含 primaryModelInfo
-function createAugmentedModel(boat) {
+// 创建一个增强的模型对象，包含 primaryModelInf
+function createAugmentedBoat1stModel(boat) {
   if (!boat) return null;
-  const primaryModelInfo = boat.models?.[0] ?? null;
-  if (!primaryModelInfo) {
-    return {
-      ...boat,
-      primaryModelInfo: null,
-    };
-  }
-  return {
-    ...boat,
-    primaryModelInfo: primaryModelInfo,
-  };
+
+  const primaryModelInf = boat.models?.[0] ?? {};
+ 
+  return createStructuredModel(boat,primaryModelInf);
 }
 
 // 1. 定义一个独立的发动机详情组件
@@ -298,20 +292,17 @@ export default function OrderPage() {
  
     // 3. 精确匹配 modelId，找不到就用第一个模型
     console.log("OrderPage:2:boat=",boat)
-    const primaryModelInfo =
+    const primaryModelInf =
       boat.models?.find((model) => model.id === selectedModelGid.modelId) ??
       boat.models?.[0] ??
       null;
 
-    if (!primaryModelInfo) { // 4. 没有模型也返回 null
+    if (!primaryModelInf) { // 4. 没有模型也返回 null
       return null;
     }
 
     // 4. 返回最终结构
-    return {
-      ...boat,
-      primaryModelInfo: primaryModelInfo,
-    };
+    return createStructuredModel(boat, primaryModelInf);
   }, [primaryModel, boats, selectedModelGid]);
 
  
@@ -320,11 +311,11 @@ export default function OrderPage() {
   // category 英文id
   const [selectedCategory, setSelectedCategory] = useState(currentModel?.category ?? '')
 
-
   // currentOrderConfig
   const currentOrderConfig = useMemo(
-    () => normalizeOrderConfig(DEFAULT_ORDER_CONFIG), //(currentModel?.primaryModelInfo?.orderConfig), 
-    [currentModel?.primaryModelInfo])
+    () => normalizeOrderConfig(DEFAULT_ORDER_CONFIG), //(currentModel?.modelInf?.orderConfig), 
+    [currentModel?.modelInf])
+
   const [loadedFocusTargets, setLoadedFocusTargets] = useState(currentOrderConfig.focusTargets)
   const [selectedAppearanceId, setSelectedAppearanceId] = useState(currentOrderConfig.appearanceOptions[0]?.id ?? '')
   const [selectedInteriorId, setSelectedInteriorId] = useState(currentOrderConfig.interiorOptions[0]?.id ?? '')
@@ -381,32 +372,29 @@ export default function OrderPage() {
     }
     if (filteredBoats[0]) {
       console.log("activeModel =filteredBoats[0]=",filteredBoats[0] )
-      return createAugmentedModel(filteredBoats[0]);
+      return createAugmentedBoat1stModel(filteredBoats[0]);
     }
     if (boats[0]) {
       console.log("activeModel =boats[0]=",boats[0] )
-      return createAugmentedModel(boats[0]);
+      return createAugmentedBoat1stModel(boats[0]);
     }
     return null;
   }, [currentModel, filteredBoats, boats]);
 
   const modelConfig = useMemo(() => {  
     return buildModel4ShipScene(
-      activeModel?.primaryModelInfo,
+      activeModel?.modelInf,
       remoteFbxOrigin
     );
-  }, [activeModel?.primaryModelInfo?.id, remoteFbxOrigin]);
+  }, [activeModel?.modelInf?.id, remoteFbxOrigin]);
 
   // -----------
 
   useEffect(() => {
+
+
     const nextConfig = normalizeOrderConfig(activeModel?.orderConfig)
-
-    setSelectedAppearanceId(
-      (current) => nextConfig.appearanceOptions.some((item) => item.id === current) 
-                  ? current : (nextConfig.appearanceOptions[0]?.id ?? ''))
  
-
     setSelectedInteriorId((current) => nextConfig.interiorOptions.some((item) => item.id === current) 
                   ? current : (nextConfig.interiorOptions[0]?.id ?? ''))
 
@@ -417,7 +405,7 @@ export default function OrderPage() {
 
   // --- 引擎 ---- 
   const { boundEngines, uniqueEngineCategoryIds } = useMemo(() => {
-    const engines = activeModel?.primaryModelInfo?.boundEngines || [];
+    const engines = activeModel?.modelInf?.boundEngines || [];
     const categories = [...new Set(engines.map(item => item.engineCategoryID))];
     console.log("useMemo: boundEngines=", engines, "uniqueEngineCategoryIds=", categories);
     return {
@@ -506,6 +494,15 @@ export default function OrderPage() {
   //----model 选择
   const [selectedModelIdLocal, setSelectedModelIdLocal] = useState(activeModel?.id || '');
 
+  useEffect(() => {
+    const tmpModelId = activeModel?.modelInf?.id || '';
+    console.log("&&&&&useEffect: tmpModelId=", tmpModelId, ", selectedModelIdLocal=", selectedModelIdLocal);
+    if (tmpModelId  && selectedModelIdLocal !== tmpModelId) 
+    {
+      setSelectedModelIdLocal( tmpModelId );
+    }
+  }, [activeModel?.modelInf?.id, selectedModelIdLocal]);  
+
   const filteredModels = useMemo(
     () =>  {
       const selectedBoat = filteredBoats.find(boat => boat.id === selectedBoatIdLocal) 
@@ -550,9 +547,7 @@ export default function OrderPage() {
     () => normalizeOrderConfig(activeModel?.orderConfig), 
     [activeModel])
  
-
-  const activeAppearance = activeOrderConfig.appearanceOptions.find((item) => item.id === selectedAppearanceId) 
-                        ?? activeOrderConfig.appearanceOptions[0]
+ 
   const activeColor = activeOrderConfig.colorOptions.find((item) => item.id === selectedColorId) 
                         ?? activeOrderConfig.colorOptions[0]
   const activeInterior = activeOrderConfig.interiorOptions.find((item) => item.id === selectedInteriorId) 
@@ -562,8 +557,7 @@ export default function OrderPage() {
   const activeModelReferencePrice = getModelReferencePrice(activeModel)
   const activeModelReferencePriceLabel = getModelReferencePriceLabel(activeModel)
    
-  const totalPrice = (activeModelReferencePrice ?? 0)
-    + (activeAppearance?.price ?? 0)
+  const totalPrice = (activeModelReferencePrice ?? 0) 
     + (activeColor?.surcharge ?? 0)
     + (activeInterior?.price ?? 0)
     + (activeEngine?.price ?? 0) 
@@ -800,9 +794,9 @@ export default function OrderPage() {
 
     try {
       const saleOrderData = {
-        modelID: activeModel.primaryModelInfo?.id ?? '',
-        modelLabel: activeModel.primaryModelInfo?.label ?? '',
-        model3DPath: activeModel?.primaryModelInfo?.partPaths?.[0] ?? '',
+        modelID: activeModel.modelInf?.id ?? '',
+        modelLabel: activeModel.modelInf?.label ?? '',
+        model3DPath: activeModel?.modelInf?.partPaths?.[0] ?? '',
         status: 'new',
         customerName: normalizedCustomerName,
         customerContact: normalizedCustomerContact,
@@ -967,7 +961,7 @@ export default function OrderPage() {
             <div className="order-model-details">
               <div className="order-model-card-copy">
                 <p className="order-model-category">{getCategoryForModel(activeModel)}</p>
-                <h3>{activeModel.primaryModelInfo?.label}</h3>
+                <h3>{activeModel.modelInf?.label}</h3>
                 <p>{getModelCaption(activeModel)}</p>
                 {getModelReferencePriceLabel(activeModel) && (
                   <p className="order-model-card-price">{getModelReferencePriceLabel(activeModel)}</p>
@@ -1081,12 +1075,12 @@ export default function OrderPage() {
 
           <section id="order-section-submit" className="order-summary-card">
             <p className="order-kicker">配置摘要</p>
-            <h2>{activeModel?.primaryModelInfo?.label ?? '未选择船型'}</h2>
+            <h2>{activeModel?.modelInf?.label ?? '未选择船型'}</h2>
 
             <div className="order-summary-list">
               <div>
                 <span>船型</span>
-                <strong>{activeModel?.primaryModelInfo?.label ?? '-'}</strong>
+                <strong>{activeModel?.modelInf?.label ?? '-'}</strong>
               </div>
               {activeModelReferencePriceLabel && (
                 <div>

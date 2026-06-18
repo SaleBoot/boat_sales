@@ -29,11 +29,11 @@ func NewModelVCamService(
 	return svc, nil // 依赖注入
 }
 
-func (aS *ModelVCamService) AddModelVCams(
+func (aS *ModelVCamService) UpdateModelVCams(
 	aCtx context.Context,
 	aModelVCam []*models.SysModelVCam,
 ) error {
-	if err := aS.modelVCamDao.AddModelVCams(aCtx, aModelVCam); err != nil {
+	if err := aS.modelVCamDao.UpdateModelVCams(aCtx, aModelVCam); err != nil {
 		return err
 	}
 	return nil

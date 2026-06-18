@@ -37,7 +37,7 @@ import {
   EMPTY_ARRAY, 
   CAMERA_MODE_FIRST_PERSON,  
 } from '../../constants/constants_ship_scene.js';
-import { useThree } from './hooks/useThree.js';
+import { handleWindowResize, useThree } from './hooks/useThree.js';
 import { useFirstPersonControls } from './hooks/useFirstPersonControls.js';
 import { createLoadingTracker } from './runtime/loadingTracker.js';
 import { createCameraPresetController } from './runtime/cameraPresetController.js';
@@ -94,8 +94,8 @@ export default function ShipScene({
   onDebugTransformChange = null
 }) {
   console.log('ShipScene start, modelConfig:', modelConfig,
-    "::colorConfig=",colorConfig,
-    "THREE.FrontSide=",THREE.FrontSide);
+    "::focusTarget=",focusTarget,
+    "focusTargetPresets=",focusTargetPresets);
   const assetBaseUrl = getStaticAssetBaseUrl(
     import.meta.env.VITE_REMOTE_FBX_ORIGIN,
     import.meta.env.BASE_URL
@@ -644,7 +644,8 @@ console.log("ShipScene..setColorConfigRef nextColorConfig=",nextColorConfig,",lo
         // 
         modelRoot.add(object3d)
         loadedRootRef.current = object3d
-
+ 
+ 
         focusCoordinateRootRef.current = object3d
         setFocusTargetRef.current(activeFocusTargetRef.current)
 
@@ -717,13 +718,27 @@ console.log("ShipScene..setColorConfigRef nextColorConfig=",nextColorConfig,",lo
 
       sendWsMessage(data);
     };
-    //-------------------
+    // -----------------
+    // 1. 【调整位置】在渲染循环前先执行一次，建立正确的初始宽高比
+    handleWindowResize(canvasRef.current, threeContext);    
+    // 💡 核心优化：首帧计数器
+    let initialFramesCount = 0;    
+    // ------------------
     let frameId = 0
     let lastFrameTime = performance.now()
     const renderLoop = () => {
       const now = performance.now()
       const deltaSeconds = Math.min((now - lastFrameTime) / 1000, 0.05)
       lastFrameTime = now
+      // --------------
+      // 2. 【安全兜底】进入渲染循环的前 20 帧里，每帧都强行修正一次尺寸
+      // 彻底解决由于 React DOM 异步渲染（例如 Loading 遮罩层消失）导致的容器尺寸突变、模型闪烁撑大问题
+      if (initialFramesCount < 20) {
+        handleWindowResize(canvasRef.current, threeContext);
+        initialFramesCount++;
+      }
+      // --------------
+
       if (waterSurface) {
         waterSurface.material.uniforms.uTime.value = now * 0.001
       }

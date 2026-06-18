@@ -8,25 +8,36 @@ import {
   viewerSpecFields
 } from '../constants/constants_front_homepage'
 
+export function getBoatDisplayLabel(boat) {
+  if (!boat) {
+    return ''
+  }
+
+  if (boat.label && boat.label !== boat.id) {
+    return boat.label
+  }
+ 
+  return boat.label
+}
 // 获取模型的显示名称。
 export function getModelDisplayLabel(model) {
   if (!model) {
     return ''
   }
 
-  if (model.label && model.label !== model.id) {
-    return model.label
+  if (model.modelLabel && model.modelLabel !== model.modelId) {
+    return model.modelLabel
   }
 
-  if (model.id === 'FireFighting') {
+  if (model.modelId === 'FireFighting') {
     return '\u6d88\u9632\u6551\u63f4\u8239' // 消防救援船
   }
 
-  if (model.id === 'Cabnet') {
+  if (model.modelId === 'Cabnet') {
     return '\u516c\u52a1\u8239' // 公务船
   }
-
-  return model.label
+  
+  return model.modelLabel
 }
 // 根据模型的属性判断它属于哪个分类。
 export function getCategoryIdForModel(model) {
@@ -147,7 +158,7 @@ export function getModelSpecs(model) {
     //        undefined 而不是报错（比如报错 "Cannot read property 'specs' of undefined"）。
     // ?? (空值合并运算符)：如果 model?.specs 的结果是 null 或 undefined，它就取后面那个空对象 {}。
     // 结果：这一整行确保了无论 model 存不存在，最终展开的要么是真实的规格数据，要么是一个空对象。
-    ...(model?.specs ?? {})
+    ...(model ?? {})
   }
 }
 // 格式化价格显示。
@@ -208,6 +219,8 @@ export function formatModelSpecValue(fieldKey, rawValue) {
 
   return value
 }
+ 
+
 // 构建在 3D 查看器中显示的规格列表。
 export function buildViewerSpecItems(model) {
   const specs = getModelSpecs(model)
@@ -240,18 +253,8 @@ export function buildComparisonCardItems(model) {
     value: formatModelSpecValue(fieldKey, specs[fieldKey])
   })))
 }
-// 根据传入的模型对象（model），计算并返回该模型详情图片的完整存放路径。
-export function getModelDetailImageAssetPath(model) {
-  if (!model) {
-    return ''
-  }
-  // encodeURIComponent(model.id): 对模型 ID 进行编码。这是为了防止 ID 中包含特殊字符（如 #, ?, &）导致浏览器解析 URL 出错。
-  if (`${model.detailImagePath ?? ''}`.trim()) {
-    return `gltf/${encodeURIComponent(model.id)}/${encodeRelativeAssetPath(model.detailImagePath)}`
-  }
 
-  return `gltf/${encodeURIComponent(model.id)}/tbrender.png`
-}
+
 // 安全地对一个相对路径进行 URL 编码。
 export function encodeRelativeAssetPath(relativePath) {
   // `${relativePath ?? ''}`  防止输入是 null 或 undefined。如果是空值，则变成空字符串 ""。
@@ -272,29 +275,56 @@ export function encodeRelativeAssetPath(relativePath) {
 // 一个典型的数据清洗（Data Sanitization）函数。它的作用是在一个“对比功能”中，确保你想要对比的
 // 模型 ID 列表是合法、唯一、且不包含当前主选模型的。
 // 这个函数逻辑拆解为：“建立白名单” -> “三重过滤” -> “数量截断”。
-export function normalizeCompareModelIds(compareModelIds, // 用户尝试要对比的模型 ID 数组。
-                                models, //合法模型对象的全量列表。
-                                selectedModelId, // 当前已经选中的主模型 ID（通常对比功能是“主模型” vs “其他模型”，所以要把自己排除掉）。
-                                maxCount = DEFAULT_SITE_SETTINGS.compareLimit) //最大对比数量限制（默认来自系统设置）。
+export function normalizeCompareModelGids(
+  compareModelGids = [], // 兜底防空
+  boats = [],
+  selectedModelGid,       // 假设传入的是 { boatId, modelId } 格式的对象
+  maxCount = DEFAULT_SITE_SETTINGS.compareLimit) 
 {
-  // 第一步：建立白名单 (Set)
-  const validModelIds = new Set(models.map((model) => model.id))
-  const nextIds = []
-
-  // 第二步：三重过滤循环
-  compareModelIds.forEach((modelId) => {
-    if (!validModelIds.has(modelId) || //// 关卡 1：必须在合法白名单里（防止无效 ID）
-        nextIds.includes(modelId) ||   // 关卡 2：不能重复（防止数组里有重复 ID）
-        modelId === selectedModelId) { // 关卡 3：不能是当前已选中的主模型
-      return  // 任何一关没过，直接跳过当前循环
+  // 1. 建立白名单 (使用字符串拼接，规避对象引用问题)
+  const validModelKeys = new Set();
+  for (const boat of boats) {
+    for (const model of boat.models) {
+      validModelKeys.add(`${boat.id}-${model.id}`);
     }
+  }
 
-    nextIds.push(modelId)  // 全部通过，加入最终名单
-  })
+  // 将主模型的 ID 也转为字符串，方便后续一气呵成地比对
+  const selectedKey = selectedModelGid 
+    ? `${selectedModelGid.boatId}-${selectedModelGid.modelId}` 
+    : null;
 
-  // 第三步：限制长度 
-  // 只截取前 maxCount 个。
-  return nextIds.slice(0, maxCount)
+  // 用一个 Set 来记录已经塞进结果集的 key，用于 $O(1)$ 高效去重
+  const seenKeys = new Set();
+  const nextGids = [];
+
+  // 2. 核心过滤循环
+  for (const gid of compareModelGids) {
+    if (!gid) continue;
+
+    const currentKey = `${gid.boatId}-${gid.modelId}`;
+
+    // 关卡 1：必须在合法白名单里
+    if (!validModelKeys.has(currentKey)) continue;
+
+    // 关卡 2：不能和主模型重复
+    if (currentKey === selectedKey) continue;
+
+    // 关卡 3：不能和已经添加过的模型重复
+    if (seenKeys.has(currentKey)) continue;
+
+    // 全部通过！
+    seenKeys.add(currentKey); // 记录已被使用
+    nextGids.push(gid);       // 压入最终结果（保留原始对象格式）
+
+    // 【性能优化】如果已经达到了最大限制数量，直接提前结束循环，后面的不用看了
+    if (nextGids.length >= maxCount) {
+      break;
+    }
+  }
+
+  // 3. 返回结果（因为在循环里提前 break 了，这里连 .slice() 都省了）
+  return nextGids;
 }
 // 判断一个模型是否是船只。
 export function isVesselModel(model) {
@@ -410,21 +440,39 @@ export function getRuntimeBasePath() {
 }
 
 export  const resolveManifestPath = (assetPath) => {
-    if (!assetPath) {
-      return ''
-    }
-    // 绝对地址检查（网络路径）
-    // 正则表达式：^https?:\/\/ 匹配以 http:// 或 https:// 开头的字符串（不区分大小写）。
-    // 逻辑：如果这个资源已经是完整的网络地址了（比如已经在 CDN 上或引用的是外部图片），那就原样返回，不要再折腾它。
-    if (/^https?:\/\//i.test(assetPath)) {
-      return assetPath
-    }
-
-    // 
-    if (assetPath.startsWith('/')) {
-      // 为了拼接到 assetBaseUrl（通常以 / 结尾）后面，代码使用 slice(1) 删掉了 assetPath 开头的斜杠。
-      return `${assetBaseUrl}${assetPath.slice(1)}`
-    }
-
-    return `${assetBaseUrl}${assetPath}`
+  if (!assetPath) {
+    return ''
   }
+  // 绝对地址检查（网络路径）
+  // 正则表达式：^https?:\/\/ 匹配以 http:// 或 https:// 开头的字符串（不区分大小写）。
+  // 逻辑：如果这个资源已经是完整的网络地址了（比如已经在 CDN 上或引用的是外部图片），那就原样返回，不要再折腾它。
+  if (/^https?:\/\//i.test(assetPath)) {
+    return assetPath
+  }
+
+  // 
+  if (assetPath.startsWith('/')) {
+    // 为了拼接到 assetBaseUrl（通常以 / 结尾）后面，代码使用 slice(1) 删掉了 assetPath 开头的斜杠。
+    return `${assetBaseUrl}${assetPath.slice(1)}`
+  }
+
+  return `${assetBaseUrl}${assetPath}`
+}
+
+export const createStructuredModel = (boat, primaryModelInf) => {
+  if (!boat || !primaryModelInf){
+    return {};
+  }     
+
+  return {
+    ...boat, // boatData from API now includes id and label
+    
+    boatId: boat.id,
+    boatName: boat.name,  
+    modelId : primaryModelInf.id,
+    modelLabel: primaryModelInf.label,      
+
+    models: undefined, // 👈 显式移除boat数据原有的 models 数组，防止数据结构混乱
+    modelInf: primaryModelInf, // Nest the specific model info
+  };
+};

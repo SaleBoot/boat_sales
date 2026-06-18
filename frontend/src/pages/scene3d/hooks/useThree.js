@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {   
@@ -373,19 +373,36 @@ function setupScene(shouldShowWaterSurface) {
   }
 }
 
-function setupWindowResize(canvas, renderer, exteriorCamera, interiorCamera) {
-  const resize = () => {
-    const width = canvas.clientWidth || 1;
-    const height = canvas.clientHeight || 1;
+ 
+// aCanvas : canvasRef.current;
+// aThreeContext.exteriorCamera 
+// aThreeContext.interiorCamera
+// aThreeContext.renderer
+export function handleWindowResize(aCanvas, aThreeContext)
+{
+  // ... 调整好 bounds 缩放，并执行 modelRoot.add(object3d) 之后
+  const width = aCanvas?.clientWidth || 1;
+  const height = aCanvas?.clientHeight || 1;
 
-    updateOrthographicFrustum(exteriorCamera, width / height, 7.6);
-    exteriorCamera.updateProjectionMatrix();
+  // 强行让相机根据当前真实宽高重新计算投影
+  if (aThreeContext.exteriorCamera && aThreeContext.interiorCamera) 
+  {
+    aThreeContext.interiorCamera.aspect = width / height;
+    aThreeContext.interiorCamera.updateProjectionMatrix();
+    
+    if (typeof updateOrthographicFrustum === 'function') {
+      updateOrthographicFrustum(aThreeContext.exteriorCamera, width / height, 7.6);
+    }
+    aThreeContext.exteriorCamera.updateProjectionMatrix();
+  }
 
-    interiorCamera.aspect = width / height;
-    interiorCamera.updateProjectionMatrix();
+  aThreeContext.renderer?.setSize(width, height, false);
+} 
+ 
+  
 
-    renderer.setSize(width, height, false);
-  };
+function setupWindowResize(canvas, aThreeContex) {
+  const resize = () => handleWindowResize(canvas, aThreeContex);
 
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(canvas);
@@ -400,49 +417,36 @@ export function useThree(canvasRef,
         exteriorCameraPreset, 
         interiorDeckPresetConfig 
     }) 
-{
-  const [threeContext, setThreeContext] = useState(null);
+{ 
+  // 用一个 Ref 把所有 Three.js 核心对象装起来
+  const threeContextRef = useRef(null);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
+  if (!threeContextRef.current && canvasRef.current) {
     const {
-      scene,
-      presentationRoot,
-      modelRoot,
-      waterRoot,
-      stageRoot,
-      waterSurface,
-      interiorSkySphere
+      scene, presentationRoot, modelRoot, waterRoot, stageRoot,
+      waterSurface, interiorSkySphere
     } = setupScene(shouldShowWaterSurface);
 
-    const renderer = setupRenderer(canvas, isStudioLook);
+    const renderer = setupRenderer(canvasRef.current, isStudioLook);
 
     const { exteriorCamera, interiorCamera } = setupCameras(scene, 
         exteriorCameraPreset, interiorDeckPresetConfig, isStudioLook);
 
     const { 
-        ambientLight, 
-        keyLight, 
-        underGlowLight 
+      ambientLight, keyLight, underGlowLight 
     } = setupLights(scene, modelRoot, isStudioLook);
 
-    const controls = setupOrbitControls(exteriorCamera, canvas, exteriorCameraPreset.targetY);
+    const controls = setupOrbitControls(exteriorCamera, canvasRef.current, exteriorCameraPreset.targetY);
 
     const { 
-        pmremGenerator, 
-        reflectionEnvironment, 
-        environmentTexture 
+        pmremGenerator, reflectionEnvironment, environmentTexture 
     } = setupEnvironment(renderer, scene);
 
     if (waterSurface) {
       waterRoot.add(waterSurface.mesh);
     }
 
-    const context = {
+    threeContextRef.current = {
       renderer,
       scene,
       presentationRoot,
@@ -461,21 +465,39 @@ export function useThree(canvasRef,
       reflectionEnvironment,
       environmentTexture,
     };
+  }  
 
-    setThreeContext(context);
+  // 副作用：仅管理窗口缩放（ResizeListener 的生命周期）
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = threeContextRef.current;
+    if (!canvas || !ctx) 
+      return;
 
-    const resizeObserver = setupWindowResize(canvas, renderer, exteriorCamera, interiorCamera);
+    // 从常驻的 Ref 中安全获取实例，完美避开闭包未定义报错
+    const resizeObserver = setupWindowResize(canvas, ctx);
 
     return () => {
       resizeObserver.disconnect();
+    };
+  }, []); // 空依赖：只要画布还在，缩放监听就不需要频繁解绑和重新绑定  
+
+
+  useEffect(() => {
+    const ctx = threeContextRef.current;
+    if (!ctx) 
+      return;
+ 
+    return () => { 
       // Cleanup logic
-      Object.values(context).forEach(item => {
+      Object.values(ctx).forEach(item => {
         if (item && typeof item.dispose === 'function') {
           item.dispose();
         }
       });
     };
-  }, [canvasRef, isStudioLook, shouldShowWaterSurface, exteriorCameraPreset, interiorDeckPresetConfig]);
+  }, []);// 绝对空依赖：只有当整个外壳组件被彻底注销销毁时，才触发一次垃圾回收
 
-  return threeContext;
+  // 始终返回这个 Ref 的 current 值（可能是 null，也可能是初始化好的普通对象）
+  return threeContextRef.current
 }

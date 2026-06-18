@@ -1,25 +1,130 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Descriptions, Input, Button, Empty, message as staticMessage, Select, Typography, App, Space, Collapse, Radio, Card, Form, InputNumber, Popconfirm, Image } from 'antd';
+import { 
+  Descriptions, Input, Button, Empty, message as staticMessage, 
+  Select, Typography, App, Space, Collapse, Radio, 
+  Card, Form, InputNumber, 
+  Popconfirm, Image } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { getModelsByBoatEnName, updateModelsByBoatEnName } from '../../../apis/adminApi';
+import { updateVCams, getVCams } from '../../../apis/adminApi';
 import { getGrandparentPath } from '../../../utils/utils_admin';
 import { buildModelConfig4AdminPage } from '../runtime/tool_admin';
 
 const { Title } = Typography; 
 
-const ModelParametersPanel = ({ boat,     
-  modelFolders = [], 
-  isLoadingModelFolders = false, 
+const VIEW_TYPE_LIST=[ // focusTarget
+  { value: 'point1', label: 'point1' },
+  { value: 'internal', label: '模型内部视角' },
+  { value: 'external', label: '模型外部视角' },
+  { value: 'console', label: '控制台视角' },
+  { value: 'engine', label: '发动机视角' },
+  { value: 'smartSystem', label: '智能系统视角' },
+];
+
+const CAMERA_MODE_LIST=[
+  { value: 'orbit', label: '轨道' },
+  { value: 'firstPerson', label: '第一人称' }, 
+];
+
+function convertViewSettingToServer( aViewSettings,aViewType,  aModel3DPath)
+{
+  if(!aViewSettings.hasOwnProperty(aViewType) || !aModel3DPath)
+    return null;
+
+  const { position, rotation, focusDistance, cameraMode } = aViewSettings[aViewType];
+
+  const transformedViewSetting = {
+    modelPath: aModel3DPath,
+    cameraName: aViewType,
+
+    zoom: focusDistance,
+    
+    targetX: position.x,
+    targetY: position.y,
+    targetZ: position.z, 
+
+    rotationX:rotation.x,
+    rotationY: rotation.y,
+    rotationZ: rotation.z,
+
+    cameraMode: cameraMode,
+  };  
+  return transformedViewSetting
+}
+
+const ModelParametersPanel = ({
+  boat,
+  modelFolders = [],
+  isLoadingModelFolders = false,
   onModelChange, 
-  runtimeModelPath,
   cosOrigin,
-   }) => {
+}) => {
   const { message } = App.useApp();
   const [selectedModelFolderName, setSelectedModelFolderName] = useState('');
-  const [files, setFiles] = useState([]); 
+  const [files, setFiles] = useState([]);
+  const [modelRuntimePath,setModelRuntimePath] = useState('');
   const [isLoadingModels, setIsLoadingModels] = useState(false);
-  const [isSaving, setIsSaving] = useState(false); 
+  const [isSaving, setIsSaving] = useState(false);
+  // -----------viewSettings ,start-----------
+  const [viewSettings, setViewSettings] = useState({
+    point1: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    internal: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    external: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    console: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    engine: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    smartSystem: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+  });
+
+  const [selectedViewType, setSelectedViewType] = useState('internal'); // New state for selected view type
+
+  // viewSettings will be initialized to default values above, no need for this effect unless
+  // there's an initial model config from parent that needs to set view settings.
+  // Given the new architecture, viewSettings are managed internally until passed up.
+  // If an initial model config is needed, it should be passed as a separate prop and handled here.
+  useEffect(() => {
+    // This effect is now empty as viewSettings are initialized directly and managed internally.
+  }, []);
+
+  const handleViewSettingChange = (viewType, paramType, axisOrProp, value) => {
+    setViewSettings(prevSettings => {
+      const newSettings = { ...prevSettings };
+
+      if (paramType === 'position' || paramType === 'rotation') {
+        newSettings[viewType][paramType] = {
+          ...newSettings[viewType][paramType],
+          [axisOrProp]: value,
+        };
+      } else if (paramType === 'focusDistance') {
+        newSettings[viewType][paramType] = value;
+      } else if (paramType === 'cameraMode') {
+        newSettings[viewType][paramType] = value;
+      }
+       
+      return newSettings;
+    });
+  };
  
+  const handleSaveViewSettings = async (viewType) => {
+    if ( !viewSettings || !viewType || !modelRuntimePath) {
+      message.error('无法保存，缺少模型配置、视角类型或模型运行时路径信息。');
+      return;
+    }
+
+    setIsSaving(true);
+    try { 
+      const vcam = convertViewSettingToServer(viewSettings,viewType, modelRuntimePath);
+      const vcams = [vcam]
+      console.log("handleSaveViewSettings():vcams=",vcams)
+
+      await updateVCams(vcams);
+      message.success(`${viewType} 视角设置已保存！`);
+    } catch (error) {
+      console.error('保存视角设置失败:', error);
+      message.error(`${viewType} 视角设置保存失败: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  // -----------viewSettings ,start-----------
   
   const cosPaths = useMemo(() => (
     modelFolders.map((folder) => ({
@@ -44,8 +149,10 @@ const ModelParametersPanel = ({ boat,
 
  
 
-  const handleDefaultStylePreview = (runtimePath) => {
-    if (!runtimePath || !onModelChange) return;
+  const handleModelPreview = (aViewType) => {
+    const runtimePath=   modelRuntimePath;
+    if (!runtimePath || !onModelChange || !aViewType) 
+      return;
 
     // 1. Find the correct parent folder using original paths, which have leading slashes.
     const parentFolder = modelFolders.find(folder => runtimePath.startsWith(folder.modelFolderName));
@@ -76,8 +183,27 @@ const ModelParametersPanel = ({ boat,
     const subfolderFileObjects = subfolderFilePaths.map(f => ({ key: f.replace(/^\//, '') }));
 
     // 6. Build config and emit
-    if (subfolderFileObjects.length > 0) {
-        const modelConfig = buildModelConfig4AdminPage(subfolderName, subfolderFileObjects, runtimePath);
+    if (subfolderFileObjects.length > 0) 
+    {
+        const transformedViewSettings = {};
+        for (const viewType in viewSettings) 
+        {
+            if (viewSettings.hasOwnProperty(viewType)) 
+            {
+                const { position, rotation, focusDistance, cameraMode } = viewSettings[viewType];
+                transformedViewSettings[viewType] = {
+                    zoom: focusDistance,
+                    target: [position.x, position.y, position.z],
+                    rotation: [rotation.x, rotation.y, rotation.z],
+                    cameraMode: cameraMode,
+                };
+            }
+        }
+
+        const modelConfig = buildModelConfig4AdminPage(
+          subfolderName, subfolderFileObjects, 
+          runtimePath, aViewType,transformedViewSettings);
+ 
         // Pass the original runtimePath to keep the selection correct in the UI
         onModelChange(modelConfig, runtimePath);
     } else {
@@ -110,9 +236,9 @@ const ModelParametersPanel = ({ boat,
         </Descriptions.Item>
       </Descriptions>
 
-      {/* 模型资源浏- 现在是标题，下面的子折叠项目已上提 */}
+      {/* 模型选择 - 现在是标题，下面的子折叠项目已上提 */}
       <div style={{ marginTop: '16px' }}>
-        <Title level={5} style={{ marginBottom: '12px' }}>模型资源</Title>
+        <Title level={5} style={{ marginBottom: '12px' }}>模型选择</Title>
         
         {files.length > 0 ? (
           (() => {
@@ -208,12 +334,28 @@ const ModelParametersPanel = ({ boat,
 
                       {modelFiles.length > 0 && (
                         <>
-                          <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择模型进行预览:</div>
+                        {/* -----模型选择-------- */}
+                          <div style={{ marginBottom: '8px', fontWeight: 500 }}>选择模型:</div>
                           <Radio.Group
-                            value={runtimeModelPath}
+                            value={modelRuntimePath}
                             onChange={(e) => {
                               const selectedKey = e.target.value;
-                              const modelConfig = buildModelConfig4AdminPage(subfolder, subfolderFiles, selectedKey);
+                              setModelRuntimePath(selectedKey);
+
+                              const transformedViewSettings = {};
+                              for (const viewType in viewSettings) {
+                                  if (viewSettings.hasOwnProperty(viewType)) {
+                                      const { position, rotation, focusDistance, cameraMode } = viewSettings[viewType];
+                                      transformedViewSettings[viewType] = {
+                                          zoom: focusDistance,
+                                          target: [position.x, position.y, position.z],
+                                          rotation: [rotation.x, rotation.y, rotation.z],
+                                          cameraMode: cameraMode,
+                                      };
+                                  }
+                              }
+                              const modelConfig = buildModelConfig4AdminPage(subfolder, 
+                                subfolderFiles, selectedKey, transformedViewSettings);                      
                               if (onModelChange) {
                                 onModelChange(modelConfig, selectedKey);
                               }
@@ -228,6 +370,122 @@ const ModelParametersPanel = ({ boat,
                               ))}
                             </Space>
                           </Radio.Group>
+                        {/* -----模型视角设置-------- */}
+                        <div style={{ marginTop: '16px',backgroundColor: '#555'  }}>
+                          <Space 
+                          style={{ width: '100%', justifyContent: 'space-between', 
+                                   alignItems: 'center', marginBottom: '12px' }}>
+                            <Title level={5} style={{ margin: 0,color: '#fff'}}>模型视角设置</Title>
+                            <Space>
+                              <Button type="primary" 
+                                      onClick={() => handleModelPreview(selectedViewType)}>预览</Button>
+                              <Button 
+                                  onClick={() => handleSaveViewSettings(selectedViewType)} 
+                                  loading={isSaving}>保存</Button>
+                            </Space>
+                          </Space>
+                          <Card size="small" style={{ backgroundColor: '#555' }}>
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                              <Space>
+                                <Typography.Text strong style={{ color: '#fff' }}>视角类型</Typography.Text>
+                                <Select
+                                  value={selectedViewType}
+                                  onChange={setSelectedViewType}
+                                  style={{ width: 200 }}
+                                  options={VIEW_TYPE_LIST}
+                                />
+                              </Space>
+
+                              <Card size="small" style={{ marginBottom: '16px' }}>
+                                <Space>
+                                  <Typography.Text strong>位置</Typography.Text>
+                                  <Space>
+                                    <Typography.Text>X</Typography.Text>
+                                    <InputNumber
+                                      value={viewSettings[selectedViewType].position.x}
+                                      onChange={value => handleViewSettingChange(selectedViewType, 'position', 'x', value)}
+                                      step={0.1}
+                                      style={{ width: 70 }}
+                                    />
+                                  </Space>
+                                  <Space>
+                                    <Typography.Text>Y</Typography.Text>
+                                    <InputNumber
+                                      value={viewSettings[selectedViewType].position.y}
+                                      onChange={value => handleViewSettingChange(selectedViewType, 'position', 'y', value)}
+                                      step={0.1}
+                                      style={{ width: 70 }}
+                                    />
+                                  </Space>
+                                  <Space>
+                                    <Typography.Text>Z</Typography.Text>
+                                    <InputNumber
+                                      value={viewSettings[selectedViewType].position.z}
+                                      onChange={value => handleViewSettingChange(selectedViewType, 'position', 'z', value)}
+                                      step={0.1}
+                                      style={{ width: 70 }}
+                                    />
+                                  </Space>
+                                </Space>
+                              </Card>
+                              <Card size="small" style={{ marginBottom: '16px' }}>
+                                <Space>
+                                  <Typography.Text strong>旋转</Typography.Text>
+                                  <Space>
+                                    <Typography.Text>X</Typography.Text>
+                                    <InputNumber
+                                      value={viewSettings[selectedViewType].rotation.x}
+                                      onChange={value => handleViewSettingChange(selectedViewType, 'rotation', 'x', value)}
+                                      step={0.1}
+                                      style={{ width: 70 }}
+                                    />
+                                  </Space>
+                                  <Space>
+                                    <Typography.Text>Y</Typography.Text>
+                                    <InputNumber
+                                      value={viewSettings[selectedViewType].rotation.y}
+                                      onChange={value => handleViewSettingChange(selectedViewType, 'rotation', 'y', value)}
+                                      step={0.1}
+                                      style={{ width: 70 }}
+                                    />
+                                  </Space>
+                                  <Space>
+                                    <Typography.Text>Z</Typography.Text>
+                                    <InputNumber
+                                      value={viewSettings[selectedViewType].rotation.z}
+                                      onChange={value => handleViewSettingChange(selectedViewType, 'rotation', 'z', value)}
+                                      step={0.1}
+                                      style={{ width: 70 }}
+                                    />
+                                  </Space>
+                                </Space>
+                              </Card>
+                              <Card size="small" style={{ marginBottom: '16px' }}>
+                                <Space>
+                                  <Typography.Text strong>相机模式</Typography.Text>
+                                  <Select
+                                    value={viewSettings[selectedViewType].cameraMode}
+                                    onChange={value => handleViewSettingChange(selectedViewType, 'cameraMode', null, value)}
+                                    style={{ width: 120 }}
+                                    options={CAMERA_MODE_LIST}
+                                  />  
+                                </Space>
+                              </Card>
+                              <Card size="small">
+                                <Space>
+                                  <Typography.Text strong>相机距离</Typography.Text>
+                                  <InputNumber
+                                    value={viewSettings[selectedViewType].focusDistance}
+                                    onChange={value => handleViewSettingChange(selectedViewType, 'focusDistance', null, value)}
+                                    step={0.1}
+                                  />
+                                </Space>
+                              </Card>
+                            </Space>
+                          </Card>
+                        </div>
+                         
+
                         </>
                       )}
 

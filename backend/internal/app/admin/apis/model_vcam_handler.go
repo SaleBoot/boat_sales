@@ -23,7 +23,7 @@ func NewModelVCamHandler(aSvc *services.ModelVCamService) (*ModelVCamHandler, er
 	return &ModelVCamHandler{modelVCamSvc: aSvc}, nil
 }
 
-func (aH *ModelVCamHandler) HandleAddVCam(c *gin.Context) {
+func (aH *ModelVCamHandler) HandleUpdateVCams(c *gin.Context) {
 
 	var recordsToUpdate []*models.SysModelVCam
 	if err := c.ShouldBindJSON(&recordsToUpdate); err != nil {
@@ -34,7 +34,7 @@ func (aH *ModelVCamHandler) HandleAddVCam(c *gin.Context) {
 		return
 	}
 
-	if err := aH.modelVCamSvc.AddModelVCams(c.Request.Context(), recordsToUpdate); err != nil {
+	if err := aH.modelVCamSvc.UpdateModelVCams(c.Request.Context(), recordsToUpdate); err != nil {
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
 			Code:    http.StatusInternalServerError,
 			Message: fmt.Sprintf("Failed to add model v-cams: %s ", err.Error()),

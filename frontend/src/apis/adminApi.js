@@ -349,4 +349,26 @@ export const deleteSalesOrders = (ids) => {
  */
 export const getSaleOrdersByContact = (contact) => {
   return api.get('/admin/sales-order/by-contact', { params: { contact } });
+}; 
+// -------------------------------------------------------
+// 模型相机配置 (Model VCam)
+// -------------------------------------------------------
+
+/**
+ * 更新模型相机配置
+ * @param {object} vcamsData - 包含相机配置数据的对象
+ * @returns {Promise<any>}
+ */
+export const updateVCams = (vcamsData) => {
+  return api.post('/admin/vcams', vcamsData);
 };
+
+/**
+ * 根据模型路径获取模型相机配置
+ * @param {string} modelPath - 模型路径
+ * @returns {Promise<any>}
+ */
+export const getVCams = (modelPath) => {
+  return api.get(`/admin/vcams/${modelPath}`);
+};
+// ----------------------------------------

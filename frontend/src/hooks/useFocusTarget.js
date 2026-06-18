@@ -32,7 +32,7 @@ export function useFocusTarget(selectedModelGid,
 
   // 当选中的模型 ID 或其配置变化时，异步加载该模型的焦点目标列表
   useEffect(() => { 
-    const modelPath = primaryModel?.primaryModelInfo?.partPaths?.[0] || '';
+    const modelPath = primaryModel?.modelInf?.partPaths?.[0] || '';
     if (!modelPath) {
       setViewerFocusTargets({});
       return;
@@ -63,7 +63,7 @@ export function useFocusTarget(selectedModelGid,
     return () => {
       cancelled = true;
     };
-  }, [primaryModel?.primaryModelInfo?.partPaths, runtimeBasePath, primaryModel?.orderConfig?.focusTargets]);
+  }, [primaryModel?.modelInf?.partPaths, runtimeBasePath, primaryModel?.orderConfig?.focusTargets]);
 
   return { viewerFocusTarget, setViewerFocusTarget, viewerFocusTargets };
 }
