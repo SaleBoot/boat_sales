@@ -13,16 +13,16 @@ const { Title } = Typography;
 
 const VIEW_TYPE_LIST=[ // focusTarget
   { value: 'point1', label: 'point1' },
-  { value: 'internal', label: '模型内部视角' },
-  { value: 'external', label: '模型外部视角' },
+  { value: 'interior', label: '模型内部视角' },
+  { value: 'exterior', label: '模型外部视角' },
   { value: 'console', label: '控制台视角' },
   { value: 'engine', label: '发动机视角' },
-  { value: 'smartSystem', label: '智能系统视角' },
+  { value: 'smart-system', label: '智能系统视角' },
 ];
 
 const CAMERA_MODE_LIST=[
   { value: 'orbit', label: '轨道' },
-  { value: 'firstPerson', label: '第一人称' }, 
+  { value: 'first-person', label: '第一人称' }, 
 ];
 
 function convertViewSettingToServer( aViewSettings,aViewType,  aModel3DPath)
@@ -51,6 +51,57 @@ function convertViewSettingToServer( aViewSettings,aViewType,  aModel3DPath)
   return transformedViewSetting
 }
 
+// 将服务器返回的某个3d船模型的视角设置转换为 viewSettings 格式
+function convertServerToViewSettings(aServerData) {
+  if (!aServerData) return null;
+
+  // 使用 reduce 将数组聚合为一个对象
+  return aServerData.reduce((acc, item) => {
+    const { 
+      cameraName, zoom, 
+      targetX, targetY, targetZ, 
+      rotationX, rotationY, rotationZ, 
+      cameraMode 
+    } = item;
+
+    const cameraMode_lower = cameraMode.trim().toLowerCase();
+    const oneViewSetting = {
+      position: { x: targetX, y: targetY, z: targetZ },
+      rotation: { x: rotationX, y: rotationY, z: rotationZ },
+      focusDistance: zoom,
+      cameraMode: cameraMode_lower,
+    };
+
+    // 清洗 key，并作为对象的键
+    const viewType = cameraName.trim().toLowerCase();
+    acc[viewType] = oneViewSetting;
+
+    return acc;
+  }, {}); // 初始值是一个空对象 {}
+}
+
+function viewSettings2FocusTargetPresets(aViewSettings)
+{
+  const focusTargetPresets = {};
+
+  for (const viewType in aViewSettings) 
+  {
+      if (aViewSettings.hasOwnProperty(viewType)) 
+      {
+          const { position, rotation, focusDistance, cameraMode } = aViewSettings[viewType];
+
+          focusTargetPresets[viewType] = {
+              zoom: focusDistance,
+              target: [position.x, position.y, position.z],
+              rotation: [rotation.x, rotation.y, rotation.z],
+              cameraMode: cameraMode,
+          };
+      }
+  }
+
+  return focusTargetPresets;
+}
+
 const ModelParametersPanel = ({
   boat,
   modelFolders = [],
@@ -62,27 +113,52 @@ const ModelParametersPanel = ({
   const [selectedModelFolderName, setSelectedModelFolderName] = useState('');
   const [files, setFiles] = useState([]);
   const [modelRuntimePath,setModelRuntimePath] = useState('');
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [isLoadingViewSettings, setIsLoadingViewSettings] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   // -----------viewSettings ,start-----------
   const [viewSettings, setViewSettings] = useState({
     point1: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
-    internal: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
-    external: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    interior: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    exterior: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
     console: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
     engine: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
-    smartSystem: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
+    'smart-system': { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, focusDistance: 0, cameraMode: 'orbit' },
   });
 
-  const [selectedViewType, setSelectedViewType] = useState('internal'); // New state for selected view type
+  const [selectedViewType, setSelectedViewType] = useState('interior'); // New state for selected view type
 
-  // viewSettings will be initialized to default values above, no need for this effect unless
-  // there's an initial model config from parent that needs to set view settings.
-  // Given the new architecture, viewSettings are managed internally until passed up.
-  // If an initial model config is needed, it should be passed as a separate prop and handled here.
-  useEffect(() => {
-    // This effect is now empty as viewSettings are initialized directly and managed internally.
-  }, []);
+  // -------
+  const fetchViewSettings = async (aModelRuntimePath) => {
+    // 1. 前置防错：如果传入的参数和 state 里的路径全都是空的，直接拦截，没必要发请求
+    const model3DPath = aModelRuntimePath || modelRuntimePath;
+    if (!model3DPath) {
+      console.warn('fetchViewSettings 终止: model3DPath 路径为空');
+      return;
+    }
+
+    setIsLoadingViewSettings(true);
+    try { 
+
+      const response = await getVCams(model3DPath);
+      console.log('获取视角设置响应:', response);    
+      if(response && Array.isArray(response)&& response.length > 0){
+        const fetchedViewSettings =  convertServerToViewSettings(response);
+        // 2. 核心修复：将新获取的视角设置，合并到原有的状态中，防止默认 Key 丢失
+        setViewSettings(prev => ({
+          ...prev,
+          ...fetchedViewSettings
+        }));
+  
+        message.success('视角设置已刷新');
+      }
+
+    } catch (error) {
+      message.error('获取视角设置失败,使用默认配置');
+    } finally {
+      setIsLoadingViewSettings(false);
+    }
+  };  
+  
 
   const handleViewSettingChange = (viewType, paramType, axisOrProp, value) => {
     setViewSettings(prevSettings => {
@@ -179,30 +255,17 @@ const ModelParametersPanel = ({
     // 4. Filter original descendantFiles, which have leading slashes.
     const subfolderFilePaths = parentFolder.descendantFiles.filter(f => f.startsWith(subfolderPrefix));
 
-    // 5. Create file objects for buildModelConfig4AdminPage. The `key` must NOT have a leading slash.
+    // 5. Create file objects. The `key` must NOT have a leading slash.
     const subfolderFileObjects = subfolderFilePaths.map(f => ({ key: f.replace(/^\//, '') }));
 
     // 6. Build config and emit
     if (subfolderFileObjects.length > 0) 
     {
-        const transformedViewSettings = {};
-        for (const viewType in viewSettings) 
-        {
-            if (viewSettings.hasOwnProperty(viewType)) 
-            {
-                const { position, rotation, focusDistance, cameraMode } = viewSettings[viewType];
-                transformedViewSettings[viewType] = {
-                    zoom: focusDistance,
-                    target: [position.x, position.y, position.z],
-                    rotation: [rotation.x, rotation.y, rotation.z],
-                    cameraMode: cameraMode,
-                };
-            }
-        }
+        const focusTargetPresets = viewSettings2FocusTargetPresets(viewSettings); 
 
         const modelConfig = buildModelConfig4AdminPage(
           subfolderName, subfolderFileObjects, 
-          runtimePath, aViewType,transformedViewSettings);
+          runtimePath, aViewType,focusTargetPresets);
  
         // Pass the original runtimePath to keep the selection correct in the UI
         onModelChange(modelConfig, runtimePath);
@@ -290,7 +353,11 @@ const ModelParametersPanel = ({
                   const adImages = subfolderFiles.filter(file => {
                     const lowerKey = file.key.toLowerCase();
                     const fileName = lowerKey.substring(lowerKey.lastIndexOf('/') + 1);
-                    return fileName.startsWith('adimg') && (lowerKey.endsWith('.png') || lowerKey.endsWith('.jpg') || lowerKey.endsWith('.jpeg'));
+                    return fileName.startsWith('adimg') && 
+                            (lowerKey.endsWith('.png') || 
+                             lowerKey.endsWith('.jpg') || 
+                             lowerKey.endsWith('.jpeg')
+                            );
                   });
 
                   const modelFiles = subfolderFiles.filter(file => 
@@ -342,23 +409,7 @@ const ModelParametersPanel = ({
                               const selectedKey = e.target.value;
                               setModelRuntimePath(selectedKey);
 
-                              const transformedViewSettings = {};
-                              for (const viewType in viewSettings) {
-                                  if (viewSettings.hasOwnProperty(viewType)) {
-                                      const { position, rotation, focusDistance, cameraMode } = viewSettings[viewType];
-                                      transformedViewSettings[viewType] = {
-                                          zoom: focusDistance,
-                                          target: [position.x, position.y, position.z],
-                                          rotation: [rotation.x, rotation.y, rotation.z],
-                                          cameraMode: cameraMode,
-                                      };
-                                  }
-                              }
-                              const modelConfig = buildModelConfig4AdminPage(subfolder, 
-                                subfolderFiles, selectedKey, transformedViewSettings);                      
-                              if (onModelChange) {
-                                onModelChange(modelConfig, selectedKey);
-                              }
+                              fetchViewSettings(selectedKey);
                             }}
                             style={{ width: '100%' }}
                           >
@@ -378,7 +429,15 @@ const ModelParametersPanel = ({
                             <Title level={5} style={{ margin: 0,color: '#fff'}}>模型视角设置</Title>
                             <Space>
                               <Button type="primary" 
-                                      onClick={() => handleModelPreview(selectedViewType)}>预览</Button>
+                                      onClick={() => {
+                                        const modelFile = modelFiles.find(file => file.key === modelRuntimePath)
+                                        if(!modelFile){
+                                          message.error("请选择模型");
+                                          return;
+                                        }
+                                        handleModelPreview(selectedViewType)
+                                      }
+                                      }>预览</Button>
                               <Button 
                                   onClick={() => handleSaveViewSettings(selectedViewType)} 
                                   loading={isSaving}>保存</Button>
