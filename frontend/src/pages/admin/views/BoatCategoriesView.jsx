@@ -36,6 +36,7 @@ const BoatCategoriesView = () => {
     pageSize: 8, // 设置一个较小的页面大小以便观察分页器
     total: 0,
   });
+  const [searchTerm, setSearchTerm] = useState(''); // New state for search term
 
   const fetchBoatCategories = async (params = {}) => {
     setLoading(true);
@@ -43,6 +44,7 @@ const BoatCategoriesView = () => {
       const response = await getBoatCategories({
         page: params.page || pagination.current,
         pageSize: params.pageSize || pagination.pageSize,
+        cnName: params.cnName, // Add cnName to request parameters
         ...params,
       });
       console.log('Fetched boat categories:', response);
@@ -72,8 +74,8 @@ const BoatCategoriesView = () => {
   };
 
   useEffect(() => {
-    fetchBoatCategories();
-  }, []);
+    fetchBoatCategories({ cnName: searchTerm }); // Pass searchTerm to initial fetch
+  }, [searchTerm]); // Add searchTerm to dependency array
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -143,25 +145,10 @@ const BoatCategoriesView = () => {
   };
 
   const columns = [
-    {
-      title: '类别ID',
-      dataIndex: 'CategoryStrID',
-      key: 'categoryStrID',
-    },
-    {
-      title: '英文名称',
-      dataIndex: 'EnName',
-      key: 'enName',
-    },
-    {
-      title: '中文名称',
-      dataIndex: 'CnName',
-      key: 'cnName',
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'CreatedAt',
-      key: 'createdAt',
+    { title: '类别ID', dataIndex: 'CategoryStrID', key: 'categoryStrID'},
+    { title: '英文名称', dataIndex: 'EnName', key: 'enName'},
+    { title: '中文名称', dataIndex: 'CnName', key: 'cnName'},
+    { title: '创建时间', dataIndex: 'CreatedAt', key: 'createdAt',
       render: (text) => {
         if (!text) return '';
         // 后端返回的日期可能包含纳秒，JS Date不完全支持，截断到毫秒
@@ -169,19 +156,14 @@ const BoatCategoriesView = () => {
         return new Date(safeDate).toLocaleString();
       },
     },
-    {
-      title: '修改时间',
-      dataIndex: 'UpdatedAt',
-      key: 'updatedAt',
+    { title: '修改时间', dataIndex: 'UpdatedAt', key: 'updatedAt',
       render: (text) => {
         if (!text) return '';
         const safeDate = text.substring(0, 23);
         return new Date(safeDate).toLocaleString();
       },
     },
-    {
-      title: '操作',
-      key: 'action',
+    { title: '操作', key: 'action',
       render: (_, record) => (
         <Space size="middle">
           <a onClick={() => handleEdit(record)}>编辑</a>
@@ -190,15 +172,15 @@ const BoatCategoriesView = () => {
     },
   ];
 
-  const handleSearch = () => {
-    // TODO: Implement search functionality
-    message.info('查询功能待实现。');
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    fetchBoatCategories({ cnName: value, page: 1 }); // Reset to first page on search
   };
 
   return (
     <Card>
       <Space style={{ marginBottom: 16 }}>
-        <Button icon={<RedoOutlined />} onClick={fetchBoatCategories}>
+        <Button icon={<RedoOutlined />} onClick={() => fetchBoatCategories({ cnName: searchTerm })}>
           刷新列表
         </Button>      
 
@@ -215,9 +197,13 @@ const BoatCategoriesView = () => {
           </Button>
         </Popconfirm>
         
-        <Button onClick={handleSearch}>
-          查询
-        </Button>
+        <Input.Search
+          placeholder="按中文名称查询..."
+          value={searchTerm} // Controlled component
+          onChange={e => setSearchTerm(e.target.value)} // Update state on change
+          onSearch={value => handleSearch(value)}
+          style={{ width: 250, float: 'right' }}
+        />
       </Space>
       <Table
         rowSelection={rowSelection}
@@ -231,7 +217,7 @@ const BoatCategoriesView = () => {
           total: pagination.total,
           onChange: (page, pageSize) => {
             setPagination({ ...pagination, current: page, pageSize: pageSize });
-            // 如果需要后端分页，可以在这里调用 fetchBoatCategories({ page, pageSize });
+            fetchBoatCategories({ page, pageSize, cnName: searchTerm }); // Call fetch with current search term
           },
         }}
         onRow={(record) => ({
@@ -249,7 +235,7 @@ const BoatCategoriesView = () => {
       >
         <Form form={form} layout="vertical" name="boatCategoryForm">
           <Form.Item
-            name="CategoryStrID"
+            name="categoryStrID"
             label="类别ID"
             rules={[
               { required: true, message: '请输入类别ID' },
@@ -259,7 +245,7 @@ const BoatCategoriesView = () => {
             <Input />
           </Form.Item>
           <Form.Item
-            name="EnName"
+            name="enName"
             label="英文名称"
             rules={[
               { required: true, message: '请输入英文名称' },
@@ -269,7 +255,7 @@ const BoatCategoriesView = () => {
             <Input />
           </Form.Item>
           <Form.Item
-            name="CnName"
+            name="cnName"
             label="中文名称"
             rules={[{ required: true, message: '请输入中文名称' }]}
           >

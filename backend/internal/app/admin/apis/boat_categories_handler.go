@@ -31,7 +31,24 @@ func NewBoatCategoryHandler(aSvc *services.BoatCategoryService,
 }
 
 func (aH *BoatCategoryHandler) HandleGetBoatCategories(c *gin.Context) {
-	categories, err := aH.boatCategorySvc.GetBoatCategories()
+	log.Println("HandleGetBoatCategories,start")
+	defer log.Println("HandleGetBoatCategories,end")
+
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(c.Query("pageSize"))
+	if err != nil {
+		pageSize = 10
+	}
+
+	log.Printf("HandleGetBoatCategories: page: %d, pageSize: %d", page, pageSize)
+
+	cnName := c.Query("cnName")
+
+	categories, err := aH.boatCategorySvc.GetBoatCategories(cnName)
 	if err != nil {
 		log.Printf("failed to get boat categories: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{

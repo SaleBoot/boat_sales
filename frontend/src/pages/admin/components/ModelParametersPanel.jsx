@@ -288,20 +288,13 @@ const ModelParametersPanel = ({
               options={cosPaths}
               allowClear
             />
-            <Button
-              type="primary"
-              onClick={() => staticMessage.info('上传功能待实现')}
-              // This logic needs to be updated based on the new data model
-            >
-              上传
-            </Button>
           </Space.Compact>
         </Descriptions.Item>
       </Descriptions>
 
       {/* 模型选择 - 现在是标题，下面的子折叠项目已上提 */}
       <div style={{ marginTop: '16px' }}>
-        <Title level={5} style={{ marginBottom: '12px' }}>模型选择</Title>
+        <Title level={5} style={{ marginBottom: '12px' }}>模型视角参数编辑</Title>
         
         {files.length > 0 ? (
           (() => {

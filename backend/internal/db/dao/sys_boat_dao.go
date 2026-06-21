@@ -74,7 +74,7 @@ func (dao *SysBoatDao) GetBoatsByCategoryStrID(
 
 	var boats []models.SysBoat
 	if err := dao.db.Where(
-		"category_id = ?",
+		"category_str_id = ?",
 		aCategoryStrID).Order("created_at desc").Find(&boats).Error; err != nil {
 		return nil, err
 	}

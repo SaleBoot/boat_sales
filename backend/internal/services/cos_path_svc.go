@@ -426,7 +426,10 @@ func (s *CosPathService) GetSubDirPaths(ctx context.Context,
 	return dirNames, nil
 }
 
-func (s *CosPathService) GetAllModelFoldersWithFiles(ctx context.Context) (map[string][]string, error) {
+func (s *CosPathService) GetAllModelFoldersWithFiles(
+	ctx context.Context,
+) (map[string][]string, error) {
+
 	modelsRoot := GetModelsCosRootPrefix()
 	// 确保 modelsRoot 以 / 结尾，以便 GetSubDirPaths 正确工作
 	if !strings.HasSuffix(modelsRoot, "/") {
@@ -461,7 +464,9 @@ func (s *CosPathService) GetAllModelFoldersWithFiles(ctx context.Context) (map[s
 	return result, nil
 }
 
-func (s *CosPathService) GetAllFilePaths(ctx context.Context) ([]models.CosPathMeta, error) {
+func (s *CosPathService) GetAllFilePaths(
+	ctx context.Context,
+) ([]models.CosPathMeta, error) {
 	modelsRoot := GetModelsCosRootPrefix()
 	// 确保 modelsRoot 以 / 结尾，以便 GetSubDirPaths 正确工作
 	if !strings.HasSuffix(modelsRoot, "/") {
@@ -476,4 +481,10 @@ func (s *CosPathService) GetAllFilePaths(ctx context.Context) ([]models.CosPathM
 	}
 
 	return descendantFiles, nil
+}
+
+func (s *CosPathService) GetFilesTotalSize(
+	ctx context.Context,
+) int64 {
+	return s.cosPathDao.GetFilesTotalSize(ctx)
 }

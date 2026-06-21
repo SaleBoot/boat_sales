@@ -227,7 +227,7 @@ export default function BoatModelsView() {
     }, 
     {
       key: '3',
-      label: '模型视角参数编辑',
+      label: '模型视角编辑',
       children: (
         <div className="admin-boat-model-tab-pane">
           <ModelParametersPanel
@@ -255,7 +255,7 @@ export default function BoatModelsView() {
             onRefresh={() => fetchBoats()}
             onAdd={() => setIsAddModalOpen(true)}
             onDelete={handleDelete}
-            onCategoryChange={(value) => fetchBoats({ category: value })}
+            onCategoryChange={(value) => fetchBoats({ categoryStrID: value })}
             onSelectChange={onSelectChange}
             onRowClick={(record) => {
               setCurrentBoat(record);

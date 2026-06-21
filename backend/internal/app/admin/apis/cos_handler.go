@@ -33,6 +33,43 @@ func NewCosHandler(aCosPathSyncSvc *services.CosPathService,
 	return &CosHandler{cosPathSyncSvc: aCosPathSyncSvc}, nil
 }
 
+type BoatModelsOverview struct {
+	ModelCount    int     `json:"modelCount"`
+	FileCount     int     `json:"fileCount"`
+	TotalSizeInMB float64 `json:"totalSizeInMB"`
+}
+
+func (aH *CosHandler) HandleGetModelsOverview(c *gin.Context) {
+	modelFolders, err := aH.cosPathSyncSvc.GetAllModelFoldersWithFiles(c.Request.Context())
+	if err != nil {
+		log.Printf("HandleGetModelsOverview():Error getting all model folders with files: %+v",
+			err)
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: fmt.Sprintf("获取所有模型文件夹失败: %+v", err),
+		})
+		return
+	}
+
+	fileCount := 0
+	for _, files := range modelFolders {
+		fileCount += len(files)
+	}
+
+	totalSize := aH.cosPathSyncSvc.GetFilesTotalSize(c.Request.Context())
+
+	overview := BoatModelsOverview{
+		ModelCount:    len(modelFolders),
+		FileCount:     fileCount,
+		TotalSizeInMB: float64(totalSize) / 1024 / 1024,
+	}
+	c.JSON(http.StatusOK, types.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "获取COS模型概览成功",
+		Data:    overview,
+	})
+}
+
 func (h *CosHandler) HandleSyncCosDirTree(c *gin.Context) {
 	syncCount, err := h.cosPathSyncSvc.SyncCosDirTree(c.Request.Context())
 	if err != nil {
@@ -172,7 +209,8 @@ func (h *CosHandler) HandleGetSubFiles(c *gin.Context) {
 
 	dbNodes, err := h.cosPathSyncSvc.GetSubFiles(c.Request.Context(), req.Prefix)
 	if err != nil {
-		log.Printf("HandleGetSubFiles():Error getting sub files for prefix '%s': %v", req.Prefix, err)
+		log.Printf("HandleGetSubFiles():Error getting sub files for prefix '%s': %+v",
+			req.Prefix, err)
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{
 				Code:    http.StatusInternalServerError,

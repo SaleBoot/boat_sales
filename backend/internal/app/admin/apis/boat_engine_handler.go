@@ -12,6 +12,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// BoatEngineListResponse 结构体用于封装分页的船只引擎列表
+type BoatEngineListResponse struct {
+	List     []models.SysBoatEngine `json:"list"`
+	Total    int64                  `json:"total"`
+	Page     int                    `json:"page"`
+	PageSize int                    `json:"pageSize"`
+}
+
 // --- Boat Engine Handlers ---
 type BoatEngineHandler struct {
 	boatEngineSvc *services.BoatEngineService
@@ -27,7 +35,25 @@ func NewBoatEngineHandler(aSvc *services.BoatEngineService,
 }
 
 func (aH *BoatEngineHandler) HandleGetBoatEngines(c *gin.Context) {
-	engines, err := aH.boatEngineSvc.GetBoatEngines()
+	log.Println("HandleGetBoatEngines,start")
+	defer log.Println("HandleGetBoatEngines,end")
+
+	engineCategoryID := c.Query("engineCategoryID")
+	pageStr := c.DefaultQuery("page", "1")
+	pageSizeStr := c.DefaultQuery("pageSize", "10")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 {
+		pageSize = 10
+	}
+
+	log.Printf("HandleGetBoatEngines..engineCategoryID=%s, page=%d, pageSize=%d",
+		engineCategoryID, page, pageSize)
+	engines, total, err := aH.boatEngineSvc.GetBoatEngines(engineCategoryID, page, pageSize)
 	if err != nil {
 		log.Printf("failed to get boat engines: %v", err)
 		c.JSON(http.StatusInternalServerError, types.ApiResponse{
@@ -40,7 +66,12 @@ func (aH *BoatEngineHandler) HandleGetBoatEngines(c *gin.Context) {
 	c.JSON(http.StatusOK, types.ApiResponse{
 		Code:    http.StatusOK,
 		Message: "Successfully retrieved boat engines",
-		Data:    engines,
+		Data: BoatEngineListResponse{
+			List:     engines,
+			Total:    total,
+			Page:     page,
+			PageSize: pageSize,
+		},
 	})
 }
 

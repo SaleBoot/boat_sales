@@ -67,7 +67,7 @@ func NewBoatModelFrontHandler(
 func (aH *BoatModelFrontHandler) HandleGetModels(c *gin.Context) {
 	// -----------查询 -----------
 	// Get all categories
-	dbCategories, err := aH.boatCategorySvc.GetBoatCategories()
+	dbCategories, err := aH.boatCategorySvc.GetBoatCategories("")
 	if err != nil || len(dbCategories) == 0 {
 		c.JSON(http.StatusInternalServerError,
 			types.ApiResponse{Code: http.StatusInternalServerError,

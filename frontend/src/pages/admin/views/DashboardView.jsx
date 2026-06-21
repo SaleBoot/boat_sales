@@ -18,8 +18,8 @@ const EMPTY_SALES_STATE = {
   updatedAt: new Date().toISOString(),
   newOrderCount: 5,
   orders: [
-    ...Array(28).fill({ status: 'completed' }),
-    ...Array(12).fill({ status: 'following' }),
+    ...Array(28).fill({ status: 'finished' }),
+    ...Array(12).fill({ status: 'processing' }),
   ]
 };
 
@@ -110,8 +110,8 @@ export default function DashboardView() {
   }, [content]);
 
   const salesChartOption = useMemo(() => {
-    const followingCount = sales.orders.filter((order) => order.status === 'following').length;
-    const completedCount = sales.orders.filter((order) => order.status === 'completed').length;
+    const followingCount = sales.processingCount;
+    const completedCount = sales.finishedCount;
     return {
       title: {
         text: '订单状态',

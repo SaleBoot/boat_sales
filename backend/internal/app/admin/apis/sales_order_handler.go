@@ -219,3 +219,16 @@ func (aH *SalesOrderHandler) HandleDeleteSalesOrders(c *gin.Context) {
 		Message: "Successfully deleted boat engines",
 	})
 }
+
+func (aH *SalesOrderHandler) HandleGetSalesOrdersOverview(c *gin.Context) {
+	log.Println("HandleGetSalesOrdersOverview,start")
+	defer log.Println("HandleGetSalesOrdersOverview,end")
+
+	overview := aH.saleOrderSvc.GetSalesOrdersOverview()
+
+	c.JSON(http.StatusOK, types.ApiResponse{
+		Code:    http.StatusOK,
+		Message: "Successfully get sales orders overview",
+		Data:    overview,
+	})
+}

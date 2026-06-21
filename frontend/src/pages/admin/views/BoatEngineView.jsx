@@ -37,16 +37,19 @@ const BoatEngineView = () => {
     pageSize: 10,
     total: 0,
   });
-
   // 1. 监听引擎类别变化
   const engineCategory = Form.useWatch('engineCategoryID', form);
-  // 获取列表数据（支持分页参数）
+  
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState(undefined);
+
+  // 获取列表数据（支持分页参数和类别过滤）
   const fetchBoatEngines = async (params = {}) => {
     setLoading(true);
     try {
       const reqParams = {
         page: params.page || pagination.current,
         pageSize: params.pageSize || pagination.pageSize,
+        engineCategoryID: params.engineCategoryID || selectedFilterCategory, // 添加类别过滤
         ...params,
       };
       const response = await getBoatEngines(reqParams);
@@ -67,8 +70,8 @@ const BoatEngineView = () => {
   };
 
   useEffect(() => {
-    fetchBoatEngines();
-  }, []);
+    fetchBoatEngines({ engineCategoryID: selectedFilterCategory });
+  }, [selectedFilterCategory]);
 
   // 新增
   const handleAdd = () => {
@@ -177,20 +180,20 @@ const BoatEngineView = () => {
     },
   ];
 
-  const handleSearch = () => {
-    // TODO: Implement search functionality
-    message.info('查询功能待实现。');
+  // 分页切换
+  const onPageChange = (page, pageSize) => {
+    fetchBoatEngines({ page, pageSize, engineCategoryID: selectedFilterCategory });
   };
 
-    // 分页切换
-  const onPageChange = (page, pageSize) => {
-    fetchBoatEngines({ page, pageSize });
+  const handleCategoryFilterChange = (value) => {
+    setSelectedFilterCategory(value);
+    fetchBoatEngines({ engineCategoryID: value, page: 1 }); // Reset to first page on filter change
   };
 
   return (
     <Card>
       <Space style={{ marginBottom: 16 }}>
-        <Button icon={<RedoOutlined />} onClick={() => fetchBoatEngines()}>
+        <Button icon={<RedoOutlined />} onClick={() => fetchBoatEngines({ engineCategoryID: selectedFilterCategory })}>
           刷新列表
         </Button>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
@@ -205,7 +208,19 @@ const BoatEngineView = () => {
             删除
           </Button>
         </Popconfirm>
-        <Button onClick={handleSearch}>查询</Button>
+        <Select
+          placeholder="按引擎类别查询..."
+          style={{ width: 200 }}
+          onChange={handleCategoryFilterChange}
+          value={selectedFilterCategory}
+          allowClear
+        >
+          {BOAT_ENGINE_CATEGORY_OPTIONS.map(option => (
+            <Select.Option key={option.StrID} value={option.StrID}>
+              {option.Label}
+            </Select.Option>
+          ))}
+        </Select>
       </Space>
 
       <Table

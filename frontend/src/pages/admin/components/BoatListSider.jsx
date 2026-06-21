@@ -34,6 +34,9 @@ const BoatListSider = ({
 
   const { compactAlgorithm } = theme;
 
+
+  
+
   return (
     <ConfigProvider theme={{ algorithm: compactAlgorithm }}>
       <Card 
@@ -57,7 +60,7 @@ const BoatListSider = ({
         >
           {boatCategories.map(cat => (
             <Select.Option key={cat.ID} value={cat.categoryStrID}>
-              {cat.CnName}
+              {cat.cnName}
             </Select.Option>
           ))}
         </Select>

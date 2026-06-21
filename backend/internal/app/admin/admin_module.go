@@ -223,6 +223,7 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 
 		cosRG := aAdminRG.Group("/cos")
 		if a.cosH != nil {
+			cosRG.GET("/models-overview", a.cosH.HandleGetModelsOverview)
 			cosRG.GET("/sync-cos-dir-tree", a.cosH.HandleSyncCosDirTree)       // 同步 COS 目录树的接口
 			cosRG.GET("/presigned-url", a.cosH.HandleGetCosURL4SingleFile)     // 获取 COS 预签名 URL 的接口
 			cosRG.GET("/model-paths", a.cosH.HandleGetAllModelPaths)           // 列出模型路径的接口
@@ -263,6 +264,8 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 
 		salesOrderRG := aAdminRG.Group("/sales-order")
 		if a.salesOrderH != nil {
+			salesOrderRG.GET("/overview", a.salesOrderH.HandleGetSalesOrdersOverview)
+
 			salesOrderRG.GET("", a.salesOrderH.HandleGetSalesOrders)
 			//  api/admin/sales-order/by-contact
 			salesOrderRG.GET("/by-contact", a.salesOrderH.GetSaleOrdersByCustomerContact)

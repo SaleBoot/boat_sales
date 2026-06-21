@@ -4,6 +4,7 @@ import (
 	"boatsales-backend/internal/db/models"
 	"errors"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -16,13 +17,35 @@ func NewSysBoatEngineDao(db *gorm.DB) *SysBoatEngineDao {
 	return &SysBoatEngineDao{DB: db}
 }
 
-// GetAllBoatEngines retrieves all boat engines.
-func (d *SysBoatEngineDao) GetAllBoatEngines() ([]models.SysBoatEngine, error) {
+func (d *SysBoatEngineDao) GetBoatEngines(
+	aCategoryID string, // 传具体ID则按分类查，传 "" 则查全部
+	aPage int,
+	aPageSize int,
+) ([]models.SysBoatEngine, int64, error) {
+	categoryID := strings.TrimSpace(aCategoryID)
+
 	var engines []models.SysBoatEngine
-	result := d.DB.
-		Model(&models.SysBoatEngine{}).
+	var total int64
+
+	// 1. 创建初始的 query 实例
+	query := d.DB.Model(&models.SysBoatEngine{})
+
+	// 2. 动态拼接条件（替代了旧版 GetAll 的逻辑）
+	if categoryID != "" {
+		query = query.Where("engine_category_id = ?", categoryID)
+	}
+
+	// 3. 【核心修复】使用 .Session(&gorm.Session{}) 分离 Count 和 Find 的上下文，防止互相污染
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 4. 执行分页查询
+	result := query.Offset((aPage - 1) * aPageSize).
+		Limit(aPageSize).
 		Find(&engines)
-	return engines, result.Error
+
+	return engines, total, result.Error
 }
 
 // CreateBoatEngine creates a new boat engine.

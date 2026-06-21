@@ -14,10 +14,17 @@ func NewSysBoatCategoryDao(db *gorm.DB) *SysBoatCategoryDao {
 	return &SysBoatCategoryDao{DB: db}
 }
 
-// GetAllBoatCategories retrieves all boat categories.
-func (d *SysBoatCategoryDao) GetAllBoatCategories() ([]models.SysBoatCategory, error) {
+func (d *SysBoatCategoryDao) GetBoatCategoriesByCnName(
+	aCnName string,
+) ([]models.SysBoatCategory, error) {
 	var categories []models.SysBoatCategory
-	result := d.DB.Find(&categories)
+	query := d.DB.Model(&models.SysBoatCategory{})
+
+	if aCnName != "" {
+		query = query.Where("cn_name LIKE ?", "%"+aCnName+"%")
+	}
+
+	result := query.Find(&categories)
 	return categories, result.Error
 }
 

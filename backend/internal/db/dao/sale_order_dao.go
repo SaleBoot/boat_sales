@@ -2,8 +2,11 @@ package dao
 
 import (
 	"boatsales-backend/internal/db/models"
+	"boatsales-backend/internal/types"
 	"errors"
+	"log"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -24,7 +27,10 @@ func (d *SalesOrderDao) GetAllSaleOrders(page,
 	var total int64
 
 	// Count total records
-	if err := d.DB.Model(&models.SalesOrder{}).Count(&total).Error; err != nil {
+	err := d.DB.
+		Model(&models.SalesOrder{}).
+		Count(&total).Error
+	if err != nil {
 		return nil, 0, err
 	}
 
@@ -122,4 +128,44 @@ func (d *SalesOrderDao) UpdateSaleOrderByID(
 	}
 
 	return nil
+}
+
+func (d *SalesOrderDao) GetSalesOrdersOverview() types.SalesOrdersOverview {
+	var newCount int64
+	result := d.DB.Model(&models.SalesOrder{}).
+		Where("status = ?", types.SalesOrderStatNew).
+		Count(&newCount)
+	log.Println(result)
+
+	var processingCount int64
+	result = d.DB.Model(&models.SalesOrder{}).
+		Where("status = ?", types.SalesOrderStatProcessing).
+		Count(&processingCount)
+
+	var finishedCount int64
+	result = d.DB.Model(&models.SalesOrder{}).
+		Where("status = ?", types.SalesOrderStatFinished).
+		Count(&finishedCount)
+
+	var latestTime time.Time
+	err := d.DB.Model(&models.SalesOrder{}).
+		// 1. 只查询 updated_at 这一列
+		Select("updated_at").
+		// 2. 过滤掉被软删除的记录（gorm.Model 默认带软删除，不需要手动写 DeletedAt）
+		// 3. 按照更新时间倒序排列
+		Order("updated_at DESC").
+		// 4. 获取第一条
+		Limit(1).
+		Scan(&latestTime).
+		Error
+	if err != nil {
+		latestTime = time.Time{}
+	}
+
+	return types.SalesOrdersOverview{
+		NewOrderCount:   int(newCount),
+		ProcessingCount: int(processingCount),
+		FinishedCount:   int(finishedCount),
+		UpdatedAt:       latestTime,
+	}
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"boatsales-backend/internal/db/dao"
 	"boatsales-backend/internal/db/models"
+	"boatsales-backend/internal/types"
 	"fmt"
 	"time"
 
@@ -147,4 +148,8 @@ func (s *SalesOrderService) UpdateSaleOrderByID(
 	updateData *models.SalesOrder,
 ) error {
 	return s.saleOrderDao.UpdateSaleOrderByID(id, updateData)
+}
+
+func (s *SalesOrderService) GetSalesOrdersOverview() types.SalesOrdersOverview {
+	return s.saleOrderDao.GetSalesOrdersOverview()
 }

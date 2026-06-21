@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -24,15 +25,22 @@ func NewBoatEngineService(aDao *dao.SysBoatEngineDao,
 	return &BoatEngineService{boatEngineDao: aDao}, nil
 }
 
-func (aS *BoatEngineService) GetBoatEngines() ([]models.SysBoatEngine, error) {
+func (aS *BoatEngineService) GetBoatEngines(
+	aEngineCategoryID string,
+	aPage int,
+	aPageSize int,
+) ([]models.SysBoatEngine, int64, error) {
 
-	engines, err := aS.boatEngineDao.GetAllBoatEngines()
+	engineCategoryID := strings.TrimSpace(aEngineCategoryID)
+
+	log.Printf("BoatEngineService::GetBoatEngines: engineCategoryID=%s", engineCategoryID)
+	engines01, total01, err := aS.boatEngineDao.GetBoatEngines(
+		engineCategoryID, aPage, aPageSize)
 	if err != nil {
 		log.Printf("failed to get boat engines: %v", err)
-		return nil, err
+		return nil, total01, err
 	}
-
-	return engines, nil
+	return engines01, total01, nil
 }
 
 func (aS *BoatEngineService) GetEnginesByIDs(

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -62,15 +63,18 @@ func (aS *BoatCategoryService) EnsureDefaultBoatCategoriesExist() error {
 	return nil
 }
 
-func (aS *BoatCategoryService) GetBoatCategories() ([]models.SysBoatCategory, error) {
+func (aS *BoatCategoryService) GetBoatCategories(
+	aCnName string,
+) ([]models.SysBoatCategory, error) {
+	cnName := strings.TrimSpace(aCnName)
 
-	categories, err := aS.boatCategoryDao.GetAllBoatCategories()
+	categories01, err := aS.boatCategoryDao.GetBoatCategoriesByCnName(cnName)
 	if err != nil {
 		log.Printf("failed to get boat categories: %v", err)
 		return nil, err
 	}
 
-	return categories, nil
+	return categories01, nil
 }
 
 func (aS *BoatCategoryService) AddBoatCategory(

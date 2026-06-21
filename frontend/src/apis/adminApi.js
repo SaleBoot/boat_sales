@@ -29,7 +29,7 @@ export const logoutApi = () => {
  * @returns {Promise<any>}
  */
 export const getDashboardContent = () => {
-  return api.get('/admin/models/overview');
+  return api.get('/admin/cos/models-overview');
 }
 
 /**
@@ -37,7 +37,7 @@ export const getDashboardContent = () => {
  * @returns {Promise<any>}
  */
 export const getDashboardSales = () => {
-  return api.get('/admin/orders');
+  return api.get('/admin/sales-order/overview');
 }
 
 // ------------------------------------------------
