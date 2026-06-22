@@ -13,6 +13,7 @@ import {
   Empty,
   Tag,
   Descriptions,
+  Select,
 } from 'antd';
 import {
   DeleteOutlined,
@@ -24,7 +25,8 @@ import Papa from 'papaparse';
 
 import { 
   getBoatEngineCategoryLabelByID,
-  getSalesOrderStatusLabelByID 
+  getSalesOrderStatusLabelByID,
+  SALES_ORDER_STATUS_LIST
 } from '../../../constants/constants_common';
 
 import { buildOneUrl, buildUrls} from '../../../utils/format'
@@ -32,7 +34,8 @@ import { buildOneUrl, buildUrls} from '../../../utils/format'
 import {  
   getSalesOrders, 
   deleteSalesOrders, 
-  getSaleOrdersByContact 
+  getSaleOrdersByContact,
+  updateSaleOrder
 } from '../../../../src/apis/adminApi';
 
 /**
@@ -130,6 +133,25 @@ export default function BoatOrdersView() {
     message.success('CSV文件已开始下载。');
   };
 
+  const handleSaveOrder = async () => {
+    if (!currentOrder) {
+      message.warning('没有选中的订单可保存。');
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateSaleOrder(currentOrder.ID, currentOrder);
+      message.success('订单保存成功！');
+      // 保存成功后刷新订单列表，确保数据同步
+      fetchOrders(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error('保存订单失败:', error);
+      message.error('订单保存失败。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSelectChange = (keys) => {
     setSelectedRowKeys(keys);
   };
@@ -221,6 +243,7 @@ export default function BoatOrdersView() {
         <Col span={8}>
           <Card 
             title="订单详情"
+            extra={currentOrder && <Button type="primary" size="small" onClick={handleSaveOrder}>保存</Button>}
             styles={{ body: { maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' } }}
           >
             {currentOrder ? (
@@ -239,9 +262,18 @@ export default function BoatOrdersView() {
                 <Descriptions bordered column={1} size="small">
                   <Descriptions.Item label="订单号">{currentOrder.ID}</Descriptions.Item>
                   <Descriptions.Item label="状态">
-                    <Tag color={currentOrder.status === '已完成' ? 'success' : currentOrder.status === '跟进中' ? 'warning' : 'processing'}>
-                      {getSalesOrderStatusLabelByID(currentOrder.status)}
-                    </Tag>
+                    <Select
+                      value={currentOrder.status}
+                      style={{ width: 120 }}
+                      onChange={(value) => setCurrentOrder({ ...currentOrder, status: value })}
+                      disabled={loading}
+                    >
+                      {SALES_ORDER_STATUS_LIST.map(status => (
+                        <Select.Option key={status.StrID} value={status.StrID}>
+                          {status.Label}
+                        </Select.Option>
+                      ))}
+                    </Select>
                   </Descriptions.Item>
                   <Descriptions.Item label="创建时间">{new Date(currentOrder.createAt).toLocaleString()}</Descriptions.Item>
                   <Descriptions.Item label="更新时间">{new Date(currentOrder.updatedAt).toLocaleString()}</Descriptions.Item>
