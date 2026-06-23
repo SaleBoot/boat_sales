@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -122,27 +123,32 @@ func derivePBKDF2SHA256(password []byte,
 
 // 解析与比对密码 ：负责把之前存好的那一长串字符串拆解开，并重新计算一遍。
 func VerifyAdminPassword(encodedHash string, password string) bool {
+	log.Printf("VerifyAdminPassword 0")
 	// 解析结构：它首先用 $ 分隔字符串。期望的格式是：算法$迭代次数$盐$哈希值。
 	parts := strings.Split(encodedHash, "$")
 	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
+		log.Printf("VerifyAdminPassword 1")
 		return false
 	}
 
 	iterations, err := strconv.Atoi(parts[1])
 	if err != nil || iterations <= 0 {
+		log.Printf("VerifyAdminPassword 2")
 		return false
 	}
 
 	salt, err := base64.StdEncoding.DecodeString(parts[2]) // 用base64解码将文本还原回二进制
 	if err != nil || len(salt) == 0 {
+		log.Printf("VerifyAdminPassword 3")
 		return false
 	}
 
 	expectedHash, err := base64.StdEncoding.DecodeString(parts[3]) // 用base64解码将文本还原回二进制
 	if err != nil || len(expectedHash) == 0 {
+		log.Printf("VerifyAdminPassword 4")
 		return false
 	}
-
+	log.Printf("VerifyAdminPassword 5")
 	// 用用户刚刚输入的明文密码加上提取出来的盐和次数重新算一遍。
 	derivedHash := derivePBKDF2SHA256([]byte(password), salt,
 		iterations,

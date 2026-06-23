@@ -113,9 +113,9 @@ export default function UserManagerView() {
     },
     {
       title: '角色',
-      dataIndex: 'roleId',
+      dataIndex: 'role',
       key: 'role',
-      render: (roleId) => (roleId === 1 ? '管理员用户' : '普通用户'),
+      render: (role) => (role === 1 ? '管理员用户' : '普通用户'),
     },
   ];
 

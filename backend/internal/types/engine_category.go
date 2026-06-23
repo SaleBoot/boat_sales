@@ -26,7 +26,7 @@ const (
 // **内河小快艇/小型休闲船，绝大多数是纯汽油或纯柴油；混动极少，而且基本都是“柴电混动”，几乎没有“汽油+电”的油电混动。**
 //
 // 引擎分类比较固定，只有5类，所以不建表了，只定义一个全局变量。
-var BoatEngineCategoryList = []BoatEngineCategory{
+var boatEngineCategoryList = []BoatEngineCategory{
 	//
 	// ### 一、最常见：纯汽油（舷外机）
 	// - 4–7米内河小快艇、钓鱼艇、冲锋舟，**90%是汽油舷外机**（雅马哈、水星、本田等）。
@@ -56,23 +56,23 @@ var BoatEngineCategoryList = []BoatEngineCategory{
 }
 
 // ID 映射表：用于后端快速查找、参数校验
-var BoatEngineCategoryMap = buildBoatEngineCategoryMap()
+var boatEngineCategoryMap = buildBoatEngineCategoryMap()
 
 func buildBoatEngineCategoryMap() map[string]BoatEngineCategory {
-	m := make(map[string]BoatEngineCategory, len(BoatEngineCategoryList))
-	for _, v := range BoatEngineCategoryList {
+	m := make(map[string]BoatEngineCategory, len(boatEngineCategoryList))
+	for _, v := range boatEngineCategoryList {
 		m[v.StrID] = v
 	}
 	return m
 }
 
 func ValidateBoatEngineCategory(aStrID string) bool {
-	_, ok := BoatEngineCategoryMap[aStrID]
+	_, ok := boatEngineCategoryMap[aStrID]
 	return ok
 }
 
 func GetBoatEngineCategory(aStrID string) (BoatEngineCategory, bool) {
-	cat, ok := BoatEngineCategoryMap[aStrID]
+	cat, ok := boatEngineCategoryMap[aStrID]
 	if !ok {
 		return cat, false
 	}

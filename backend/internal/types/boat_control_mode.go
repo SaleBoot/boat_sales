@@ -22,30 +22,30 @@ const (
 	BoatCtrlModeDualControl   = "DualControl"
 )
 
-var BoatCtrlModeList = []BoatCtrlMode{
+var boatCtrlModeList = []BoatCtrlMode{
 	{StrID: BoatCtrlModeSteeringWheel, Label: "方向盘操控"},
 	{StrID: BoatCtrlModeJoystick, Label: "手柄操控"},
 	{StrID: BoatCtrlModeDualControl, Label: "方向盘+手柄双控"},
 }
 
 // map
-var BoatCtrlModeMap = buildBoatCtrlModeMap()
+var boatCtrlModeMap = buildBoatCtrlModeMap()
 
 func buildBoatCtrlModeMap() map[string]BoatCtrlMode {
-	m := make(map[string]BoatCtrlMode, len(BoatCtrlModeList))
-	for _, v := range BoatCtrlModeList {
+	m := make(map[string]BoatCtrlMode, len(boatCtrlModeList))
+	for _, v := range boatCtrlModeList {
 		m[v.StrID] = v
 	}
 	return m
 }
 
 func ValidateBoatCtrlMode(aStrID string) bool {
-	_, ok := BoatCtrlModeMap[aStrID]
+	_, ok := boatCtrlModeMap[aStrID]
 	return ok
 }
 
 func GetBoatCtrlMode(aStrID string) (BoatCtrlMode, bool) {
-	mode, ok := BoatCtrlModeMap[aStrID]
+	mode, ok := boatCtrlModeMap[aStrID]
 	if !ok {
 		return mode, false
 	}

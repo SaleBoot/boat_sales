@@ -25,7 +25,7 @@ const (
 	BoatNavAreaOffshoreArea     = "OffshoreArea"     // 远海航区
 )
 
-var BoatNavAreaList = []BoatNavArea{
+var boatNavAreaList = []BoatNavArea{
 	{StrID: BoatNavAreaInlandClassA, Label: "内河 A级"},
 	{StrID: BoatNavAreaInlandClassB, Label: "内河 B级"},
 	{StrID: BoatNavAreaShelteredArea, Label: "遮蔽航区"},
@@ -36,23 +36,23 @@ var BoatNavAreaList = []BoatNavArea{
 }
 
 // map
-var BoatNavAreaMap = buildBoatNavAreaMap()
+var boatNavAreaMap = buildBoatNavAreaMap()
 
 func buildBoatNavAreaMap() map[string]BoatNavArea {
-	m := make(map[string]BoatNavArea, len(BoatNavAreaList))
-	for _, v := range BoatNavAreaList {
+	m := make(map[string]BoatNavArea, len(boatNavAreaList))
+	for _, v := range boatNavAreaList {
 		m[v.StrID] = v
 	}
 	return m
 }
 
 func ValidateBoatNavArea(aStrID string) bool {
-	_, ok := BoatNavAreaMap[aStrID]
+	_, ok := boatNavAreaMap[aStrID]
 	return ok
 }
 
 func GetBoatNavArea(aStrID string) (BoatNavArea, bool) {
-	area, ok := BoatNavAreaMap[aStrID]
+	area, ok := boatNavAreaMap[aStrID]
 	if !ok {
 		return area, false
 	}

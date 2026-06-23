@@ -26,6 +26,7 @@ const (
 type adminSession struct {
 	Token     string
 	Email     string
+	Role      int //
 	ExpiresAt time.Time
 }
 
@@ -78,7 +79,8 @@ func (a *UserHandler) HandleAdminLogin(c *gin.Context) {
 	// 1. 输入解析与严格校验 (Input Sanitization)
 	var input adminLoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest,
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
 			Message: fmt.Sprintf("decode login request: %s", err.Error()),
 		})
 		return
@@ -87,7 +89,8 @@ func (a *UserHandler) HandleAdminLogin(c *gin.Context) {
 
 	email := utils.NormalizeAdminEmail(input.Email)
 	if email == "" || strings.TrimSpace(input.Password) == "" {
-		c.JSON(http.StatusBadRequest, types.ApiResponse{Code: http.StatusBadRequest,
+		c.JSON(http.StatusBadRequest, types.ApiResponse{
+			Code:    http.StatusBadRequest,
 			Message: "email and password are required"})
 		log.Printf("handleAdminLogin 1")
 		return
@@ -99,12 +102,14 @@ func (a *UserHandler) HandleAdminLogin(c *gin.Context) {
 		log.Printf("handleAdminLogin 2")
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// 为了安全，即使用户不存在，也返回模糊的“无效”错误
-			c.JSON(http.StatusUnauthorized, types.ApiResponse{Code: http.StatusUnauthorized,
+			c.JSON(http.StatusUnauthorized, types.ApiResponse{
+				Code:    http.StatusUnauthorized,
 				Message: "invalid email or password"})
 		} else {
 			// 其他数据库错误，记录日志并返回服务器错误
 			log.Printf("database error during login: %v", err)
-			c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError,
+			c.JSON(http.StatusInternalServerError, types.ApiResponse{
+				Code:    http.StatusInternalServerError,
 				Message: "A server error occurred."})
 		}
 		return
@@ -113,15 +118,19 @@ func (a *UserHandler) HandleAdminLogin(c *gin.Context) {
 	// 4. 核心安全核验 (Security Verification)
 	if !utils.VerifyAdminPassword(matchedUser.PasswordHash, input.Password) {
 		log.Printf("handleAdminLogin 3")
-		c.JSON(http.StatusUnauthorized, types.ApiResponse{Code: http.StatusUnauthorized, Message: "invalid email or password"})
+		c.JSON(http.StatusUnauthorized, types.ApiResponse{
+			Code:    http.StatusUnauthorized,
+			Message: "invalid email or password"})
 		return
 	}
 
 	// 5. 创建会话与持久化 (Session Creation & Persistence)
-	session, err := a.createAdminSession(matchedUser.Email)
+	session, err := a.createAdminSession(matchedUser.Email, matchedUser.Role)
 	if err != nil {
 		log.Printf("create admin session error: %v", err)
-		c.JSON(http.StatusInternalServerError, types.ApiResponse{Code: http.StatusInternalServerError, Message: "Failed to create session."})
+		c.JSON(http.StatusInternalServerError, types.ApiResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to create session."})
 		return
 	}
 
@@ -280,6 +289,64 @@ func (a *UserHandler) AdminAuthMiddleware() gin.HandlerFunc {
 	}
 }
 
+// RequireRoles 检查当前登录用户是否拥有指定的任意一个角色
+func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 1. 从上一个中间件（AdminAuthMiddleware）注入的上下文中获取会话信息
+		sessionVal, exists := c.Get("adminSession")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, types.ApiResponse{
+				Code:    http.StatusUnauthorized,
+				Message: "unauthorized(未授权的用户).",
+			})
+			return
+		}
+
+		// 2. 类型断言（假设你的 session 结构体里有 Role 字段）
+		session, ok := sessionVal.(adminSession) // 替换为你实际的 Session 结构体类型
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusInternalServerError,
+				types.ApiResponse{
+					Code:    http.StatusUnauthorized,
+					Message: "invalid session typed(无效的session类型).",
+				})
+			return
+		}
+
+		// 3. 校验用户角色是否在允许的列表中
+		sessionUsrRole, ok := types.GetRoleID(session.Role)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusInternalServerError,
+				types.ApiResponse{
+					Code:    http.StatusUnauthorized,
+					Message: "invalid session role(无效的session用户角色).",
+				})
+			return
+		}
+
+		hasPermission := false
+		for _, role := range allowedRoles {
+			if sessionUsrRole.StrID == role {
+				hasPermission = true
+				break
+			}
+		}
+
+		// 4. 拦截或放行
+		if !hasPermission {
+			c.AbortWithStatusJSON(http.StatusForbidden,
+				types.ApiResponse{
+					Code:    http.StatusUnauthorized,
+					Message: "forbidden: NO permission to access this resource(无权限访问此资源).",
+				})
+
+			return
+		}
+
+		c.Next()
+	}
+}
+
 // 上下文数据提取：这是一个辅助函数，用于从 Go 的 r.Context() 中提取 Session 信息
 // 原理：在之前的中间件（Middleware）阶段，程序已经校验了 Cookie 并将解析出的 adminSession 结构体存入了请求的上下文中（Context）。
 // 好处：业务逻辑函数（Handler）不需要再关心 Cookie 怎么解析、Token 怎么验证，直接从上下文取“现成”的已通过验证的用户信息即可。
@@ -297,7 +364,9 @@ func getAdminSessionFromContext(c *gin.Context) (adminSession, bool) {
 
 // 管理员 Session（会话）校验函数：   从传入的 HTTP 请求中读取 Cookie，提取 Token（令牌），
 // 然后在服务器内存中验证该管理员会话是否有效、是否过期，并具备并发安全保护和自动清理过期会话的功能。
-func (a *UserHandler) getAdminSessionFromRequest(r *http.Request) (adminSession, error) {
+func (a *UserHandler) getAdminSessionFromRequest(
+	r *http.Request,
+) (adminSession, error) {
 	// ### 第一关：提取 Cookie
 	// 尝试从 HTTP 请求头（`r *http.Request`）中读取名为 `adminSessionCookieName` 的 Cookie。
 	cookie, err := r.Cookie(adminSessionCookieName)
@@ -342,7 +411,10 @@ func (a *UserHandler) getAdminSessionFromRequest(r *http.Request) (adminSession,
 }
 
 // 生成AdminSession
-func (a *UserHandler) createAdminSession(email string) (adminSession, error) {
+func (a *UserHandler) createAdminSession(
+	aEmail string,
+	aRole int,
+) (adminSession, error) {
 	token, err := generateAdminSessionToken()
 	if err != nil {
 		return adminSession{}, fmt.Errorf("generate admin session token: %w", err)
@@ -350,7 +422,8 @@ func (a *UserHandler) createAdminSession(email string) (adminSession, error) {
 
 	session := adminSession{
 		Token:     token,
-		Email:     email,
+		Email:     aEmail,
+		Role:      aRole,
 		ExpiresAt: time.Now().Add(adminSessionTTL),
 	}
 

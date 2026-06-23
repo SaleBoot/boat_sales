@@ -48,7 +48,7 @@ export default function UserSetting() {
         form.setFieldsValue({
           userName: data.userName,
           email: data.email,
-          role: data.roleId === 1 ? 'admin' : 'regularUser',
+          role: data.role === 1 ? 'admin' : 'regularUser',
         });
       } catch (error) {
         message.error('无法加载用户信息');

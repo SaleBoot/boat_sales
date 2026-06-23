@@ -38,3 +38,26 @@ type ApiResponse struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
+
+/*
+// 把 ApiResponse 定义为一个泛型结构体。这样既保留了结构体的统一性，
+// 又让具体的业务数据具备了强类型。
+// T 代表任意具体的类型
+type ApiResponse[T any] struct {
+    Code    int    `json:"code"`
+    Message string `json:"message"`
+    Data    T      `json:"data"` // 这里不再是 interface{}，而是具体类型 T
+}
+
+// 在 Handler 中使用示例：
+func HandleGetBoat(c *gin.Context) {
+    boat := models.SysBoat{BoatName: "晓风号"}
+
+    // 实例化一个只装载 SysBoat 类型的响应
+    c.JSON(http.StatusOK, ApiResponse[models.SysBoat]{
+        Code:    200,
+        Message: "Success",
+        Data:    boat, // 如果你塞入一个 User 结构体，编译器在编译阶段就会直接报错！
+    })
+}
+*/

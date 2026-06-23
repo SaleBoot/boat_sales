@@ -125,7 +125,7 @@ const BoatCategoriesView = () => {
       fetchBoatCategories(); // Refresh data
     } catch (error) {
       console.error('Failed to save boat category:', error);
-      message.error('保存失败。');
+      
     } finally {
       setLoading(false);
     }

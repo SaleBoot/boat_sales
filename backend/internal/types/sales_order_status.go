@@ -12,30 +12,30 @@ const (
 	SalesOrderStatFinished   = "finished"   // 已完成
 )
 
-var SalesOrderStatusList = []SalesOrderStatus{
+var salesOrderStatusList = []SalesOrderStatus{
 	{StrID: SalesOrderStatNew, Label: "新提交"},
 	{StrID: SalesOrderStatProcessing, Label: "跟进中"},
 	{StrID: SalesOrderStatFinished, Label: "已完成"},
 }
 
 // map
-var SalesOrderStatusMap = buildSalesOrderStatusMap()
+var salesOrderStatusMap = buildSalesOrderStatusMap()
 
 func buildSalesOrderStatusMap() map[string]SalesOrderStatus {
-	m := make(map[string]SalesOrderStatus, len(SalesOrderStatusList))
-	for _, v := range SalesOrderStatusList {
+	m := make(map[string]SalesOrderStatus, len(salesOrderStatusList))
+	for _, v := range salesOrderStatusList {
 		m[v.StrID] = v
 	}
 	return m
 }
 
 func ValidateSalesOrderStatus(aStrID string) bool {
-	_, ok := SalesOrderStatusMap[aStrID]
+	_, ok := salesOrderStatusMap[aStrID]
 	return ok
 }
 
 func GetSalesOrderStatus(aStrID string) (SalesOrderStatus, bool) {
-	status, ok := SalesOrderStatusMap[aStrID]
+	status, ok := salesOrderStatusMap[aStrID]
 	if !ok {
 		return status, false
 	}

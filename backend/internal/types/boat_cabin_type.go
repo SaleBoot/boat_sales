@@ -22,32 +22,29 @@ const (
 // 双驾舱
 // 精简常用列表（项目优先用这些）：
 // 飞桥驾舱、封闭式驾舱、开放式驾舱
-var BoatCabinTypeList = []BoatCabinType{
+var boatCabinTypeList = []BoatCabinType{
 	{StrID: BoatCabinTypeFlybridge, Label: "飞桥驾舱"},
 	{StrID: BoatCabinTypeClosed, Label: "封闭式驾舱"},
 	{StrID: BoatCabinTypeOpen, Label: "开放式驾舱"},
 }
 
 // map
-var BoatCabinTypeMap = buildBoatCabinTypeMap()
+var boatCabinTypeMap = buildBoatCabinTypeMap()
 
 func buildBoatCabinTypeMap() map[string]BoatCabinType {
-	m := make(map[string]BoatCabinType, len(BoatCabinTypeList))
-	for _, v := range BoatCabinTypeList {
+	m := make(map[string]BoatCabinType, len(boatCabinTypeList))
+	for _, v := range boatCabinTypeList {
 		m[v.StrID] = v
 	}
 	return m
 }
 
 func ValidateBoatCabinType(aStrID string) bool {
-	_, ok := BoatCabinTypeMap[aStrID]
+	_, ok := boatCabinTypeMap[aStrID]
 	return ok
 }
 
 func GetBoatCabinType(aStrID string) (BoatCabinType, bool) {
-	cat, ok := BoatCabinTypeMap[aStrID]
-	if !ok {
-		return cat, false
-	}
-	return cat, true
+	cat, ok := boatCabinTypeMap[aStrID]
+	return cat, ok
 }

@@ -30,7 +30,7 @@ const (
 	BoatMatTiAlloy        = "TiAlloy"        // 钛合金// TitaniumAlloy
 )
 
-var BoatMaterialList = []BoatMaterial{
+var boatMaterialList = []BoatMaterial{
 	{StrID: BoatMatSteel, Label: "钢质"},
 	{StrID: BoatMatAlAlloy, Label: "铝合金"},
 	{StrID: BoatMatFRP, Label: "玻璃钢（FRP）"},
@@ -42,23 +42,23 @@ var BoatMaterialList = []BoatMaterial{
 }
 
 // map
-var BoatMaterialMap = buildBoatMaterialMap()
+var boatMaterialMap = buildBoatMaterialMap()
 
 func buildBoatMaterialMap() map[string]BoatMaterial {
-	m := make(map[string]BoatMaterial, len(BoatMaterialList))
-	for _, v := range BoatMaterialList {
+	m := make(map[string]BoatMaterial, len(boatMaterialList))
+	for _, v := range boatMaterialList {
 		m[v.StrID] = v
 	}
 	return m
 }
 
 func ValidateBoatMaterial(aStrID string) bool {
-	_, ok := BoatMaterialMap[aStrID]
+	_, ok := boatMaterialMap[aStrID]
 	return ok
 }
 
 func GetBoatMaterial(aStrID string) (BoatMaterial, bool) {
-	material, ok := BoatMaterialMap[aStrID]
+	material, ok := boatMaterialMap[aStrID]
 	if !ok {
 		return material, false
 	}

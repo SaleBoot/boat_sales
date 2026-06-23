@@ -52,7 +52,9 @@ func (d *SysBoatEngineDao) GetBoatEngines(
 func (d *SysBoatEngineDao) AddBoatEngine(engine *models.SysBoatEngine) error {
 	// 查找条件：engine_name 一致
 	// 查找不到则创建整条记录
-	tx := d.DB.Where("engine_name = ?", engine.EngineName).FirstOrCreate(engine)
+	tx := d.DB.
+		Where("engine_name = ?", engine.EngineName).
+		FirstOrCreate(engine)
 
 	// 处理数据库错误（如索引冲突、网络异常）
 	if tx.Error != nil {

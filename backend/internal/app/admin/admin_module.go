@@ -197,28 +197,31 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 		usersRG := aAdminRG.Group("/users")
 		if a.userH != nil {
 			usersRG.GET("", a.userH.HandleGetAllUsers)
-			usersRG.POST("", a.userH.HandleCreateUser)
-			usersRG.POST("/delete", a.userH.HandleDeleteUsers)
 			usersRG.GET("/:email", a.userH.HandleGetUserByEmail)
 			usersRG.POST("/:email", a.userH.HandleUpdateUserByEmail)
+			// apis.RequireRoles("admin")
+			usersRG.POST("", apis.RequireRoles("admin"), a.userH.HandleCreateUser)
+			usersRG.POST("/delete", apis.RequireRoles("admin"), a.userH.HandleDeleteUsers)
 		}
 
 		// Boat Category routes
 		boatCategories := aAdminRG.Group("/boat-categories")
 		if a.boatCategoryH != nil {
 			boatCategories.GET("", a.boatCategoryH.HandleGetBoatCategories)
-			boatCategories.POST("", a.boatCategoryH.HandleAddBoatCategory)
-			boatCategories.POST("/:id", a.boatCategoryH.HandleUpdateBoatCategory)
-			boatCategories.POST("/delete", a.boatCategoryH.HandleDeleteBoatCategories)
+			//apis.RequireRoles("admin")
+			boatCategories.POST("", apis.RequireRoles("admin"), a.boatCategoryH.HandleAddBoatCategory)
+			boatCategories.POST("/:id", apis.RequireRoles("admin"), a.boatCategoryH.HandleUpdateBoatCategory)
+			boatCategories.POST("/delete", apis.RequireRoles("admin"), a.boatCategoryH.HandleDeleteBoatCategories)
 		}
 
 		// Boat routes
 		boats := aAdminRG.Group("/boats")
 		if a.boatH != nil {
 			boats.GET("", a.boatH.HandleGetBoats)
-			boats.POST("", a.boatH.HandleAddBoat)
-			boats.POST("/:id", a.boatH.HandleUpdateBoat)
-			boats.POST("/delete", a.boatH.HandleDeleteBoats)
+			// apis.RequireRoles("admin")
+			boats.POST("", apis.RequireRoles("admin"), a.boatH.HandleAddBoat)
+			boats.POST("/:id", apis.RequireRoles("admin"), a.boatH.HandleUpdateBoat)
+			boats.POST("/delete", apis.RequireRoles("admin"), a.boatH.HandleDeleteBoats)
 		}
 
 		cosRG := aAdminRG.Group("/cos")
@@ -243,23 +246,25 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			//     设置  Content-Type: application/json  请求头。
 			//     在请求体中提供一个 JSON 数组，其中包含该船型所有新的模型定义。
 			//     数组中每个对象的boatEnName 必须与 URL 中的船型英文名匹配。
-			boatModelRG.POST("/:boatEnName", a.boatModelH.HandleUpdateModelWithBoatEnName)
+			boatModelRG.POST("/:boatEnName", apis.RequireRoles("admin"), a.boatModelH.HandleUpdateModelWithBoatEnName)
 		}
 
 		videoRG := aAdminRG.Group("/video")
 		if a.videoH != nil {
 			videoRG.GET("", a.videoH.HandleGetVideos)
-			videoRG.POST("", a.videoH.HandleAddVideo)
-			videoRG.POST("/:id", a.videoH.HandleUpdateVideo)
-			videoRG.POST("/delete", a.videoH.HandleDeleteVideos)
+			// apis.RequireRoles("admin"),
+			videoRG.POST("", apis.RequireRoles("admin"), a.videoH.HandleAddVideo)
+			videoRG.POST("/:id", apis.RequireRoles("admin"), a.videoH.HandleUpdateVideo)
+			videoRG.POST("/delete", apis.RequireRoles("admin"), a.videoH.HandleDeleteVideos)
 		}
 
 		engineRG := aAdminRG.Group("/boat-engine")
 		if a.boatEngineH != nil {
 			engineRG.GET("", a.boatEngineH.HandleGetBoatEngines)
-			engineRG.POST("", a.boatEngineH.HandleAddBoatEngine)
-			engineRG.POST("/:id", a.boatEngineH.HandleUpdateBoatEngine)
-			engineRG.POST("/delete", a.boatEngineH.HandleDeleteBoatEngines)
+			//
+			engineRG.POST("", apis.RequireRoles("admin"), a.boatEngineH.HandleAddBoatEngine)
+			engineRG.POST("/:id", apis.RequireRoles("admin"), a.boatEngineH.HandleUpdateBoatEngine)
+			engineRG.POST("/delete", apis.RequireRoles("admin"), a.boatEngineH.HandleDeleteBoatEngines)
 		}
 
 		salesOrderRG := aAdminRG.Group("/sales-order")
@@ -269,12 +274,13 @@ func (a *AdminModule) RegisterRoutes_underAuth(aAdminRG *gin.RouterGroup) {
 			salesOrderRG.GET("", a.salesOrderH.HandleGetSalesOrders)
 			//  api/admin/sales-order/by-contact
 			salesOrderRG.GET("/by-contact", a.salesOrderH.GetSaleOrdersByCustomerContact)
-			salesOrderRG.POST("/:id", a.salesOrderH.HandleUpdateSaleOrders)
-			salesOrderRG.POST("/delete", a.salesOrderH.HandleDeleteSalesOrders)
+			// apis.RequireRoles("admin"),
+			salesOrderRG.POST("/:id", apis.RequireRoles("admin"), a.salesOrderH.HandleUpdateSaleOrders)
+			salesOrderRG.POST("/delete", apis.RequireRoles("admin"), a.salesOrderH.HandleDeleteSalesOrders)
 		}
 
 		// 更新模型相机配置 (POST /api/admin/vcams)
-		aAdminRG.POST("/vcams", a.modelVCamH.HandleUpdateVCams)
+		aAdminRG.POST("/vcams", apis.RequireRoles("admin"), a.modelVCamH.HandleUpdateVCams)
 		aAdminRG.GET("/vcams/*modelPath", a.modelVCamH.HandleGetVCam)
 	}
 

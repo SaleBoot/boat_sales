@@ -32,14 +32,32 @@ func EnsureDefaultUserExists(aUserDao *dao.SysUserDao) error {
 		return fmt.Errorf("failed to hash default password: %w", err)
 	}
 
-	defaultUser := &models.SysUser{
+	defaultAdminUser := &models.SysUser{
 		UserName:     "Display",
 		Email:        defaultEmail,
 		PasswordHash: passwordHash,
+		Role:         1,
+		// Avatar:       "default-avatar.jpg",
 	}
 
-	if err := aUserDao.CreateUser(defaultUser); err != nil {
-		return fmt.Errorf("failed to create default user: %w", err)
+	if err := aUserDao.CreateUser(defaultAdminUser); err != nil {
+		return fmt.Errorf("failed to create default admin user: %w", err)
+	}
+
+	// 创建默认普通用户
+	passwordHash, err = utils.HashAdminPassword("abc.123@")
+	if err != nil {
+		return fmt.Errorf("failed to hash default password: %w", err)
+	}
+	defaultRegularUser := &models.SysUser{
+		UserName:     "Display",
+		Email:        "abc@163.com",
+		PasswordHash: passwordHash,
+		Role:         0,
+		// Avatar:       "default-avatar.jpg",
+	}
+	if err := aUserDao.CreateUser(defaultRegularUser); err != nil {
+		return fmt.Errorf("failed to create default regular user: %w", err)
 	}
 
 	log.Printf("Default user '%s' created successfully.", defaultEmail)

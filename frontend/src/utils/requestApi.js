@@ -56,6 +56,7 @@ instance.interceptors.response.use(
       const status = error.response.status;
       const { method, url } = error.config;
       console.error(`[Axios HTTP Error ${status}]`, `[${method.toUpperCase()}] ${url}`, error.response.data);
+      
 
       if (status === 401) {
         // 对于 401 未授权错误，进行全局处理
@@ -68,6 +69,8 @@ instance.interceptors.response.use(
         }, 1500);
       } else if (status === 404) {
         console.error(`The requested URL was not found: ${url}`);
+      }else{
+        message.error(`[${method.toUpperCase()}] ${url}: ${error?.response?.data?.message}`);
       }
     } else if (error.request) {
       // 请求已发出，但没有收到响应

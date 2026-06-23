@@ -16,7 +16,7 @@ const (
 	BoatCertiFishingVesselSurvey = "FishingVesselSurvey"     // 渔业船舶检验
 )
 
-var BoatCertiTypeList = []BoatCertiType{
+var boatCertiTypeList = []BoatCertiType{
 	{StrID: BoatCertiCCSInlandSurvey, Label: "CCS内河检验"},
 	{StrID: BoatCertiCCSSeagoingSurvey, Label: "CCS海船检验"},
 	{StrID: BoatCertiCCSClassSurvey, Label: "CCS入级检验"},
@@ -27,23 +27,23 @@ var BoatCertiTypeList = []BoatCertiType{
 }
 
 // map
-var BoatCertiTypeMap = buildBoatCertiTypeMap()
+var boatCertiTypeMap = buildBoatCertiTypeMap()
 
 func buildBoatCertiTypeMap() map[string]BoatCertiType {
-	m := make(map[string]BoatCertiType, len(BoatCertiTypeList))
-	for _, v := range BoatCertiTypeList {
+	m := make(map[string]BoatCertiType, len(boatCertiTypeList))
+	for _, v := range boatCertiTypeList {
 		m[v.StrID] = v
 	}
 	return m
 }
 
 func ValidateBoatCertiType(aStrID string) bool {
-	_, ok := BoatCertiTypeMap[aStrID]
+	_, ok := boatCertiTypeMap[aStrID]
 	return ok
 }
 
 func GetBoatCertiType(aStrID string) (BoatCertiType, bool) {
-	certiType, ok := BoatCertiTypeMap[aStrID]
+	certiType, ok := boatCertiTypeMap[aStrID]
 	if !ok {
 		return certiType, false
 	}
@@ -82,5 +82,5 @@ func GetBoatCertiTypeByNavArea(aNavAreaID string) []BoatCertiType {
 	}
 
 	// CCS内河检验  CCS海船检验  地方船检  海事局小型船检
-	return BoatCertiTypeList
+	return boatCertiTypeList
 }

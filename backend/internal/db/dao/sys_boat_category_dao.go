@@ -58,7 +58,8 @@ func (d *SysBoatCategoryDao) UpdateBoatCategoryByID(
 
 // DeleteBoatCategories deletes boat categories by their IDs.
 func (d *SysBoatCategoryDao) DeleteBoatCategories(ids []uint) error {
-	return d.DB.Delete(&models.SysBoatCategory{}, ids).Error
+	return d.DB.Unscoped().
+		Delete(&models.SysBoatCategory{}, ids).Error
 }
 
 // Count returns the total number of boat categories.

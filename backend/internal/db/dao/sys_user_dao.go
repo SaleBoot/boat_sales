@@ -48,7 +48,9 @@ func (d *SysUserDao) UpdateUserPassword(email, newPasswordHash string) error {
 
 // DeleteUsersByID deletes users by their IDs.
 func (d *SysUserDao) DeleteUsersByID(userIDs []uint) error {
-	result := d.DB.Where("id IN ?", userIDs).Delete(&models.SysUser{})
+	result := d.DB.Unscoped().
+		Where("id IN ?", userIDs).
+		Delete(&models.SysUser{})
 	return result.Error
 }
 
