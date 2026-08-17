@@ -8,20 +8,28 @@ GitHub Pages: https://mcwhirr.github.io/BoatSaler/
 
 ## Local Development
 
-Frontend app:
+### Go server:
+
+- build: `cd backend && go build`
+```sh
+cd backend
+go build
+```
+- run: `./boatsales-backend`
+ 
+
+### Frontend app:
 
 - Install: `cd frontend && npm install`
 - Start dev server: `npm run dev`
 - Build: `npm run build`
 - Preview production build: `npm run preview`
 
-The frontend syncs source assets from the repository `gltf/` directory into `frontend/public/gltf/` during `predev` and `prebuild`.
+<!-- 
+The frontend syncs source assets from the repository `gltf/` directory into `frontend/public/gltf/` during `predev` and `prebuild`. 
+-->
 
-Go server:
 
-- Start: `cd gltf && go run .`
-- Health check: `http://localhost:8080/health`
-- Admin API: `http://localhost:8080/api/admin/models`
 
 ## Cloud Deployment
 

@@ -1,16 +1,22 @@
 backend/tmp*
 backend/focus-targets
 backend/boatsales-backend
-frontend/doc01/
+backend/test.db
 backend/doc02/
+
+frontend/doc01/
+
 backups/
 data/
 
 doc0*/
+gltf/
 static/
 scripts/
 service/
 temp/
+test/
 SalesBoat-code-only-20260514-013133.zip
 salesboat-deploy.zip
-backend/test.db
+admin-session*
+admin-cookies.txt
