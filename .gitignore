@@ -5,6 +5,7 @@ backend/test.db
 backend/doc02/
 
 frontend/doc01/
+# frontend/public/gltf01
 
 backups/
 data/
