@@ -10,13 +10,25 @@ GitHub Pages: https://mcwhirr.github.io/BoatSaler/
 
 ### Go server:
 
-- build: `cd backend && go build`
+- build:  
 ```sh
 cd backend
 go build
 ```
-- run: `./boatsales-backend`
+
+- prepare env file 
  
+```sh
+cd backend
+
+cp .env.example  .env 
+```
+modify `.env` as needed,like:
+![.env.example](/backend/.env.example.png)
+
+
+- run: `./boatsales-backend`
+
 
 ### Frontend app:
 
@@ -25,9 +37,9 @@ go build
 - Build: `npm run build`
 - Preview production build: `npm run preview`
 
-<!-- 
-The frontend syncs source assets from the repository `gltf/` directory into `frontend/public/gltf/` during `predev` and `prebuild`. 
--->
+ 
+ `frontend/public/gltf01/` is the runtime directory for the boat models in development environment.  
+ 
 
 
 
@@ -45,6 +57,5 @@ External media links for the public page are managed in `data/site-content.json`
 ## Project Structure
 
 - `frontend/`: Vite app, UI, and Three.js scene
-- `gltf/`: source boat models and textures
-- `pdf/`: brochure and cover assets
-- `.github/workflows/deploy-pages.yml`: GitHub Pages deployment workflow
+- `backend/`: Go server, database, and COS storage 
+
