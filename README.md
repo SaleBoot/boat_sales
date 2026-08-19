@@ -9,25 +9,31 @@ GitHub Pages: https://mcwhirr.github.io/BoatSaler/
 ## Local Development
 
 ### Go server:
+- enter backend folder:
+```sh
+   cd backend
+```
 
 - build:  
-```sh
-cd backend
-go build
+```sh 
+    go build
 ```
 
 - prepare env file 
- 
-```sh
-cd backend
 
-cp .env.example  .env 
+  in 'backend' folder, copy `.env.example` to `.env`:
+```sh 
+    cp .env.example  .env 
 ```
-modify `.env` as needed,like:
-![.env.example](/backend/.env.example.png)
+  modify `.env` as needed,like: 
+  ![.env.example](/backend/.env.example.png)
 
 
-- run: `./boatsales-backend`
+- run 
+ in 'backend' folder,  run the server:
+```sh 
+    ./boatsales-backend
+```
 
 
 ### Frontend app:

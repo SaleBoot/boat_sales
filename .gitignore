@@ -9,7 +9,7 @@ frontend/doc01/
 
 backups/
 data/
-
+.marscode/
 doc0*/
 gltf/
 static/
