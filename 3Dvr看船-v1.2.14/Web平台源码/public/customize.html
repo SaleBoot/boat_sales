@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>定制船型 | 船舶销售</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-inner">
+      <div class="nav-logo" onclick="window.location.href='index.html'">
+        <span>船舶销售</span>
+      </div>
+      <div class="nav-right">
+        <a href="admin.html" class="nav-admin-btn">后台管理</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="detail-page">
+    <div class="detail-back-bar">
+      <button class="back-btn" onclick="window.location.href='index.html'">
+        <svg width="28" height="28" viewBox="0 0 20 20" fill="none">
+          <path d="M12 16L6 10L12 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        返回主页
+      </button>
+    </div>
+
+    <div class="customize-view">
+      <div class="catalog-header">
+        <h2 class="section-title">上传定制图纸</h2>
+        <p class="section-desc">上传您的船舶设计图纸，我们将根据图纸为您提供专业定制方案</p>
+      </div>
+
+      <div class="upload-panel">
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <path d="M24 32V12M24 12L16 20M24 12L32 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 32V38C8 39.1046 8.89543 40 10 40H38C39.1046 40 40 39.1046 40 38V32" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <p class="upload-text">点击或拖拽文件到此处上传</p>
+          <p class="upload-hint">支持 PDF / CAD / PNG / JPG 格式，单文件不超过 50MB</p>
+          <input type="file" id="fileInput" accept=".pdf,.dwg,.dxf,.png,.jpg,.jpeg" multiple style="display:none;">
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div class="upload-form">
+          <div class="upload-field">
+            <label class="upload-label">联系人</label>
+            <input type="text" id="contactName" class="upload-input" placeholder="请输入您的姓名">
+          </div>
+          <div class="upload-field">
+            <label class="upload-label">联系方式</label>
+            <input type="text" id="contactPhone" class="upload-input" placeholder="请输入手机号或邮箱">
+          </div>
+          <div class="upload-field">
+            <label class="upload-label">需求备注</label>
+            <textarea id="remark" class="upload-textarea" placeholder="请描述您的定制需求，如船型、尺寸、用途等"></textarea>
+          </div>
+        </div>
+
+        <div class="customize-actions">
+          <button class="btn-primary" id="submitBtn" onclick="submitUpload()" disabled>提交图纸</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/customize.js"></script>
+</body>
+</html>

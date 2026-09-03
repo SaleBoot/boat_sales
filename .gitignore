@@ -21,3 +21,10 @@ SalesBoat-code-only-20260514-013133.zip
 salesboat-deploy.zip
 admin-session*
 admin-cookies.txt
+
+# 3Dvr看船交付源码快照
+3Dvr看船-v*/**/node_modules/
+3Dvr看船-v*/**/.DS_Store
+3Dvr看船-v*/**/*.apk
+3Dvr看船-v*/**/uploads/model-staging/
+3Dvr看船-v*/**/tmp/

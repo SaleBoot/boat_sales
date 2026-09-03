@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 | 船舶定制系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="auth-body">
+
+  <!-- ===== 全屏水波纹背景 ===== -->
+  <canvas id="rippleCanvas" class="ripple-canvas"></canvas>
+  <div class="ripple-overlay"></div>
+
+  <!-- ===== 居中登录卡片 ===== -->
+  <div class="auth-center">
+    <div class="auth-center-inner">
+
+      <div class="auth-brand">
+        <span class="auth-brand-logo">船舶定制系统</span>
+      </div>
+
+      <!-- Tab 切换 -->
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab active" data-tab="login" role="tab">账号登录</button>
+        <button class="auth-tab" data-tab="register" role="tab" style="display:none">注册</button>
+        <button class="auth-tab" data-tab="forgot" role="tab">找回密码</button>
+      </div>
+
+      <!-- ===== 账号登录 ===== -->
+      <form class="auth-form active" id="loginForm" data-panel="login">
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <input type="text" id="loginUsername" placeholder="请输入用户名" autocomplete="username">
+        </div>
+
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input type="password" id="loginPassword" placeholder="请输入密码" autocomplete="current-password">
+          <button type="button" class="field-toggle" id="loginPwdToggle" aria-label="显示密码">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <div class="field field-captcha">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+          <input type="text" id="loginCaptcha" placeholder="验证码" maxlength="4" autocomplete="off">
+          <canvas id="captchaCanvas" class="captcha-img" width="110" height="44" title="点击刷新验证码"></canvas>
+        </div>
+
+        <p class="field-hint" id="loginHint"></p>
+
+        <button type="submit" class="auth-submit">登录</button>
+        <button type="button" class="auth-secondary" id="codeLoginBtn">验证码登录</button>
+      </form>
+
+      <!-- ===== 注册 ===== -->
+      <form class="auth-form" id="registerForm" data-panel="register">
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <input type="text" id="regUsername" placeholder="设置用户名" autocomplete="username">
+        </div>
+
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input type="password" id="regPassword" placeholder="设置密码" autocomplete="new-password">
+          <button type="button" class="field-toggle" id="regPwdToggle" aria-label="显示密码">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p class="field-hint static">密码格式应为6-18位数字、字母、符号的任意两种组合</p>
+
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input type="password" id="regPassword2" placeholder="确认密码" autocomplete="new-password">
+        </div>
+
+        <div class="field field-select">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9.5h.01M15 9.5h.01M9 15c1 1 5 1 6 0"/></svg>
+          </span>
+          <select id="regQuestion" class="field-select-el">
+            <option value="">选择密保问题</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          </span>
+          <input type="text" id="regAnswer" placeholder="密保答案">
+        </div>
+
+        <p class="field-hint" id="regHint"></p>
+
+        <button type="submit" class="auth-submit">注册</button>
+      </form>
+
+      <!-- ===== 找回密码 ===== -->
+      <form class="auth-form" id="forgotForm" data-panel="forgot">
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <input type="text" id="fpUsername" placeholder="请输入用户名">
+        </div>
+
+        <div class="field field-row">
+          <div class="field field-question">
+            <span class="field-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg>
+            </span>
+            <input type="text" id="fpQuestion" placeholder="密保问题（输入用户名后显示）" readonly>
+          </div>
+          <button type="button" class="auth-mini-btn" id="fpGetQuestion">获取密保</button>
+        </div>
+
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          </span>
+          <input type="text" id="fpAnswer" placeholder="密保答案">
+        </div>
+
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input type="password" id="fpNewPassword" placeholder="设置新密码" autocomplete="new-password">
+          <button type="button" class="field-toggle" id="fpPwdToggle" aria-label="显示密码">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p class="field-hint static">密码格式应为6-18位数字、字母、符号的任意两种组合</p>
+
+        <div class="field">
+          <span class="field-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <input type="password" id="fpNewPassword2" placeholder="确认新密码" autocomplete="new-password">
+        </div>
+
+        <p class="field-hint" id="fpHint"></p>
+
+        <button type="submit" class="auth-submit">重置密码</button>
+      </form>
+
+      <a href="index.html" class="auth-back-home">返回首页</a>
+
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="js/ripple.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

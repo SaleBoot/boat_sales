@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>船舶定制系统 | Maritime Atelier</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-inner">
+      <div class="nav-left-group">
+        <div class="nav-logo">
+          <span>船舶销售</span>
+        </div>
+        <button class="nav-console-btn" id="navConsoleBtn" onclick="window.location.href='members.html'" style="display:none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          返回控制台
+        </button>
+      </div>
+      <div class="nav-right">
+        <a href="admin.html" class="nav-admin-btn" id="navAdminBtn" style="display:none;">后台管理</a>
+        <button class="nav-login-btn" onclick="window.location.href='login.html'">登录</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-container">
+
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <button class="sidebar-item" onclick="window.location.href='customize.html'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 3.5L3.5 6.5L17.5 20.5L20.5 17.5Z" />
+            <path d="M5.5 5.5L7 7M8 8L9.5 9.5M11 11L12.5 12.5M14 14L15.5 15.5" />
+            <path d="M4 20L6 22L8 20L18 10L20 8L18 6L16 8L6 18L4 20Z" />
+            <path d="M6 18L8 20" />
+          </svg>
+          <span>定制船型</span>
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">船型筛选</div>
+
+        <div class="filter-tree" id="filterTree">
+
+          <!-- 全部:顶层单项(不展开) -->
+          <button class="filter-node filter-node--root active" data-level="all" data-kind="all">
+            <span class="filter-node__chevron filter-node__chevron--hidden" aria-hidden="true"></span>
+            <span class="filter-node__icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            </span>
+            <span class="filter-node__title">全部</span>
+          </button>
+
+          <!-- 民用休闲 -->
+          <div class="filter-group collapsed" data-group="leisure">
+            <button class="filter-node filter-node--group" data-kind="group" data-category="leisure" aria-expanded="false">
+              <span class="filter-node__chevron filter-node__chevron--open" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,2 7,5 3,8"/></svg>
+              </span>
+              <span class="filter-node__icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18 L3 13 C3 11 7 7 12 7 C17 7 21 11 21 13 L21 18"/><path d="M2 18 L22 18"/><path d="M7 13 L7 18"/><path d="M17 13 L17 18"/></svg>
+              </span>
+              <span class="filter-node__title">民用休闲</span>
+            </button>
+            <div class="filter-children">
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="leisure" data-subtype="luxury-yacht"><span class="filter-node__bullet"></span><span class="filter-node__title">豪华游艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="leisure" data-subtype="sport-yacht"><span class="filter-node__bullet"></span><span class="filter-node__title">运动游艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="leisure" data-subtype="speedboat"><span class="filter-node__bullet"></span><span class="filter-node__title">快艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="leisure" data-subtype="fishing"><span class="filter-node__bullet"></span><span class="filter-node__title">钓鱼艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="leisure" data-subtype="sailboat"><span class="filter-node__bullet"></span><span class="filter-node__title">帆船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="leisure" data-subtype="leisure-boat"><span class="filter-node__bullet"></span><span class="filter-node__title">休闲船</span></button>
+            </div>
+          </div>
+
+          <!-- 商用船 -->
+          <div class="filter-group collapsed" data-group="commercial">
+            <button class="filter-node filter-node--group" data-kind="group" data-category="commercial" aria-expanded="false">
+              <span class="filter-node__chevron filter-node__chevron--open" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,2 7,5 3,8"/></svg>
+              </span>
+              <span class="filter-node__icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20 L22 20"/><path d="M4 20 L4 16 L12 10 L20 16 L20 20"/><path d="M12 10 L12 4"/><path d="M10 6 L14 6"/><path d="M8 20 Q8 17 12 17 Q16 17 16 20"/></svg>
+              </span>
+              <span class="filter-node__title">商用船</span>
+            </button>
+            <div class="filter-children">
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="commercial" data-subtype="passenger"><span class="filter-node__bullet"></span><span class="filter-node__title">客船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="commercial" data-subtype="sightseeing"><span class="filter-node__bullet"></span><span class="filter-node__title">观光船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="commercial" data-subtype="transport"><span class="filter-node__bullet"></span><span class="filter-node__title">运输船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="commercial" data-subtype="fishing-commercial"><span class="filter-node__bullet"></span><span class="filter-node__title">渔船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="commercial" data-subtype="workboat"><span class="filter-node__bullet"></span><span class="filter-node__title">工作船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="commercial" data-subtype="engineering"><span class="filter-node__bullet"></span><span class="filter-node__title">工程船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="commercial" data-subtype="tugboat"><span class="filter-node__bullet"></span><span class="filter-node__title">拖船</span></button>
+            </div>
+          </div>
+
+          <!-- 公务船 -->
+          <div class="filter-group collapsed" data-group="government">
+            <button class="filter-node filter-node--group" data-kind="group" data-category="government" aria-expanded="false">
+              <span class="filter-node__chevron filter-node__chevron--open" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,2 7,5 3,8"/></svg>
+              </span>
+              <span class="filter-node__icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L20 6 L20 12 C20 16 16 20 12 22 C8 20 4 16 4 12 L4 6 Z"/><path d="M9 12 L11 14 L15 10"/><path d="M12 8 L12 10"/></svg>
+              </span>
+              <span class="filter-node__title">公务船</span>
+            </button>
+            <div class="filter-children">
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="government" data-subtype="patrol"><span class="filter-node__bullet"></span><span class="filter-node__title">巡逻艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="government" data-subtype="enforcement"><span class="filter-node__bullet"></span><span class="filter-node__title">执法艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="government" data-subtype="fireboat"><span class="filter-node__bullet"></span><span class="filter-node__title">消防船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="government" data-subtype="rescue"><span class="filter-node__bullet"></span><span class="filter-node__title">救援船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="government" data-subtype="pilot"><span class="filter-node__bullet"></span><span class="filter-node__title">引航艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="government" data-subtype="research"><span class="filter-node__bullet"></span><span class="filter-node__title">科考船</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="government" data-subtype="survey"><span class="filter-node__bullet"></span><span class="filter-node__title">测量船</span></button>
+            </div>
+          </div>
+
+          <!-- 军用船 -->
+          <div class="filter-group collapsed" data-group="military">
+            <button class="filter-node filter-node--group" data-kind="group" data-category="military" aria-expanded="false">
+              <span class="filter-node__chevron filter-node__chevron--open" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,2 7,5 3,8"/></svg>
+              </span>
+              <span class="filter-node__icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L22 8 L22 12 L20 12 L20 16 L18 16 L18 20 L6 20 L6 16 L4 16 L4 12 L2 12 L2 8 Z"/><path d="M12 2 L12 20"/><path d="M15 12 L18 12"/></svg>
+              </span>
+              <span class="filter-node__title">军用船</span>
+            </button>
+            <div class="filter-children">
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="military" data-subtype="patrol-mil"><span class="filter-node__bullet"></span><span class="filter-node__title">巡逻艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="military" data-subtype="interceptor"><span class="filter-node__bullet"></span><span class="filter-node__title">拦截艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="military" data-subtype="landing"><span class="filter-node__bullet"></span><span class="filter-node__title">登陆艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="military" data-subtype="transport-mil"><span class="filter-node__bullet"></span><span class="filter-node__title">运输艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="military" data-subtype="training"><span class="filter-node__bullet"></span><span class="filter-node__title">训练艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="military" data-subtype="support"><span class="filter-node__bullet"></span><span class="filter-node__title">保障艇</span></button>
+              <button class="filter-node filter-node--leaf" data-kind="leaf" data-category="military" data-subtype="unmanned"><span class="filter-node__bullet"></span><span class="filter-node__title">无人艇</span></button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </aside>
+
+    <section class="content-area" id="contentArea">
+
+      <div class="catalog-view" id="catalogView">
+        <div class="catalog-summary">
+          <div>
+            <strong>京穗船舶现有船型</strong>
+            <span>全部来自服务器现有模型资源</span>
+          </div>
+          <b id="catalogCount">正在读取...</b>
+        </div>
+        <div class="boat-grid" id="boatGrid">
+          <div class="loading-skeleton">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+        <div class="boat-pagination" id="boatPagination" style="display:none;"></div>
+      </div>
+
+    </section>
+  </main>
+
+  <div class="detail-overlay" id="detailOverlay">
+    <div class="detail-modal" id="detailModal"></div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

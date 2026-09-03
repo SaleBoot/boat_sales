@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>后台管理 | 船舶定制系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin-v2.css">
+  <script>
+    if (window.self !== window.top) document.documentElement.classList.add('embedded-admin');
+  </script>
+</head>
+<body class="admin-v2-body">
+  <nav class="top-nav admin-top-nav">
+    <div class="nav-inner">
+      <button class="ui-back-button" onclick="location.href='members.html'" aria-label="返回管理控制台">← 返回管理控制台</button>
+      <div class="nav-right"><span class="admin-identity">平台管理员</span><button class="ui-button ui-button--ghost" id="logoutBtn">退出登录</button></div>
+    </div>
+  </nav>
+
+  <main class="admin-v2-shell">
+    <header class="admin-v2-heading">
+      <div><span class="eyebrow">ADMIN</span><h1>厂家与船型管理</h1><p>船型按所属厂家管理；厂家端只浏览和申请绑定，所有船型资料、模型与定制选项均由平台维护。</p></div>
+      <button class="ui-button ui-button--primary" id="newBoatBtn">＋ 新增船型</button>
+    </header>
+
+    <div class="admin-v2-tabs" role="tablist">
+      <button class="active" data-panel="boats">船型管理</button>
+      <button data-panel="membership">会员升级申请</button>
+      <button data-panel="bindings">船型绑定申请</button>
+      <button data-panel="orders">定制订单</button>
+    </div>
+
+    <section class="admin-panel active" id="panel-boats">
+      <div class="admin-toolbar-v2">
+        <input id="boatSearch" type="search" placeholder="搜索厂家、船型、型号">
+        <label class="switch-label"><input type="checkbox" id="showArchived">显示已归档</label>
+        <span id="boatCount"></span>
+      </div>
+      <div id="shipyardHierarchy" class="shipyard-hierarchy"><div class="admin-loading-v2">正在加载厂家与船型…</div></div>
+    </section>
+
+    <section class="admin-panel" id="panel-membership">
+      <div class="panel-title-row"><div><h2>会员升级申请</h2><p>线下确认费用后，由平台设置等级和到期日期。</p></div><button class="ui-button ui-button--ghost" id="refreshMembership">刷新</button></div>
+      <div id="membershipRequests" class="table-card"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-bindings">
+      <div class="panel-title-row"><div><h2>船型绑定申请</h2><p>按整艘船占用会员额度；同一艘船的多个模型版本合计只占 1 艘。</p></div><button class="ui-button ui-button--ghost" id="refreshBindings">刷新</button></div>
+      <div id="bindingRequests" class="table-card"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-orders">
+      <div class="panel-title-row"><div><h2>定制订单</h2><p>保留现有订单与定制方案记录。</p></div></div>
+      <div class="table-card"><table class="admin-data-table"><thead><tr><th>订单号</th><th>客户</th><th>船型</th><th>外观</th><th>内饰</th><th>动力</th><th>智能系统</th><th>模拟基础价</th><th>选配合计</th><th>参考总价</th><th>时间</th><th>操作</th></tr></thead><tbody id="orderTableBody"><tr><td colspan="12">正在加载…</td></tr></tbody></table></div>
+    </section>
+  </main>
+
+  <div class="admin-modal-overlay" id="boatEditorOverlay" aria-hidden="true">
+    <section class="admin-modal admin-boat-editor" role="dialog" aria-modal="true" aria-labelledby="boatEditorTitle">
+      <header class="admin-modal-head"><div><span class="eyebrow">BOAT EDITOR</span><h2 id="boatEditorTitle">编辑船型</h2><p class="editor-head-help">按“基本资料 → 3D模型 → 定制配置”三步完成</p></div><button class="modal-icon-btn" id="closeBoatEditor" aria-label="关闭">×</button></header>
+      <form id="boatEditorForm" novalidate>
+        <input type="hidden" id="boatId">
+        <nav class="editor-step-nav" aria-label="船型编辑步骤">
+          <button type="button" class="active" data-editor-step="basic"><b>1</b><span>基本资料<small>厂家、名称与参数</small></span></button>
+          <button type="button" data-editor-step="model"><b>2</b><span>3D模型<small>上传、预览和入库</small></span></button>
+          <button type="button" data-editor-step="config"><b>3</b><span>定制配置<small>外观、内饰与智能系统</small></span></button>
+        </nav>
+        <div class="editor-scroll">
+          <section class="editor-section editor-step-panel active" data-editor-panel="basic"><div class="section-heading"><div><h3>基本资料</h3><span>带 * 的项目为必填，每艘船固定归属一家厂家</span></div></div>
+            <div class="form-grid form-grid--3">
+              <label>所属厂家 *<select id="editOwner" required></select></label>
+              <label>内部型号 *<input id="editShipId" required placeholder="例如 js119b"></label>
+              <label>船型名称 *<input id="editName" required placeholder="请输入对外展示名称"></label>
+              <label>大类 *<select id="editCategory" required></select></label>
+              <label>小类 *<select id="editSubtype" required></select></label>
+              <label>类型名称<input id="editTypeName"></label>
+              <label>船长<input id="editLength"></label>
+              <label>载客/载荷<input id="editCapacity"></label>
+              <label>极速<input id="editMaxSpeed"></label>
+              <label>模拟基础价（万元）<input id="editPrice" type="number" min="0" step="0.1" placeholder="例如 228"></label>
+            </div>
+            <div class="inline-actions">
+              <label class="switch-label"><input type="checkbox" id="editCustomizable">允许定制</label>
+              <label class="switch-label"><input type="checkbox" id="editPublished">网页上架</label>
+              <button type="button" class="ui-button ui-button--ghost" id="uploadImageBtn">选择封面图片</button><input type="file" id="imageFile" accept=".png,.jpg,.jpeg" hidden>
+            </div>
+            <details class="editor-advanced"><summary>更多资料（说明、特点和图片路径）</summary><div class="form-grid form-grid--3">
+              <label class="span-2">封面图片路径<input id="editImage"></label>
+              <label class="span-3">场景图片路径<input id="editSceneImage"></label>
+              <label class="span-3">船型说明<textarea id="editDescription" rows="3"></textarea></label>
+              <label class="span-3">特点（每行一项）<textarea id="editFeatures" rows="3"></textarea></label>
+            </div></details>
+          </section>
+
+          <section class="editor-section editor-step-panel" data-editor-panel="model">
+            <div class="section-heading"><div><h3>3D模型</h3><span>支持同时选择主模型、贴图和材质文件</span></div></div>
+            <div class="model-upload-card">
+              <div><b>上传新的3D模型</b><p>支持 FBX、GLTF、GLB、OBJ；有关联贴图、BIN 或 MTL 时请一起选择。</p><small>选择文件 → 在线预览 → 确认入库；展示视角在下一步配置</small></div>
+              <label class="ui-button ui-button--primary model-file-label" id="uploadModelBtn" for="modelFile" role="button" tabindex="0">选择3D模型文件</label>
+              <input type="file" id="modelFile" accept=".fbx,.gltf,.glb,.obj,.bin,.mtl,.png,.jpg,.jpeg,.webp,.tga,.bmp" multiple hidden>
+            </div>
+            <div class="saved-model-heading"><strong>已入库的模型版本</strong><span>展示视角在下一步“定制配置”中设置</span></div>
+            <div id="variantList" class="variant-list"></div>
+          </section>
+
+          <section class="editor-section editor-step-panel" data-editor-panel="config">
+            <div class="section-heading"><div><h3>定制配置</h3><span>每个页签可直接选择外观/船内视角并编辑该页视角；无人船可将“内饰”改为“智能系统”</span></div><button type="button" class="ui-button ui-button--ghost" id="addTabBtn">＋ 添加页签</button></div>
+            <div id="configTabEditor" class="config-tab-editor"></div>
+          </section>
+        </div>
+        <footer class="admin-modal-actions"><span id="editorStatus"></span><button type="button" class="ui-button ui-button--danger" id="archiveBoatBtn">归档船型</button><button type="button" class="ui-button ui-button--ghost" id="editorPrevBtn">上一步</button><button type="button" class="ui-button ui-button--ghost" id="editorNextBtn">下一步</button><button type="button" class="ui-button ui-button--ghost" id="cancelBoatEditor">取消</button><button type="submit" class="ui-button ui-button--primary" id="saveBoatBtn">保存并完成</button></footer>
+      </form>
+    </section>
+  </div>
+
+  <div class="admin-modal-overlay" id="modelPreviewOverlay" aria-hidden="true">
+    <section class="admin-modal model-preview-modal" role="dialog" aria-modal="true" aria-labelledby="modelPreviewTitle">
+      <header class="admin-modal-head"><div><span class="eyebrow">MODEL PREVIEW</span><h2 id="modelPreviewTitle">模型预览与展示视角</h2></div><button type="button" class="modal-icon-btn" id="closeModelPreview" aria-label="关闭">×</button></header>
+      <div class="model-preview-layout">
+        <div class="model-preview-stage"><iframe id="modelPreviewFrame" title="3D模型预览"></iframe><div class="model-preview-loading" id="modelPreviewLoading">正在解析模型与贴图…</div></div>
+        <aside class="model-preview-settings">
+          <label>模型版本名称<input id="previewVariantName" maxlength="80"></label>
+          <label class="view-edit-control">船头方向<select id="previewBowDirection"><option value="auto">自动识别（优先长轴正方向）</option><option value="-z">朝向 -Z</option><option value="+z">朝向 +Z</option><option value="+x">朝向 +X</option><option value="-x">朝向 -X</option></select></label>
+          <label class="switch-label"><input type="checkbox" id="previewDetailedInterior">该版本包含可查看内饰</label>
+          <div class="preview-help view-edit-control"><strong>设置展示视角</strong><p id="previewHelpText">先在左侧拖动旋转、滚轮缩放到合适位置，再保存。内饰视角请把镜头放在船舱内并朝向船头。</p></div>
+          <button type="button" class="ui-button ui-button--ghost view-edit-control" id="previewExteriorMode">切换到外观视角</button>
+          <button type="button" class="ui-button ui-button--ghost view-edit-control" id="saveExteriorPose">保存当前为外观视角</button>
+          <button type="button" class="ui-button ui-button--ghost view-edit-control" id="previewInteriorMode">切换到内饰视角</button>
+          <button type="button" class="ui-button ui-button--ghost view-edit-control" id="saveInteriorPose">保存当前为内饰视角</button>
+          <div class="preview-pose-status view-edit-control" id="previewPoseStatus">尚未保存自定义视角，将使用自动视角。</div>
+        </aside>
+      </div>
+      <footer class="admin-modal-actions"><span id="modelPreviewStatus">模型仅为暂存，确认前不会写入数据库</span><button type="button" class="ui-button ui-button--ghost" id="cancelModelPreview">取消</button><button type="button" class="ui-button ui-button--primary" id="confirmModelPreview" disabled>确认并存入数据库</button></footer>
+    </section>
+  </div>
+
+  <div class="admin-toast" id="adminToast"></div>
+  <script src="js/admin.js"></script>
+</body>
+</html>

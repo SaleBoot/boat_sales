@@ -1,0 +1,181 @@
+{
+    "version": "1",
+    "generatedAtUtc": "2026-08-31T06:44:00.6563770Z",
+    "entries": [
+        {
+            "variantId": "js108_standard",
+            "version": "2fe81e13bbe1602b",
+            "file": "js108_standard.bundle",
+            "size": 10648506,
+            "sha256": "2fe81e13bbe1602b4c859c0323549f0250a4441c54087502ccff6c183b1f2ed9"
+        },
+        {
+            "variantId": "js119b_default",
+            "version": "35221caac63a3ad6",
+            "file": "js119b_default.bundle",
+            "size": 8904796,
+            "sha256": "35221caac63a3ad6e3f36e865856801ecfddb9b7c2508326c4a612ecba6d2fcc"
+        },
+        {
+            "variantId": "js11_standard",
+            "version": "f442c7ed223a0998",
+            "file": "js11_standard.bundle",
+            "size": 9322040,
+            "sha256": "f442c7ed223a0998fdff55d1cfd0d0e4ca58d8988185c56fc4686de25085dd7a"
+        },
+        {
+            "variantId": "js1300x_exterior",
+            "version": "8347d4e097c16783",
+            "file": "js1300x_exterior.bundle",
+            "size": 9244549,
+            "sha256": "8347d4e097c167835c738b020bef2bc074ae974895f07dd730696addf32f39a7"
+        },
+        {
+            "variantId": "js1300x_interior",
+            "version": "68a84a4fe9b6cb64",
+            "file": "js1300x_interior.bundle",
+            "size": 20852658,
+            "sha256": "68a84a4fe9b6cb64e1adc0a6c1e80c1318b81d46c3658bf2665c9a83fc575e20"
+        },
+        {
+            "variantId": "barge40_standard",
+            "version": "a83162590a300867",
+            "file": "barge40_standard.bundle",
+            "size": 12906218,
+            "sha256": "a83162590a300867ffac62bb8dfd10b657f6b4e9eceedbcad0e96f59591808d3"
+        },
+        {
+            "variantId": "js57_standard",
+            "version": "d96a3f3d6a04884f",
+            "file": "js57_standard.bundle",
+            "size": 8888633,
+            "sha256": "d96a3f3d6a04884fda47e8b0c8d83aee5d6d7c19a56072ea26ad368d1d58c8c0"
+        },
+        {
+            "variantId": "js580w_standard",
+            "version": "07921ecf9a5589ac",
+            "file": "js580w_standard.bundle",
+            "size": 10467619,
+            "sha256": "07921ecf9a5589ac07126783a0cb16758640a611ff226180204c1a56b512101b"
+        },
+        {
+            "variantId": "js655_standard",
+            "version": "c80f92c5589227e0",
+            "file": "js655_standard.bundle",
+            "size": 14099185,
+            "sha256": "c80f92c5589227e0b09003c0d7a3069cb4991b506cb7ce9641e8be903c7f245e"
+        },
+        {
+            "variantId": "js78_standard",
+            "version": "0b246d1e41ce2183",
+            "file": "js78_standard.bundle",
+            "size": 6599823,
+            "sha256": "0b246d1e41ce2183b99817dd1018506b608d906371277b0e646eb28d36952b77"
+        },
+        {
+            "variantId": "js828b_default",
+            "version": "31b71363086fa643",
+            "file": "js828b_default.bundle",
+            "size": 9178785,
+            "sha256": "31b71363086fa643c27f940baee365e8cfd8cd822c80ee0a6664a31c0c992321"
+        },
+        {
+            "variantId": "js950_retro",
+            "version": "0f55e68bcccb3be1",
+            "file": "js950_retro.bundle",
+            "size": 10889888,
+            "sha256": "0f55e68bcccb3be1aff5360cad888b22ee8f5b955fcd1c6d798b32a811976a3e"
+        },
+        {
+            "variantId": "js950_modern_a",
+            "version": "0eda9099bd79a07d",
+            "file": "js950_modern_a.bundle",
+            "size": 14294996,
+            "sha256": "0eda9099bd79a07d150b73431a52c4c9d5f71758fdc96db8f409c2905ef1abf1"
+        },
+        {
+            "variantId": "js950_modern_b",
+            "version": "3fdb61b745bada56",
+            "file": "js950_modern_b.bundle",
+            "size": 25327927,
+            "sha256": "3fdb61b745bada56fe98747ce0d42a555836ceb42b6aa21a829758e7a16a3808"
+        },
+        {
+            "variantId": "js1198_standard",
+            "version": "572b082d40562b56",
+            "file": "js1198_standard.bundle",
+            "size": 8223427,
+            "sha256": "572b082d40562b56656b5bff571a09083682a68e6e23bda99ab5f103b32349c0"
+        },
+        {
+            "variantId": "js1398_exterior",
+            "version": "6e1fe6dd0fbc6939",
+            "file": "js1398_exterior.bundle",
+            "size": 9769844,
+            "sha256": "6e1fe6dd0fbc69394b582d09b1914d1b3bddd86ee65ad8527f39da2ea4d41b9c"
+        },
+        {
+            "variantId": "js1398_interior",
+            "version": "c1b0ba0a8c8ea76b",
+            "file": "js1398_interior.bundle",
+            "size": 39395001,
+            "sha256": "c1b0ba0a8c8ea76b534d671382959a525caa22ee119f03dce6f16dd518b2fd9b"
+        },
+        {
+            "variantId": "js1588_standard",
+            "version": "087087f8d05f359a",
+            "file": "js1588_standard.bundle",
+            "size": 9496250,
+            "sha256": "087087f8d05f359ad363c208957f30f725824859e5e788388e8ac67c8864f5d0"
+        },
+        {
+            "variantId": "js4028_base",
+            "version": "b38aa3d04bdc89bb",
+            "file": "js4028_base.bundle",
+            "size": 7867454,
+            "sha256": "b38aa3d04bdc89bb523d91564c74770db9f56e3706e2fcfa2a353cc69016a75c"
+        },
+        {
+            "variantId": "js4028_interior_a",
+            "version": "94db2e3d9255a525",
+            "file": "js4028_interior_a.bundle",
+            "size": 21643159,
+            "sha256": "94db2e3d9255a5255098358f1ad9bb1f1f9884d410c1c6c2494f2f11fe13f680"
+        },
+        {
+            "variantId": "js4028_interior_b",
+            "version": "a8b2d97736dcbf80",
+            "file": "js4028_interior_b.bundle",
+            "size": 30280769,
+            "sha256": "a8b2d97736dcbf8085c10c864b19101d7c977b60b84d19fcc3e7874b74269afe"
+        },
+        {
+            "variantId": "js4028_interior_c",
+            "version": "0cc951fb3d4827b2",
+            "file": "js4028_interior_c.bundle",
+            "size": 27412348,
+            "sha256": "0cc951fb3d4827b2c7f7cdca012e259d6458e9b55c36e56f54c385965ac5d9a9"
+        },
+        {
+            "variantId": "pwc_standard",
+            "version": "4cdc231b37f51286",
+            "file": "pwc_standard.bundle",
+            "size": 6463527,
+            "sha256": "4cdc231b37f5128640696a5562ebb515396179c233cd37f8eb949c8cce6ce438"
+        },
+        {
+            "variantId": "usv1_standard",
+            "version": "d6532d3e8fe0a959",
+            "file": "usv1_standard.bundle",
+            "size": 8272925,
+            "sha256": "d6532d3e8fe0a9596a3d2a76500ccf3b18f4ce4d454320e3c2acb3cadf8eb8f3"
+        },
+        {
+            "variantId": "usv2_standard",
+            "version": "4f390e01f6087724",
+            "file": "usv2_standard.bundle",
+            "size": 12373857,
+            "sha256": "4f390e01f6087724b3950fbcf5f327d5dea34257f1462064c751228fe63220b3"
+        }
+    ]
+}

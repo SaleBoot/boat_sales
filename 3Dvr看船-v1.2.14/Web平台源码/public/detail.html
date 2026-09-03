@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>船型详情 | 船舶销售</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    if (window.self !== window.top) {
+      document.addEventListener('DOMContentLoaded', function () {
+        var nav = document.querySelector('.top-nav');
+        if (nav) nav.style.display = 'none';
+        var page = document.querySelector('.config-page');
+        if (page) { page.style.marginTop = '0'; page.style.height = '100vh'; }
+      });
+    }
+  </script>
+</head>
+
+  <nav class="top-nav">
+    <div class="nav-inner">
+      <div class="nav-left-group">
+        <div class="nav-logo" onclick="window.location.href='index.html'">
+          <span>船舶销售</span>
+        </div>
+        <button class="nav-console-btn" id="navConsoleBtn" onclick="window.location.href='members.html'" style="display:none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          返回控制台
+        </button>
+      </div>
+      <div class="nav-right">
+        <a href="admin.html" class="nav-admin-btn" id="navAdminBtn" style="display:none;">后台管理</a>
+        <button class="nav-login-btn" id="detailIdentityBtn" style="display:none;"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="config-page">
+    <div class="detail-back-bar">
+      <button class="back-btn" onclick="returnToCatalog()">
+        <svg width="28" height="28" viewBox="0 0 20 20" fill="none">
+          <path d="M12 16L6 10L12 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        返回上一步
+      </button>
+    </div>
+
+    <div class="config-layout" id="configLayout">
+      <div class="detail-loading">加载中...<span id="loadingTimer" style="opacity:.7;margin-left:8px;">(0s)</span></div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="customer-order-overlay" id="customerOrderOverlay" aria-hidden="true">
+    <form class="customer-order-dialog" id="customerOrderForm">
+      <header><div><small>CUSTOMER INFORMATION</small><h2>提交定制方案</h2><p>请留下联系方式，平台将根据所选配置与您联系。</p></div><button type="button" id="closeCustomerOrder" aria-label="关闭">×</button></header>
+      <label>客户姓名 <b>*</b><input name="customerName" maxlength="40" autocomplete="name" required placeholder="请输入姓名"></label>
+      <label>联系电话 <b>*</b><input name="customerPhone" maxlength="40" autocomplete="tel" required placeholder="手机号或其他联系方式"></label>
+      <label>备注<textarea name="customerNote" maxlength="500" rows="3" placeholder="可填写用途、交付时间或其他需求"></textarea></label>
+      <footer><button type="button" class="customer-order-cancel" id="cancelCustomerOrder">取消</button><button type="submit" class="customer-order-confirm" id="confirmCustomerOrder">确认提交</button></footer>
+    </form>
+  </div>
+
+  <script>
+    // 管理员登录态：显示「返回控制台」按钮
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('auth_user'));
+        if (s && (s.role === 'admin' || s.role === 'platform_admin')) {
+          var btn = document.getElementById('navConsoleBtn');
+          if (btn) btn.style.display = 'inline-flex';
+          var adminBtn = document.getElementById('navAdminBtn');
+          if (adminBtn) adminBtn.style.display = 'inline-flex';
+        } else if (s && (s.role === 'shipyard_owner' || s.role === 'sales')) {
+          var shipBtn = document.getElementById('navConsoleBtn');
+          if (shipBtn) { shipBtn.style.display = 'inline-flex'; shipBtn.onclick = function(){ location.href='shipyard.html'; }; }
+        }
+        if (s) {
+          var identity = document.getElementById('detailIdentityBtn');
+          if (identity) {
+            identity.style.display = 'inline-flex';
+            identity.textContent = (s.role === 'platform_admin' || s.role === 'admin') ? '平台管理员' : s.role === 'shipyard_owner' ? (s.shipyardName || '厂家控制台') : (s.displayName || '销售人员');
+            identity.onclick = function(){ location.href = (s.role === 'platform_admin' || s.role === 'admin') ? 'members.html' : 'shipyard.html'; };
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <script>
+    // 加载超时兜底:15 秒仍未初始化,给出错误提示,避免一直白屏
+    (function () {
+      var sec = 0;
+      var timerEl = document.getElementById('loadingTimer');
+      var tick = setInterval(function () {
+        sec++;
+        if (timerEl) timerEl.textContent = '(' + sec + 's)';
+      }, 1000);
+      window.__detailBootTimer = setTimeout(function () {
+        if (window.__detailInitialized) return;
+        clearInterval(tick);
+        var el = document.getElementById('configLayout');
+        if (!el) return;
+        el.innerHTML = [
+          '<p class="detail-error">页面初始化超时,请尝试以下操作:</p>',
+          '<ol style="margin:8px 0 0 20px;line-height:1.8;color:#555;">',
+          '<li>按 <b>F5</b> 或 <b>Ctrl+R</b> 刷新页面</li>',
+          '<li>打开浏览器控制台(F12)查看 Network 是否报错(多为 CDN 加载 three.js 失败)</li>',
+          '<li>临时切换网络环境再重试</li>',
+          '</ol>',
+          '<div style="margin-top:12px;"><button onclick="location.reload()" class="detail-loading-retry">重试</button></div>'
+        ].join('');
+      }, 15000);
+      window.__detailBootClear = function () {
+        clearInterval(tick);
+        clearTimeout(window.__detailBootTimer);
+      };
+    })();
+  </script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/detail.js"></script>
+
+</body>
+</html>

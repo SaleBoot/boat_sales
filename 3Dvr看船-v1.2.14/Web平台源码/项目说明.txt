@@ -1,0 +1,1290 @@
+========================================
+    船舶定制系统 - 项目说明
+    Maritime Atelier Yacht Customization
+========================================
+
+【项目概述】
+本系统是一个船舶展示与定制平台，参考苹果公司的设计理念，
+采用简洁、克制、注重排版与留白的视觉风格。
+用户可以浏览六款精选船型，查看详细参数，
+或进入三步定制流程，打造专属海上座驾。
+
+【设计理念】
+- 视觉风格：Apple Design Language
+- 字体体系：SF Pro Display / PingFang SC
+- 配色方案：以 #0071e3（Apple Blue）为主色调，
+  背景采用 #fbfbfd / #f5f5f7 双层灰白
+- 动效语言：cubic-bezier 缓动曲线，卡片渐入、
+  悬停浮起、磨砂玻璃导航栏
+- 响应式：支持桌面、平板、移动端三档断点
+
+【技术栈】
+- 前端：HTML5 + CSS3 + Vanilla JavaScript（无框架依赖）
+- 后端：Node.js + Express
+- 通信：RESTful JSON API
+
+【目录结构】
+船舶定制系统/
+├── server.js              → Express 后端服务器
+├── package.json           → 项目依赖与脚本
+├── 项目说明.txt           → 本文件
+└── public/                → 前端静态资源
+    ├── index.html         → 页面入口
+    ├── css/
+    │   └── style.css      → Apple 风格样式
+    ├── js/
+    │   └── app.js         → 前端交互逻辑
+    └── assets/            → 静态资源目录
+
+【API 接口】
+1. GET  /api/boats            → 获取全部船型（支持 ?type= 筛选）
+2. GET  /api/boats/:id        → 获取单个船型详情
+3. GET  /api/customize/options → 获取定制选项（颜色/内饰/动力/附加配置）
+4. POST /api/customize         → 提交定制方案，返回订单号与总价
+5. GET  /api/health            → 健康检查
+
+【船型数据】
+1. Azure Flybridge    - 飞桥豪华游艇  - 18.5米 - ¥2,800万
+2. Velocity Sport     - 运动快艇      - 12.8米 - ¥980万
+3. Island Catamaran   - 双体游艇      - 15.2米 - ¥1,950万
+4. Pathfinder Explorer - 探险游艇    - 24.0米 - ¥4,600万
+5. Heritage Classic   - 经典游艇      - 16.5米 - ¥1,680万
+6. Majesty Supreme    - 超级豪华游艇  - 30.0米 - ¥7,200万
+
+【启动方式】
+1. 进入项目目录：cd 船舶定制系统
+2. 安装依赖：npm install
+3. 启动服务：npm start
+4. 浏览器访问：http://localhost:3000
+
+【功能说明】
+- 船型浏览：左侧导航「船型」→ 网格展示，点击卡片查看详情
+- 船型筛选：侧边栏按类型筛选（飞桥/运动/双体/探险/经典/豪华）
+- 定制流程：左侧导航「定制船型」→ 三步向导
+  步骤1：选择基础船型
+  步骤2：配置船体颜色、内饰风格、动力系统、附加配置
+  步骤3：确认方案，查看总价，提交生成订单号
+- 详情弹窗：点击任意船型卡片，弹出磨砂玻璃模态框
+
+【环境要求】
+- Node.js >= 14.0.0
+- 现代浏览器（Chrome / Safari / Edge / Firefox）
+
+【修改日志】
+==============================
+2026-08-29  3D 模型预览集成 & 船体颜色扩展
+------------------------------
+【3D 模型预览 - 详情页 3D 模型替换静态图片】
+参考 D:\Users\Lenovo\Desktop\3Dboat 项目技术栈（Three.js 0.160 + FBXLoader + OrbitControls +
+自定义海水着色器），将船舶定制系统详情页的"3D模型预览"位置从静态图片替换为真实 WebGL
+3D 场景，并自动按船型加载对应 FBX 模型：
+
+  1. 新增文件
+     - public/js/Scene.js  : 基于 3Dboat/Scene.js 改造的 Three.js 场景类
+       · 构造函数接收容器 DOM（而非全屏），按容器尺寸自适应渲染
+       · 资源路径适配：FBX → /FBX/ 、天空背景 → /assets/sky/sky.png
+       · 新增 destroy() 方法，切换船型时统一回收 WebGL 资源
+       · 包含：天空背景贴图、12 方向波 + 洋流 + 噪声的海水 ShaderMaterial、
+         500 个水花粒子系统、指数雾、环境光+方向光+补光+背光多光源系统、
+         OrbitControls 拖拽旋转/缩放（开启 damping）、自动缩放居中 FBX 模型、
+         LoadingManager 自动修正贴图路径
+     - public/assets/sky/sky.png : 从 3Dboat/sky/ 复制的天空全景图
+
+  2. server.js 变更
+     - 新增 /FBX 静态路由：app.use('/FBX', express.static(path.join(__dirname, 'FBX')))
+       让前端可直接访问项目根 FBX 目录下的 23 个 .fbx 模型文件与贴图
+     - boats 数组每条船型数据增加 modelFile 字段，一对一映射到对应 FBX：
+       · 海卫一号（应急救援船）     → 4028sites01.fbx
+       · 绿动先锋（新能源船）       → 1588sites01.fbx
+       · 执法者号（公务执法艇）     → 950sites01.fbx
+       · Azure Flybridge（游艇）    → 1398sites01.fbx
+       · Majesty Supreme（超级游艇）→ 1198sites01.fbx
+       · 智航者号（无人船）         → wuren1sites01.fbx
+
+  3. public/detail.html 变更
+     - 在 </body> 之前新增 Three.js importmap（使用 unpkg CDN 加载 three@0.160.0
+       以及 controls/loaders 等 addons），并将 <script src="js/detail.js">
+       改为 <script type="module" src="js/detail.js"> 以支持 ES Module
+
+  4. public/js/detail.js 变更
+     - 顶部 import Scene from './Scene.js'
+     - renderConfigPage() 中原先 <img class="config-model-img"> 占位改为
+       16:10 圆角容器（#model3dContainer）+ 带 spinner 的加载遮罩
+       + "3D模型预览"标签（保持视觉一致）
+     - 新增 scene3d 全局变量与 init3DScene() 函数：页面渲染完成后在
+       requestAnimationFrame 中创建 Scene 实例，并根据 boatData.modelFile
+       调用 scene.loadFBXFromUrl('/FBX/xxx.fbx') 加载模型，1.5s 后淡出
+       加载遮罩；再次调用 renderConfigPage 时会 scene3d.destroy() 清理
+     - 底部挂载 window.switchTab / window.selectConfig / window.submitConfig
+       以兼容 ES Module 作用域隔离后 HTML inline onclick 的调用
+
+  5. 前端视觉 / 交互效果（已在 http://localhost:3000/detail.html?id=1/2/3/4/5/6 验证）
+     - 原图位置显示真实 3D 画面：蓝天渐变全景背景、动态海水（波峰泡沫 +
+       波光亮点 + 三层深浅蓝渐变）、500 个随机水花粒子、雾效消隐
+     - FBX 模型浮于海面，自动 Box3 居中+缩放，贴合水面高度
+     - 鼠标拖拽旋转视角、滚轮缩放，控制阻尼平滑
+     - 控制台无报错，FBX / sky.png / Three.js 模块全部 200 成功下载
+
+【船体颜色 - 外观 Tab 增加炽焰红、流金黄两种涂装】
+在 server.js customizationOptions.hullColors 数组内追加两条色卡：
+  · { name: '炽焰红', hex: '#E63946' }  — 火焰般的鲜明红色
+  · { name: '流金黄', hex: '#FFB300' }  — 明亮流动感的金黄色
+前端 detail.js 的 renderTabContent('hullColor') 原本就遍历 hullColors 生成
+2 列色块卡片（config-option-grid + color-swatch），无需改动即可展示，
+现在船体颜色从 6 种增加到 8 种（4 行 x 2 列），选中状态、价格计算、
+提交定制方案时 hullColor 字段写入订单逻辑全部自动兼容。
+
+  - 最终顺序：极地白、远洋银、破浪青、深渊蓝、曙光金、炽焰红、流金黄、暮夜黑
+==============================
+
+==============================
+2026-08-31  用户登录 / 注册 / 找回密码 系统
+------------------------------
+参考教育征订后台登录页设计，重构船舶定制系统用户登录界面，并补齐
+账号注册与密码找回功能，全部接口已通过测试。
+
+  1. 后端 server.js 新增
+     - 引入 crypto 模块，用户数据持久化到 users.json（scrypt 加盐哈希）
+     - GET  /api/auth/questions        → 返回密保问题列表
+     - POST /api/auth/register          → 注册（用户名/密码/密保问题/密保答案）
+     - POST /api/auth/login             → 登录校验，返回 {id,username,role}
+     - POST /api/auth/security-question → 按用户名获取密保问题（找回密码第一步）
+     - POST /api/auth/reset-password    → 校验密保答案后重置密码
+     - GET  /api/auth/check-username    → 用户名占用检查
+     - 首次启动自动种入管理员 admin / admin123（密保答案「海洋小学」）
+     - 密码强度规则：6-18 位，数字/字母/符号至少两种组合
+
+  2. 新增登录页 public/login.html + css/login.css + js/auth.js
+     - 左侧蓝色渐变波浪 + 四个角色插画（紫/黑/橙/黄），右侧三 Tab 表单
+     - 账号登录：用户名 + 密码（眼睛图标显隐）+ Canvas 图形验证码 + 登录按钮
+     - 验证码登录：演示模式，本地生成 6 位短信码并提示（真实环境接短信）
+     - 注册：用户名/密码/确认密码/密保问题下拉/密保答案
+     - 找回密码：输入用户名 → 获取密保问题 → 回答答案 → 设置新密码
+     - 登录成功后管理员跳转 members.html，普通用户跳转 index.html
+
+  3. 首页集成 index.html + js/app.js
+     - 登录按钮改为跳转 login.html，移除旧登录弹窗
+     - 登录态用 localStorage 保存，导航栏显示用户名、点击退出
+
+==============================
+2026-08-31  会员管理界面（管理员控制台）
+------------------------------
+参考玄坛 CRM 客户列表布局，新增管理员专属会员管理页面，
+配色沿用 B 端黑白灰体系（--accent #111827），未引入蓝色。
+
+  1. 后端 server.js 新增会员管理接口
+     - 用户记录扩展资料字段：意向船型/意向度/联系电话/归属顾问/来源/状态
+     - GET  /api/admin/members         → 会员列表（关键词/角色/意向度/状态筛选 + 分页）
+     - POST /api/admin/members         → 管理员新增会员（创建账号 + 资料）
+     - PUT  /api/admin/members/:id     → 编辑会员资料（含重置密码）
+     - DELETE /api/admin/members/:id  → 删除会员（管理员账号受保护不可删）
+     - POST /api/admin/members/batch  → 批量禁用/启用/删除
+     - 列表返回脱敏 DTO，不暴露 salt / passwordHash / securityAnswer
+
+  2. 新增 members.html + css/members.css + js/members.js
+     - 左侧分组侧边栏（会员管理/订单管理/系统设置），B 端灰底高亮选中态
+     - 顶部标题 + 范围下拉、筛选栏（关键词/角色/意向度/状态/注册日期 + 搜索/重置）
+     - 数据表格：复选框|会员ID|用户名|角色|意向船型|意向度|联系电话|归属顾问|
+       来源|注册时间|状态|操作（详情/编辑/删除）
+     - 行选择与全选、批量禁用/启用/删除、分页导航
+     - 新增/编辑弹窗（用户名/密码/电话/意向船型/意向度/状态/顾问/来源）
+     - 会员详情弹窗
+     - 管理员权限守卫：非 admin 访问自动跳转登录页
+
+  3. admin.html 导航新增「会员管理」入口
+
+==============================
+2026-08-31  Bug 修复：返回控制台 / 弹窗文字 / 页码显示 / 弹窗关闭
+------------------------------
+  1. 修复 --white CSS 变量缺失（根因）
+     - style.css :root 从未定义 --white，却被 .toast / .page-num.active /
+       .hero-title / .nav-login-btn 等多处引用
+     - 影响：Toast 提示文字在深色底上几乎不可见（弹窗文字看不清）；
+       当前页码数字在深色圆底上不可见（页码显示不全）
+     - 修复：:root 新增 --white: #ffffff，所有引用立即恢复正常对比度
+
+  2. 新增「返回控制台」按钮
+     - 管理员登录后在前台 index.html / detail.html 时，导航栏「船舶销售」
+       旁显示「返回控制台」按钮，点击跳转 members.html
+     - 仅 role===admin 时显示；app.js updateLoginState() 控制显隐
+     - detail.html 内联脚本读取 localStorage 登录态控制显隐
+     - style.css 新增 .nav-console-btn 样式（灰底 pill，hover 反色）
+
+  3. 修复会员管理弹窗关闭 Bug
+     - members.js 中点击遮罩或按 ESC 仅移除 .show 类，未重置 display，
+       导致半透明遮罩残留、遮挡页面后续点击
+     - 修复：遮罩点击与 ESC 改为调用 closeModal(id)，正确执行淡出后
+       display:none，彻底移除遮挡
+==============================
+
+==============================
+2026-08-31  导航栏样式统一：船舶销售 & 返回控制台
+------------------------------
+  问题：「船舶销售」(.nav-logo) 与「返回控制台」(.nav-console-btn) 两个
+  按钮的字体大小、字重、内边距、圆角、背景色、阴影均不一致，且因
+  nav-inner 使用 justify-content:space-between 导致两按钮被分散到
+  导航栏两端，与参考图（左侧并排排列）不符。
+
+  修复：
+  1. style.css — .nav-console-btn 样式与 .nav-logo 完全统一
+     - font-size: 0.8125rem → 15px
+     - font-weight: 500 → 700
+     - padding: 6px 16px → 8px 18px
+     - border-radius: var(--radius-pill) → var(--radius-md)
+     - background: var(--bg-subtle) → var(--bg-primary)
+     - color: var(--accent) → var(--text-primary)
+     - 新增 box-shadow: var(--shadow-sm)、letter-spacing: -0.012em
+     - hover 由"反色填充"改为与 .nav-logo 一致的"加深边框+提升阴影"
+     - SVG 图标尺寸 14×14 → 16×16，与 15px 字体更协调
+
+  2. style.css — 新增 .nav-left-group 容器
+     - display:flex; align-items:center; gap:10px
+     - 将「船舶销售」与「返回控制台」包裹在同一 flex 容器内，
+       确保两按钮在 nav-inner 的 space-between 布局下始终并排靠左
+
+  3. index.html / detail.html — 用 .nav-left-group 包裹两按钮
+     - index.html: nav-logo + nav-console-btn 包入 <div class="nav-left-group">
+     - detail.html: 同上，保持两页面导航栏结构完全一致
+
+  涉及文件：style.css / index.html / detail.html
+==============================
+
+==============================
+2026-08-31  侧边栏面板切换：点击菜单保留侧栏 + 右侧内容切换
+------------------------------
+  问题：点击侧边栏菜单项时，「定制订单」跳转到 admin.html 导致侧栏
+ 消失，「公海会员」「权限管理」仅弹出 toast「开发中」，「工作台」
+  无反应。用户希望侧边栏始终保留，所有内容在右侧面板内切换。
+
+  修复：
+  1. members.html — 侧栏按钮统一 data-nav 属性
+     - 「工作台」新增 data-nav="dashboard"
+     - 「定制订单」从 onclick="window.location.href='admin.html'" 改为
+       data-nav="orders"（不再跳转离开页面）
+     - 所有侧栏按钮均使用 data-nav，由 JS 统一处理面板切换
+
+  2. members.html — 主内容区拆分为多面板
+     - 原会员列表内容包裹在 <div class="mem-panel active" id="panel-members">
+     - 新增工作台面板 #panel-dashboard（4 张统计卡片：会员总数/正常会员/
+       定制订单/船型数量 + 占位提示）
+     - 新增公海会员面板 #panel-public-pool（占位内容，含图标与说明文字）
+     - 新增定制订单面板 #panel-orders（占位内容）
+     - 新增权限管理面板 #panel-permission（占位内容）
+
+  3. members.js — initSidebarNav 重写为面板切换
+     - 新增 switchPanel(nav, btn)：切换侧栏高亮 + 显隐对应面板
+     - 切换到「会员列表」时重新 loadMembers() 刷新数据
+     - 切换到「工作台」时调用 loadDashboard() 异步加载统计数据
+     - 新增 loadDashboard()：拉取 /api/admin/members 获取会员总数与正常
+       会员数，/api/boats 获取船型数量，/api/customize/orders 获取订单数
+       （接口不存在时优雅降级为 0）
+
+  4. members.css — 新增面板切换与卡片样式
+     - .mem-panel { display:none } / .mem-panel.active { display:flex }
+     - .mem-cards 网格布局 + .mem-card 统计卡片（图标+标签+数值）
+     - .mem-placeholder 占位内容样式（居中虚线边框+图标+文字说明）
+
+  涉及文件：members.html / members.js / members.css
+==============================
+
+==============================
+2026-08-31  侧边栏新增「后台管理」入口（iframe 嵌入）
+------------------------------
+  需求：将后台管理（admin.html 的船型与订单管理）加入左侧侧边栏，
+  点击后侧栏保留，内容在右侧面板内展示。
+
+  修复：
+  1. members.html — 侧边栏「系统设置」分组新增「后台管理」按钮
+     - data-nav="admin"，与其他菜单项统一交互模式
+     - 排列顺序：后台管理 → 权限管理
+
+  2. members.html — 新增 #panel-admin 面板
+     - 面板内嵌 <iframe class="mem-admin-frame">，data-src="admin.html"
+     - 懒加载：仅当切换到该面板时才设置 iframe.src，避免预加载浪费
+
+  3. members.js — switchPanel() 新增 admin 分支
+     - 切换到 admin 面板时，将 iframe 的 data-src 写入 src 触发加载
+     - 加载后清空 data-src 防止重复加载
+
+  4. members.css — 新增 .mem-admin-frame 样式
+     - flex:1 撑满面板剩余空间，min-height:600px 保证可用高度
+     - 圆角边框 + 阴影，与页面其他卡片视觉统一
+
+  5. admin.html — 嵌入时隐藏自身顶部导航栏
+     - 新增内联脚本检测 window.self !== window.top（即被 iframe 嵌入）
+     - 若为嵌入模式：隐藏 .top-nav，.admin-page margin-top 归零
+
+  涉及文件：members.html / members.js / members.css / admin.html
+==============================
+
+==============================
+2026-08-31  移除 members.html 顶部「后台管理」按钮
+------------------------------
+  需求：后台管理已加入左侧侧边栏，顶部导航的「后台管理」按钮冗余，
+  予以移除。
+
+  修复：
+  1. members.html — 顶部 nav-right 中删除
+     <a href="admin.html" class="nav-admin-btn">后台管理</a>
+     保留「返回前台」按钮和用户名标签
+
+  涉及文件：members.html
+==============================
+
+==============================
+2026-08-31  移除 members.html 左上角「船舶销售」按钮
+------------------------------
+  需求：members.html 顶部导航栏左上角「船舶销售」按钮与侧边栏功能重叠，
+  予以移除，保持导航简洁。
+
+  修复：
+  1. members.html — 顶部 nav-inner 中删除
+     <div class="nav-logo" onclick="window.location.href='index.html'">
+       <span>船舶销售</span>
+     </div>
+     保留右侧「返回前台」按钮和用户名标签
+
+  涉及文件：members.html
+==============================
+
+==============================
+2026-08-31  顶部导航优化：返回按钮醒目化 + 用户头像化
+------------------------------
+  需求：「返回前台」文字改为「返回」并更醒目；admin 用户名移到
+  最右侧，样式改为圆形头像（首字母）。
+
+  修复：
+  1. members.html — 顶部导航重构
+     - 「返回前台」改为「返回」，加左箭头图标，class 改为 .nav-back-btn
+     - <span class="nav-user-name"> 改为 <div class="nav-user-avatar">
+       圆形头像容器
+
+  2. members.css — 新增 .nav-back-btn 样式
+     - 黑底白字（var(--accent)）、font-weight:600、带箭头图标
+     - hover 加深为 var(--accent-hover)，比旧 .nav-admin-btn 更醒目
+
+  3. members.css — 新增 .nav-user-avatar 样式
+     - 34×34 圆形头像，黑底白字，首字母居中
+     - border:2px solid 白底 + box-shadow 增加层次感
+     - hover 加深背景 + 提升阴影
+
+  4. members.js — navUserName 改为设置首字母
+     - 取 session.username 首字母大写写入头像
+     - title 属性写入完整用户名（hover 显示）
+
+  涉及文件：members.html / members.css / members.js
+==============================
+
+==============================
+2026-08-31  修复 members.html 顶部导航右对齐
+------------------------------
+  问题：移除左上角「船舶销售」logo 后，nav-inner 仅剩 .nav-right 一个
+  子元素，justify-content:space-between 将其推到左侧，导致「返回」按钮
+  和头像都挤在左上角，未靠右显示。
+
+  修复：
+  1. members.css — 新增规则
+     .nav-inner > .nav-right { margin-left: auto; }
+     利用 flexbox margin-left:auto 将 .nav-right 推到最右侧，
+     「返回」按钮和头像均靠右显示。
+
+  涉及文件：members.css
+==============================
+
+==============================
+2026-08-31  顶部导航：返回按钮左侧 / 头像右侧分置
+------------------------------
+  需求：「返回」按钮放在导航栏左侧，用户头像放在右侧。
+
+  修复：
+  1. members.html — 拆分 .nav-right 包裹层
+     - 「返回」按钮和头像各自作为 .nav-inner 直接子元素
+     - 依赖 .nav-inner 的 justify-content:space-between，
+       第一个子元素（返回按钮）靠左，第二个（头像）靠右
+
+  2. members.css — 移除上一条新增的 .nav-inner > .nav-right 规则
+     （不再有 .nav-right 元素，space-between 已完成左右分置）
+
+  涉及文件：members.html / members.css
+==============================
+
+==============================
+2026-08-31  侧边栏二级目录 + 厂家管理功能
+------------------------------
+  需求：左侧后台管理菜单栏中添加二级目录，点击船型管理查看
+  船型列表，点击厂家管理查看各厂家的船型类型。参考 B 端列表页
+  设计但不改变整体黑白灰配色风格。
+
+  修改：
+  1. server.js — 船型数据增加 manufacturer 字段
+     - 6 款船型分别归属 4 家厂家：
+       · 中船重工集团 → 海卫一号、执法者号
+       · 绿源动力船舶 → 绿动先锋
+       · Majesty Marine International → Azure Flybridge、Majesty Supreme
+       · 智航科技 → 智航者号
+     - 新增 GET /api/manufacturers 接口：按厂家聚合船型数据，
+       返回厂家名称、船型数量、各船型摘要
+
+  2. members.html — 侧边栏树形结构重构
+     - 「后台管理」改为可展开/折叠的父项（带箭头图标）
+     - 下设两个子项：「船型管理」(data-nav=admin) 和
+       「厂家管理」(data-nav=manufacturers)
+     - 原后台管理面板标题改为「船型管理」
+     - 新增 #panel-manufacturers 面板：含搜索框、厂家数量统计、
+       厂家列表表格（序号/厂家名称/船型数量/船型类型标签/操作）
+     - 新增厂家船型详情弹层（.mfr-boat-popup）：点击「查看」
+       弹出该厂家所有船型详细信息表格
+
+  3. members.css — 新增样式
+     - .mem-side-tree / .mem-side-arrow / .mem-side-sub：
+       树形展开折叠，箭头旋转动画
+     - .mfr-toolbar / .mfr-search / .mfr-count：厂家面板工具栏
+     - .mfr-table / .mfr-type-tag / .mfr-detail：厂家列表表格
+     - .mfr-boat-popup / .mfr-overlay：厂家船型详情弹层
+     - 全部沿用现有黑白灰变量，保持配色统一
+
+  4. members.js — 新增逻辑
+     - initSidebarNav()：增加树形展开/折叠 toggle
+     - switchPanel()：增加 manufacturers 面板切换回调
+     - loadManufacturers()：fetch /api/manufacturers 加载数据
+     - renderManufacturers()：渲染厂家表格 + 类型标签
+     - showMfrBoats()：弹层显示厂家船型详情
+     - closeMfrPopup()：关闭弹层
+     - 搜索框实时过滤厂家
+
+  涉及文件：server.js / members.html / members.css / members.js
+==============================
+
+==============================
+2026-08-31  侧边栏三级嵌套结构调整
+------------------------------
+  需求：后台管理 → 厂家管理 → 船型管理 三级嵌套。
+  点击后台管理展开并跳转厂家管理面板，点击厂家管理展开并
+  跳转船型管理，船型管理为厂家管理的二级子目录。
+
+  修改：
+  1. members.html — 侧边栏树形结构重构为三级嵌套
+     - 第一级：后台管理（可展开父项，data-nav=manufacturers）
+     - 第二级：厂家管理（可展开子项，data-nav=manufacturers，
+       包裹在 .mem-side-tree--nested 中）
+     - 第三级：船型管理（叶子节点，data-nav=admin）
+     - 层级关系：后台管理 → 厂家管理 → 船型管理
+
+  2. members.css — 新增嵌套层级样式
+     - .mem-side-tree--nested：嵌套树容器左缩进 4px
+     - .mem-side-item--deep：最深层节点左内边距 16px
+
+  3. members.js — 树形展开逻辑更新
+     - initSidebarNav()：树形父项点击时自动展开（add 'open'）
+     - 后台管理展开时自动展开厂家管理子树
+     - 厂家管理点击展开 + 切换到厂家管理面板
+     - 船型管理点击切换到船型管理面板（admin iframe）
+
+  涉及文件：members.html / members.css / members.js
+==============================
+
+==============================
+2026-08-31  厂家管理界面完善（ERP 供应商列表风格）
+------------------------------
+  需求：将所有 6 款船型分配给同一个厂家，参照 ERP 供应商
+  信息列表完善厂家管理界面，保持黑白灰配色风格。
+
+  修改：
+  1. server.js — 统一厂家 + 新增联系信息
+     - 6 款船型的 manufacturer 全部改为「海洋装备制造集团」
+     - 新增 manufacturerInfo 常量，包含联系人、手机号、地址、经营业务
+     - GET /api/manufacturers 返回数据增加 contactPerson / phone /
+       address / businessScope 字段
+
+  2. members.html — 厂家管理面板重构
+     - 顶部筛选区：厂家名称、联系人、手机号三个输入框 + 查询/重置按钮
+     - 表格列：序号 / 厂家名称 / 联系人 / 手机号 / 经营业务 /
+       船型数量 / 船型类型标签 / 操作
+
+  3. members.css — 筛选区 + 信息条样式
+     - .mfr-filter-bar：卡片式筛选区，flex-wrap 布局
+     - .mfr-filter-item / .mfr-filter-input：标签+输入框竖排
+     - .mfr-filter-btn / .mfr-filter-btn--ghost：黑底白字/灰底按钮
+     - .mfr-info-bar：弹层顶部联系人信息条
+
+  4. members.js — 多字段搜索 + 详情弹层
+     - 查询按钮：按厂家名称/联系人/手机号三字段同时过滤
+     - 重置按钮：清空筛选并重新渲染
+     - showMfrBoats() 弹层顶部新增联系人/手机号/地址/经营业务信息条
+     - 表格 colspan 从 5 更新为 8
+
+  涉及文件：server.js / members.html / members.css / members.js
+==============================
+
+==============================
+2026-08-31  厂家管理完善：订单数据集成 + 弹层 Tab 切换
+------------------------------
+  需求：设置一个厂家把所有订单放进去，完善厂家管理界面。
+
+  修改：
+  1. server.js — 种子订单数据 + 订单归属厂家
+     - orders 数组从空改为预置 6 条种子定制订单，分别对应 6 款
+       船型（海卫一号 / Azure Flybridge / Majesty Supreme /
+       绿动先锋 / 执法者号 / 智航者号），含订单号、船体颜色、
+       内饰、动力、附加配置、总价、下单时间
+     - GET /api/manufacturers 返回数据新增 orderCount + orders 字段
+     - 通过 boatId → boat.manufacturer 映射，将订单归属到对应厂家
+
+  2. members.html — 表格新增订单列 + 弹层 Tab 结构
+     - 厂家表格新增「订单数量」列（colspan 从 8 更新为 9）
+     - 详情弹层 .mfr-boat-popup-body 内新增 Tab 结构：
+       .mfr-tabs + #mfrTabBoats + #mfrTabOrders
+
+  3. members.css — Tab 样式
+     - .mfr-tabs：底部边框分隔的横向 Tab 条
+     - .mfr-tab / .mfr-tab.active：选中态加粗 + 底部 accent 线
+
+  4. members.js — Tab 数据填充 + 切换逻辑
+     - renderManufacturers()：新增 orderCount 列
+     - showMfrBoats()：弹层动态生成双 Tab（船型列表 + 订单记录）
+       · 船型列表 Tab：序号/名称/类型/船长/载客/极速/价格/可定制
+       · 订单记录 Tab：序号/订单号/船型/颜色/内饰/动力/附加配置/
+         总价/下单时间
+       · Tab 标题带数量标注（如"船型列表 (6)"）
+     - Tab 点击切换：boats ↔ orders 显隐 + active 高亮
+     - colspan 从 8 更新为 9
+
+  涉及文件：server.js / members.html / members.css / members.js
+==============================
+
+==============================
+2026-08-31  新增空厂家账号
+------------------------------
+  需求：创建一个新厂家账号，该厂家下暂无商品（船型和订单为空）。
+
+  修改：
+  1. server.js — manufacturerInfo 新增第二个厂家
+     - 蓝海船舶制造有限公司（联系人：李文博，手机：139-0123-4567，
+       地址：广东省深圳市南山区蓝海科技园12号，经营业务：船舶设计与定制服务）
+
+  2. server.js — GET /api/manufacturers 逻辑优化
+     - 先从 manufacturerInfo 初始化所有厂家（含无船型的厂家），
+       再遍历 boats 补充船型数据
+     - 确保无船型的厂家也能在列表中显示（boatCount=0, orders=[]）
+
+  效果：厂家管理界面显示 2 家厂家
+  - 海洋装备制造集团：6 船型 / 6 订单
+  - 蓝海船舶制造有限公司：0 船型 / 0 订单
+
+  涉及文件：server.js
+==============================
+
+==============================
+2026-08-31  船型管理新增订单编辑功能
+------------------------------
+  需求：在船型管理列表中每个船型添加可编辑按钮，管理员可编辑
+  所有订单的信息。
+
+  修改：
+  1. admin.html — 新增订单编辑弹窗结构
+     - .order-edit-overlay + .order-edit-modal 弹窗
+     - .order-edit-head（标题 + 关闭按钮）
+     - .order-edit-body（动态填充订单编辑表单）
+
+  2. admin.js — 编辑按钮 + 弹窗逻辑
+     - renderBoatTable()：每行操作列新增「编辑」按钮
+       （.admin-edit-btn，带 data-boat-id / data-boat-name）
+     - openOrderEditModal(boatId, boatName)：打开弹窗，加载该船型
+       的所有订单，动态生成编辑卡片
+     - renderOrderEditForm()：每个订单一张卡片（订单号 + 8 字段表单）
+       字段：船体颜色/内饰风格/动力系统/智能系统/附加配置/
+       基础价格/加价/总价
+     - saveOrderEdit(btn)：收集表单数据 → PUT 提交 → 刷新订单列表
+     - closeOrderEditModal()：关闭弹窗
+     - DOMContentLoaded：注册遮罩点击关闭 + ESC 关闭
+
+  3. server.js — 新增 PUT /api/admin/orders/:orderId
+     - 按 orderId 查找订单，白名单字段更新
+       （hullColor/interiorStyle/enginePackage/smartSystem/extras/
+       basePrice/extraPrice/totalPrice）
+     - 返回更新后的订单数据
+
+  4. style.css — 编辑按钮 + 弹窗样式
+     - .admin-edit-btn：灰底 pill，hover 反色
+     - .order-edit-overlay：全屏遮罩 0.45 透明度
+     - .order-edit-modal：720px 居中弹窗，圆角 + 阴影 + 缩放动画
+     - .order-edit-card：每张订单卡片（圆角边框 + 灰底头栏）
+     - .order-edit-grid：2 列网格表单，input 聚焦高亮
+     - .order-edit-save-btn：黑底白字保存按钮
+
+  涉及文件：admin.html / admin.js / server.js / style.css
+==============================
+
+==============================
+2026-08-31  船型管理新增图片上传功能
+------------------------------
+  需求：在船型管理列表的每个船型行再加一个上传图片按钮。
+
+  修改：
+  1. server.js — 新增图片上传接口
+     - app.use('/uploads', express.static(uploadDir))：公开 uploads 目录
+     - POST /api/admin/boats/:id/image：接收单文件（multer single），
+       更新 boat.image 为 /uploads/文件名，返回新图片路径
+
+  2. admin.js — 上传按钮 + 前端逻辑
+     - renderBoatTable()：每行操作列新增「上传图片」按钮
+       （.admin-upload-btn，带 data-boat-id）
+     - triggerImageUpload(boatId)：动态创建隐藏 <input type="file">
+       选择文件后用 FormData POST 上传，成功后刷新船型列表
+
+  3. style.css — 上传按钮样式
+     - .admin-upload-btn：灰底弱化样式，hover 加深底色
+     - :disabled 禁用态半透明
+
+  涉及文件：server.js / admin.js / style.css
+==============================
+
+==============================
+2026-08-31  新增撤销功能（撤销上一步操作）
+------------------------------
+  需求：在船型管理和定制订单页面添加撤销按钮，可以撤销上一步
+  操作（订单编辑或图片上传）。
+
+  修改：
+  1. admin.js — 操作历史栈 + 撤销逻辑
+     - 新增 history 数组存储操作历史
+     - pushHistory(entry)：入栈 + 启用撤销按钮
+     - updateUndoButtons()：根据栈是否为空切换按钮状态
+     - undo()：弹出最近一条记录，通过 API 恢复旧数据
+       · type='order'：PUT 恢复订单字段
+       · type='image'：PUT 恢复船型图片路径
+     - saveOrderEdit()：保存前将旧值（data-original）入栈
+     - triggerImageUpload()：上传前将旧图片路径入栈
+     - renderOrderEditForm()：每个 input 新增 data-original 属性
+       记录编辑前的原始值
+
+  2. admin.html — 两个 Tab 工具栏各新增撤销按钮
+     - 船型管理 Tab：#undoBtnBoats「撤销上一步」
+     - 定制订单 Tab：#undoBtnOrders「撤销上一步」
+
+  3. server.js — 新增 PUT /api/admin/boats/:id/image
+     - 接收 { image } body，更新船型图片路径（用于撤销恢复）
+
+  4. style.css — 撤销按钮样式
+     - .admin-undo-btn：黑底白字，margin-left:auto 靠右
+     - :disabled 灰底半透明 + cursor 禁用
+
+  涉及文件：admin.js / admin.html / server.js / style.css
+==============================
+
+==============================
+2026-08-31  detail.html iframe 嵌入优化
+------------------------------
+  需求：后台厂家管理→船型管理中点击「查看」打开 detail.html
+  时，隐藏顶部导航栏（船舶销售/返回控制台/后台管理），
+  并将「返回列表」改为「返回上一步」。
+
+  修改：
+  1. detail.html — 新增 iframe 检测脚本
+     - window.self !== window.top 时（被 iframe 嵌入）：
+       · 隐藏 .top-nav（船舶销售 / 返回控制台 / 后台管理）
+       · .config-page marginTop=0, height=100vh
+
+  2. detail.html — 返回按钮调整
+     - 文字「返回列表」→「返回上一步」
+     - 行为 window.location.href='index.html' → history.back()
+       （返回上一页而非跳转列表）
+
+  涉及文件：detail.html
+==============================
+
+==============================
+2026-08-31  新增「个人图纸」面板
+------------------------------
+  需求：在船型管理下新增「个人图纸」子菜单，显示用户定制船型
+  时上传的所有图纸信息。
+
+  修改：
+  1. members.html — 侧边栏 + 面板结构
+     - 侧边栏「船型管理」下方新增「个人图纸」子项（data-nav=drawings）
+     - 新增 #panel-drawings 面板：搜索栏 + 表格
+       列：序号/订单号/联系人/手机号/备注/文件数/图纸文件/提交时间
+     - 图纸文件列显示可点击下载的文件链接
+
+  2. server.js — 新增 GET /api/admin/drawings
+     - 从 orders 数组过滤 type='图纸定制' 的记录并返回
+
+  3. members.js — 图纸加载/渲染/搜索逻辑
+     - loadDrawings()：请求 /api/admin/drawings
+     - renderDrawings()：渲染表格，文件列生成 <a> 下载链接
+     - resetDrawingSearch()：重置搜索
+     - 搜索栏 input 事件：按联系人/手机号/订单号实时过滤
+     - switchPanel() 新增 'drawings' 分支回调
+
+  4. members.css — 图纸文件链接样式
+     - .drawing-file-link：accent 色文字链接，hover 下划线
+
+  涉及文件：members.html / server.js / members.js / members.css
+==============================
+
+==============================
+2026-08-31  登录界面水波纹交互效果
+------------------------------
+  需求：在登录界面左侧设置港口背景图，鼠标滑动时产生水波纹
+  交互效果（波纹随鼠标移动产生折射扭曲）。
+
+  修改：
+  1. 新增 public/assets/harbor-bg.png
+     - 港口货船场景照片作为登录页左侧背景图
+
+  2. 新增 public/js/ripple.js — 水波纹模拟引擎
+     - 基于高度图（heightmap）的 2D 波传播算法
+     - 双缓冲（prev/curr Float32Array）+ 阻尼系数 0.985
+     - 鼠标移动时注入扰动（speed 越快波纹越强）
+     - 按住鼠标拖动时波纹强度翻倍
+     - 像素折射渲染：根据高度梯度偏移 UV 采样背景图
+     - 模拟分辨率 1/3（平衡性能与效果）
+     - 支持触屏 touchmove + 页面不可见时自动暂停
+     - 初始随机生成 5 处波纹让画面动起来
+
+  3. login.html — 左侧面板重构
+     - 移除原 SVG 波浪（auth-wave）
+     - 新增 <canvas id="rippleCanvas"> 水波纹画布
+     - 新增 .auth-art-overlay 半透明蓝色渐变遮罩
+     - 保留角色插画和品牌文字（z-index:3 浮于波纹之上）
+     - 引入 ripple.js 脚本
+
+  4. login.css — 样式适配
+     - .auth-art 背景改为 #1a3a5c（深海蓝）
+     - .ripple-canvas：absolute 全覆盖 + cursor:crosshair
+     - .auth-art-overlay：蓝色渐变遮罩 pointer-events:none
+     - .auth-characters / .auth-art-text z-index 提升至 3
+
+  涉及文件：ripple.js / login.html / login.css + assets/harbor-bg.png
+==============================
+
+==============================
+2026-08-31  登录页改为全屏背景 + 居中卡片
+------------------------------
+  需求：去掉左下角角色图标，船舶定制系统居中显示，
+  整个页面使用港口背景图 + 水波纹交互效果。
+
+  修改：
+  1. login.html — 结构重构
+     - 移除左右分屏布局（auth-art + auth-panel）
+     - 移除四个角色插画（char--purple/black/orange/yellow）
+     - 移除 auth-art-text 品牌文字
+     - 新增全屏 <canvas id="rippleCanvas"> + ripple-overlay 遮罩
+     - 新增 .auth-center > .auth-center-inner 居中毛玻璃卡片
+
+  2. login.css — 全新布局样式
+     - .ripple-canvas: position:fixed 全屏覆盖
+     - .ripple-overlay: 蓝色渐变遮罩 pointer-events:none
+     - .auth-center: fixed 居中 flex 容器 z-index:3
+     - .auth-center-inner: 毛玻璃卡片
+       background: rgba(255,255,255,0.92) + backdrop-filter:blur(20px)
+       border-radius:16px + box-shadow 深阴影
+     - .auth-back-home: 白色文字（适配深色背景）
+     - 移除 auth-art/auth-panel/char/auth-wave 等旧样式
+
+  3. ripple.js — 适配全屏
+     - canvas 尺寸改用 window.innerWidth/innerHeight
+     - 不再依赖 parentElement.getBoundingClientRect()
+
+  涉及文件：login.html / login.css / ripple.js
+==============================
+
+==============================
+2026-08-31  船型管理「查看/编辑」合并
+------------------------------
+  需求：将船型管理列表操作列中的「查看」和「编辑」按钮合并为
+  一个「查看/编辑」按钮，点击后弹窗同时展示船型详情和订单编辑。
+
+  修改：
+  1. admin.js — 合并按钮 + 弹窗增强
+     - 表格操作列：「查看」链接 + 「编辑」按钮 → 单个「查看/编辑」按钮
+     - openOrderEditModal() 重构：Promise.all 并行请求船型详情 + 订单列表
+     - 弹窗顶部新增 .boat-detail-info 区域：缩略图 / 名称 / 标签
+       （类型/船长/载客/极速）/ 价格 / 描述
+     - 弹窗下方保留订单编辑卡片（8 字段可编辑 + 保存按钮）
+     - 移除独立的 renderOrderEditForm() 函数（渲染逻辑内联）
+     - 保存按钮事件监听在 innerHTML 设置后统一绑定
+
+  2. style.css — 新增船型详情信息样式
+     - .boat-detail-info：flex 布局 + 浅灰底 + 圆角边框
+     - .boat-detail-thumb：120×80 缩略图
+     - .boat-detail-tags：pill 标签（类型/船长/载客/极速）
+     - .boat-detail-price：accent 色价格
+     - .boat-detail-desc：2 行截断描述
+
+  涉及文件：admin.js / style.css
+==============================
+
+==============================
+2026-08-31  详情页板卡编辑功能
+------------------------------
+  需求：在船型详情页右侧面板的船型、外观、内饰、动力四个板卡
+  标题右侧添加编辑按钮，可修改每个板卡的信息。
+
+  修改：
+  1. server.js — 新增两个 PUT 接口
+     - PUT /api/admin/boats/:id → 更新船型基本信息
+       字段：name, description, length, capacity, maxSpeed,
+       price, typeName, features（用、分隔）
+     - PUT /api/admin/customize-options → 更新定制选项
+       字段：hullColors[{name,hex}], interiorStyles[],
+       enginePackages[{name,power,priceDelta}], smartSystems
+
+  2. detail.js — renderTabContent() 全面重写
+     - 每个板卡标题右侧新增「编辑」按钮
+     - 点击「编辑」→ 切换为编辑模式（隐藏查看区，显示表单）
+     - 点击「取消」→ 恢复查看模式
+     - 船型板卡：名称/描述/船长/载客/极速/价格/特色配置
+     - 外观板卡：颜色选择器(hex) + 颜色名称，每行一组
+     - 内饰板卡：各内饰风格名称输入框
+     - 动力板卡：名称/功率/加价，每行一组
+     - 新增 toggleEditMode() / saveBoatEdit() / saveOptionsEdit()
+
+  3. style.css — 新增编辑相关样式
+     - .config-edit-btn：pill 按钮灰底，hover 反色
+     - .config-section-edit：flex 列布局编辑表单
+     - .config-edit-label / .config-edit-row：表单行
+     - .config-edit-color：颜色选择器
+     - .config-edit-text / .config-edit-num：输入框
+     - .config-save-btn：黑底白字保存按钮
+
+  涉及文件：server.js / detail.js / style.css
+==============================
+
+==============================
+2026-08-31  外观板卡编辑改用十六进制输入
+------------------------------
+  需求：外观板卡编辑时，用十六进制输入框替代颜色选择器，
+  输入 hex 值后实时生成对应颜色预览，并可对颜色改名。
+
+  修改：
+  1. detail.js — 外观编辑区域重构
+     - 去掉 <input type="color"> 颜色选择器
+     - 新增色块预览 <span class="config-edit-preview">
+     - 新增十六进制文本输入框（monospace 字体，自动补 #）
+     - 新增 updateColorPreview() 函数：oninput 时校验
+       hex 格式（#xxx / #xxxxxx），通过则实时更新预览色块
+     - 挂载 updateColorPreview 到 window（ES Module 隔离）
+
+  2. style.css — 新增样式
+     - .config-edit-preview：36×36 圆角色块预览
+     - .config-edit-hex：90px 宽 monospace 输入框，
+       大写显示，focus 高亮
+
+  涉及文件：detail.js / style.css
+==============================
+
+==============================
+2026-08-31  智能系统板卡编辑功能补全
+------------------------------
+  需求：动力板卡下方的智能系统缺少编辑功能，需补全。
+
+  修改：
+  1. detail.js — 智能系统区域重构
+     - 新增 id="section-smartSystems" 容器
+     - 标题右侧添加「编辑」按钮
+     - 新增编辑表单：每行含名称、描述、加价三个输入框
+     - 保存后重新渲染动力系统 tab（smartSystems → enginePackage）
+
+  涉及文件：detail.js
+==============================
+
+==============================
+2026-08-31  3D模型上传功能
+------------------------------
+  需求：在详情页模型标题右侧添加上传模型按钮，
+  管理员可上传 .fbx / .gltf / .glb / .obj 3D模型文件。
+
+  修改：
+  1. server.js — 新增模型上传接口
+     - 新增 modelStorage（保存到 FBX 目录）+ modelUpload multer 实例
+     - 支持 .fbx / .gltf / .glb / .obj 格式，最大 200MB
+     - POST /api/admin/boats/:id/model → 上传模型并更新 boat.modelFile
+
+  2. detail.js — 模型标题区新增上传按钮
+     - config-model-info 改为 flex-row 布局，右对齐上传按钮
+     - 新增隐藏 file input（accept=".fbx,.gltf,.glb,.obj"）
+     - uploadModel() 函数：FormData 上传 → 更新 modelFile →
+       销毁旧 3D 场景 → 重新 init3DScene() 加载新模型
+     - 上传期间显示 loading 动画
+     - 挂载 uploadModel 到 window
+
+  3. style.css — 新增样式
+     - .config-model-upload-btn：pill 按钮，白底灰边，
+       hover 反色，pointer-events:auto 穿透父级
+     - config-model-info 改为 flex-row + right:28px 撑满宽度
+
+  涉及文件：server.js / detail.js / style.css
+==============================
+
+==============================
+2026-08-31  板卡编辑撤销功能
+------------------------------
+  需求：每个编辑栏旁边添加撤销按钮，点击后返回上一步操作。
+
+  修改：
+  1. detail.js — 撤销机制
+     - 新增 editSnapshots 全局对象，保存各板卡保存前的数据快照
+     - saveBoatEdit()：保存前快照 boatData 深拷贝到 editSnapshots['boat']
+     - saveOptionsEdit()：保存前快照 optionsData[field] 深拷贝
+     - undoEdit(tabId)：从快照恢复数据 → 调用 API 写回旧值 →
+       删除快照 → 重新渲染对应 tab
+     - 编辑按钮区域改为 .config-edit-actions 容器，
+       含「编辑」+「撤销」按钮（有快照时才显示撤销）
+     - 智能系统区域同步改造
+     - 挂载 undoEdit 到 window
+
+  2. style.css — 新增样式
+     - .config-edit-actions：flex 容器，gap 8px
+     - .config-undo-btn：白底灰边 pill 按钮，hover 变灰
+
+  涉及文件：detail.js / style.css
+==============================
+
+==============================
+2026-08-31  字段管理功能
+------------------------------
+  需求：在定制图纸管理下新增「字段管理」，管理员可对船型
+  分类类型进行添加、删除、修改，并可修改每个船型的分类。
+
+  修改：
+  1. server.js — 新增 5 个字段管理 API
+     - GET  /api/admin/boat-types → 获取所有分类类型+船型数
+     - POST /api/admin/boat-types → 新增类型（查重）
+     - PUT  /api/admin/boat-types/:oldName → 重命名类型
+     - DELETE /api/admin/boat-types/:name → 删除类型（船型归为未分类）
+     - PUT  /api/admin/boats/:id/type → 修改单个船型的分类
+
+  2. members.html — 新增字段管理面板
+     - 侧边栏「定制图纸管理」下方新增「字段管理」菜单项
+     - 面板双列布局：
+       左列：船型分类类型表（序号/类型名/船型数/修改+删除按钮）
+             + 顶部「新增类型」按钮
+       右列：船型分类分配表（序号/船型名/当前分类/下拉修改）
+
+  3. members.js — 新增字段管理逻辑
+     - loadFieldManagement()：并行加载类型列表+船型列表
+     - loadBoatTypes() / renderTypeTable()：类型 CRUD
+     - addType() / editType() / deleteType()：prompt+confirm 交互
+     - loadBoatTypeAssignments() / renderBoatTypeTable()：船型分配
+     - changeBoatType()：下拉切换即更新
+     - switchPanel 新增 'fields' 分支
+
+  4. members.css — 新增样式
+     - .mfr-tag：分类标签 pill
+     - .mfr-type-select：下拉选择器
+
+  涉及文件：server.js / members.html / members.js / members.css
+==============================
+
+==============================
+2026-08-31  字段管理升级为大类小类层级管理
+------------------------------
+  需求：字段管理从扁平类型改为大类+小类层级树，管理员可
+  对大类和小类分别进行增删改。
+
+  修改：
+  1. server.js — 新增 boatCategories 数据 + 7 个 API
+     - boatCategories 数组：4 大类 + 27 小类（从原 HTML 硬编码提取）
+     - GET  /api/boat-categories → 获取完整树
+     - POST /api/admin/boat-categories → 新增大类
+     - PUT  /api/admin/boat-categories/:id → 改大类名
+     - DELETE /api/admin/boat-categories/:id → 删大类
+     - POST /api/admin/boat-categories/:id/sub → 新增小类
+     - PUT  /api/admin/boat-categories/:id/sub/:subId → 改小类名
+     - DELETE /api/admin/boat-categories/:id/sub/:subId → 删小类
+
+  2. members.html — 字段管理面板简化
+     - 移除原双列表格，改为单列树形容器 #fieldManageWrap
+     - 副标题改为「船型大类与小类分类管理」
+
+  3. members.js — 重写字段管理逻辑
+     - loadFieldManagement()：从 /api/boat-categories 加载
+     - renderFieldTree()：卡片式树渲染
+       · 大类卡片：灰底标题栏 + 小类数 + 加小类/改名/删除按钮
+       · 小类行：圆点 + 名称 + 改名/删除按钮
+     - addMainCategory / editMainCategory / deleteMainCategory
+     - addSubCategory / editSubCategory / deleteSubCategory
+
+  4. members.css — 新增树形样式
+     - .field-cat-card / .field-cat-head / .field-cat-name
+     - .field-sub-list / .field-sub-row / .field-sub-bullet
+     - .field-mini-btn（改名/删除/加小类 pill 按钮）
+
+  涉及文件：server.js / members.html / members.js / members.css
+==============================
+
+==============================
+2026-08-31  字段管理新增船舶分类分配表
+------------------------------
+  需求：在字段管理右侧增加船舶大类小类修改功能。
+
+  修改：
+  1. members.html — 字段管理面板改为双列布局
+     - 左列：分类树管理（原卡片树 + 新增大类按钮移至工具栏）
+     - 右列：船舶分类分配表（序号/船型名/大类下拉/小类下拉）
+
+  2. server.js — 新增 PUT /api/admin/boats/:id/category
+     - 接收 categoryId + subId
+     - 更新 boat.category / categoryName / subtype / typeName
+
+  3. members.js — 新增船舶分类分配逻辑
+     - loadBoatAssignments()：从 /api/boats 加载船型列表
+     - renderBoatAssignments()：双下拉渲染（大类联动小类）
+     - changeBoatCategory()：切换大类自动刷新小类选项并提交
+     - loadFieldManagement() 改为加载分类树+船舶分配
+
+  涉及文件：server.js / members.html / members.js
+==============================
+
+==============================
+2026-08-31  船舶分类分配迁移至船型管理 & 字段管理分类树铺满页面
+------------------------------
+  需求：将字段管理中的船舶分类分配功能移至船型管理表格的分类列，
+        可在船型管理中直接修改大类和小类；字段管理分类树铺满整个页面。
+
+  修改：
+  1. admin.js — 船型管理表格分类列改为动态双下拉菜单
+     - loadBoats() 先加载分类数据到 window._catData，再渲染表格
+     - renderBoatTable() 分类列渲染为大类+小类联动下拉框
+     - 新增 changeBoatCategoryAdmin()：切换大类自动刷新小类并提交 API
+     - 暴露到 window 以支持内联 onchange 调用
+
+  2. members.html — 字段管理面板移除船舶分类分配表格
+     - 移除右侧船舶分类分配表（序号/船型名/大类/小类）
+     - 移除双列 flex 布局，分类树容器不再限制 max-width
+     - 分类树管理工具栏直接铺满面板宽度
+
+  3. members.js — 删除船舶分类分配相关函数
+     - 移除 loadBoatAssignments() / renderBoatAssignments() / changeBoatCategory()
+     - loadFieldManagement() 仅加载分类树，不再调用 loadBoatAssignments()
+
+  4. style.css — 新增 .admin-cat-select 下拉框样式
+  5. members.css — #fieldManageWrap 改为 grid 网格布局，分类卡片自适应铺满页面
+
+  涉及文件：admin.js / members.html / members.js / style.css / members.css
+==============================
+
+==============================
+2026-08-31  修复定制图纸管理图片无法查看问题
+------------------------------
+  问题：上传含中文文件名的图纸后，图纸管理中点击文件链接无法查看图片。
+  原因：multer 处理 file.originalname 时存在 Latin-1 与 UTF-8 双重编码问题，
+        导致磁盘上的文件名出现乱码字节，API 返回的 savedAs 与磁盘实际文件名不匹配，
+        浏览器请求 /uploads/路径 时返回 404。
+
+  修改：
+  1. server.js — multer storage filename 函数改为仅使用扩展名
+     - 原逻辑：uniqueSuffix + '-' + file.originalname（含中文，导致乱码）
+     - 新逻辑：uniqueSuffix + path.extname(file.originalname)（纯 ASCII 文件名）
+     - fileFilter 同步改用 path.extname() 提取扩展名
+
+  2. server.js — uploadRecords.originalName 修复编码
+     - 使用 Buffer.from(f.originalname, 'latin1').toString('utf8') 正确解码中文文件名
+     - 确保前端显示的 originalName 为正确的中文
+
+  3. members.js — 图纸文件链接增加 encodeURIComponent
+     - href="/uploads/${encodeURIComponent(f.savedAs)}" 防止特殊字符导致 URL 解析错误
+
+  4. 磁盘文件清理 — 重命名已存在的乱码文件为纯 ASCII 文件名
+
+  涉及文件：server.js / members.js
+==============================
+
+==============================
+2026-08-31  图纸在线预览与批量下载功能
+------------------------------
+  需求：定制图纸管理支持在线查看图纸文件（图片/PDF），支持勾选多条订单
+        批量下载所有图纸文件为 ZIP 压缩包。
+
+  修改：
+  1. server.js — 新增 POST /api/admin/drawings/zip 接口
+     - 接收 { items: [{ savedAs, originalName }, ...] } 文件列表
+     - 使用 archiver 库将多个文件打包为 ZIP 返回
+     - 支持同名文件自动加序号去重
+     - 新增 require('archiver')
+
+  2. members.html — 图纸管理面板增强
+     - 表头新增全选复选框列
+     - 工具栏新增「批量下载」按钮
+     - 底部新增图纸预览弹窗（复用 mfr-overlay/mfr-boat-popup 结构）
+     - 表格 colspan 从 8 改为 9
+
+  3. members.js — 预览与批量下载逻辑
+     - renderDrawings()：每行新增复选框，文件名改为可点击预览链接+下载图标
+     - previewDrawingFile()：点击文件名弹出预览弹窗
+       · 图片格式（png/jpg/jpeg 等）直接 <img> 展示
+       · PDF 格式用 <iframe> 嵌入展示
+       · DWG/DXF 等不支持格式提示并提供下载按钮
+     - 批量下载：收集选中订单的所有文件，POST 到 /zip 接口，
+       Blob 接收后触发浏览器下载 .zip 文件
+     - 新增 selectedDrawingIds Set 管理勾选状态
+     - 全选/单选联动逻辑
+
+  4. members.css — 新增图纸相关样式
+     - .drawing-file-item 行内布局、链接和下载图标样式
+     - #drawingPreviewModal 预览弹窗加宽至 1000px
+     - 复选框和批量下载按钮交互样式
+
+  5. package.json — 新增 archiver 依赖
+
+  涉及文件：server.js / members.html / members.js / members.css / package.json
+==============================
+
+==============================
+2026-08-31  图纸管理批量下载改为导出Excel
+------------------------------
+  需求：删除批量下载（ZIP）功能，在工具栏最右侧添加「导出Excel」按钮，
+        将图纸数据（含勾选项或全部）导出为 Excel 文件。
+
+  修改：
+  1. members.html — 工具栏调整
+     - 删除「批量下载」按钮
+     - 在计数文字右侧新增「导出Excel」按钮
+     - 搜索 → 重置 → 计数 → 导出Excel
+
+  2. members.js — 替换批量下载逻辑为Excel导出
+     - 删除 fetch /api/admin/drawings/zip 的 ZIP 打包下载逻辑
+     - 新增导出Excel逻辑：
+       · 有勾选项时仅导出选中行，无勾选时导出全部
+       · 生成 HTML 表格格式的 .xls 文件（含 UTF-8 BOM 解决中文乱码）
+       · 订单号/手机号/时间用 mso-number-format:'@' 强制文本格式
+       · 通过 Blob 触发浏览器下载
+
+  3. members.css — 更新按钮选择器
+     - #drawingBatchDownload:disabled → #drawingExportExcel:disabled
+
+  涉及文件：members.html / members.js / members.css
+==============================
+
+==============================
+2026-08-31  修复Excel导出图片不显示问题
+------------------------------
+  问题：导出Excel时「图纸文件」列只显示文件名文本，图片无法正常显示。
+  原因：导出HTML仅包含文本文件名，未嵌入图片数据。
+
+  修改：
+  members.js — 导出函数改为 async，图片文件以 base64 嵌入 Excel
+  - 图片格式（png/jpg/jpeg/gif/bmp/webp）自动 fetch 原图并转为 base64 Data URI
+  - 在 Excel 单元格中用 <img> 标签嵌入缩略图（200x150）+ 下方显示文件名
+  - 非图片格式（pdf/dwg/dxf）仍显示文件名文本
+  - 单元格 vertical-align:top 适配多图换行
+  - 导出过程显示「导出中…」按钮状态
+
+  涉及文件：members.js
+==============================
+
+==============================
+2026-08-31  Excel导出改用服务端exceljs生成.xlsx嵌入图片
+------------------------------
+  问题：前端HTML格式Excel不支持base64图片嵌入，导出后图片显示
+        "无法显示链接的图像。该文件可能已被移动、重命名或删除"。
+
+  修改：
+  1. server.js — 新增 POST /api/admin/drawings/export 接口
+     - 使用 exceljs 库生成真正的 .xlsx 文件
+     - 图片文件从磁盘读取并以 buffer 方式 addImage 嵌入到单元格
+     - 非图片文件显示文件名文本
+     - 表头深色背景白色字体，单元格带边框和自动换行
+     - 新增 require('exceljs')
+
+  2. members.js — 前端改为调用服务端接口
+     - 删除客户端 HTML/HTML 方式生成 Excel 的逻辑
+     - POST /api/admin/drawings/export 传 orderIds（勾选项或全部）
+     - 接收 Blob 直接下载 .xlsx 文件
+
+  3. package.json — 新增 exceljs 依赖
+
+  涉及文件：server.js / members.js / package.json
+==============================
+
+==============================
+2026-08-31  修复定制订单表格渲染报错
+------------------------------
+  问题：船型管理 → 定制订单标签页报错，表格无法渲染。
+  原因：图纸上传产生的订单（type='图纸定制'）缺少 boatName、hullColor、
+        interiorStyle、enginePackage、extras、basePrice、extraPrice、totalPrice
+        等字段，renderOrderTable 直接访问 order.extras.length 时因 extras 为
+        undefined 导致 TypeError。
+
+  修改：
+  admin.js — renderOrderTable 增加空值容错
+  - 所有字段使用 || '—' 兜底显示
+  - extras 先用 Array.isArray() 判断再访问 .length
+
+  涉及文件：admin.js
+==============================
+
+==============================
+2026-08-31  船型分类侧边栏默认折叠
+------------------------------
+  需求：侧边栏分类（民用休闲/商用船/公务船/军用船）默认全部关闭，
+        点击某个分类才展开显示子项。
+
+  修改：
+  index.html — 四个 .filter-group 添加 collapsed 类
+  - 民用休闲/商用船/公务船/军用船 均 aria-expanded="true" → "false"
+  - 对应 div.filter-group 添加 class="collapsed"
+  - CSS 已有 .filter-group.collapsed > .filter-children { display:none } 规则
+  - 点击时 app.js 的 groupBtn 事件自动 toggle collapsed 类
+
+  涉及文件：index.html
+==============================
+
+==============================
+2026-08-31  登录页水波纹效果增强
+------------------------------
+  问题：水波纹分辨率低（像素颗粒感明显），交互效果不够写实。
+  原因：SCALE=3 模拟分辨率过低 + 最近邻采样导致方块感 + 无光照高光。
+
+  修改：
+  ripple.js — 全面重写水波纹算法
+  1. 模拟分辨率 SCALE 3→2，波纹更精细
+  2. 双线性插值采样高度图（sampleHeight），消除方块感
+  3. 镜面高光：根据波面梯度计算高光强度，波峰自动反光
+  4. 色散效果：高光中 R/G/B 通道不同权重，模拟水面光散
+  5. 折射强度 8→12，波纹扭曲更明显
+  6. 阻尼 0.985→0.988，波纹持续更久更自然
+  7. 环境波纹：每 ~80 帧随机产生微弱涟漪，水面持续活跃
+  8. 扰动半径 3→4，波纹生成更平滑
+
+  涉及文件：js/ripple.js
+==============================
+
+==============================
+2026-08-31  用户管理重构 + 后端接口预备
+------------------------------
+  需求：
+  1. 在权限管理和公海会员添加后端预备接口
+  2. 将「会员列表」改名为「用户列表」
+  3. 删除「订单管理」→「定制订单」侧边栏分组及对应面板
+
+  修改：
+  server.js — 新增后端预备接口
+  1. GET  /api/admin/roles          — 角色列表（4个预设角色）
+  2. GET  /api/admin/permissions    — 权限树（会员/船型/订单/系统设置）
+  3. POST /api/admin/roles          — 创建角色（预备）
+  4. PUT  /api/admin/roles/:id      — 更新角色（预备）
+  5. DELETE /api/admin/roles/:id   — 删除角色（预备）
+  6. GET  /api/admin/public-pool   — 公海会员列表（无顾问归属的用户）
+  7. POST /api/admin/public-pool/claim   — 认领公海会员
+  8. POST /api/admin/public-pool/release — 释放到公海
+
+  members.html — 侧边栏与面板调整
+  1. 「会员管理」分组改名为「用户管理」
+  2. 「会员列表」菜单项改名为「用户列表」
+  3. 删除「订单管理」→「定制订单」侧边栏分组
+  4. 删除 panel-orders 定制订单面板
+  5. 面板标题、按钮、弹窗标题中所有「会员」改为「用户」
+
+  members.js — 文本与逻辑更新
+  1. 所有提示文字中「会员」改为「用户」
+  2. 角色标签「会员」改为「用户」
+  3. 详情弹窗中「会员ID」改为「用户ID」
+
+  涉及文件：server.js, members.html, js/members.js
+==============================
+
+========================================
+  © 2026 Maritime Atelier. All rights reserved.
+========================================

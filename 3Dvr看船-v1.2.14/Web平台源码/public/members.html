@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会员管理 | 船舶定制系统</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/members.css">
+</head>
+<body>
+
+  <nav class="top-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-back-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        返回
+      </a>
+      <div class="nav-account-wrap">
+        <button type="button" class="nav-user-avatar" id="navUserName" title="打开我的菜单" aria-expanded="false" aria-controls="adminAccountPopover">
+          <span id="navUserInitial">A</span>
+        </button>
+        <div class="admin-account-popover" id="adminAccountPopover" role="dialog" aria-label="我的">
+          <div class="admin-account-head">
+            <div class="admin-account-avatar" id="adminAccountAvatar">A</div>
+            <div><strong id="adminAccountName">平台管理员</strong><span>平台管理账号</span></div>
+          </div>
+          <div class="admin-account-summary"><span>当前身份</span><b>ADMIN</b></div>
+          <div class="admin-account-actions">
+            <button type="button" data-admin-account="dashboard"><span>工作台</span><b>›</b></button>
+            <button type="button" data-admin-account="members"><span>厂商会员</span><b>›</b></button>
+            <a href="index.html"><span>查看前台</span><b>›</b></a>
+            <button type="button" class="logout" data-admin-account="logout"><span>退出登录</span><b>↪</b></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mem-layout">
+
+    <!-- ===== 左侧侧边栏导航（参考图结构 · B 端黑白灰） ===== -->
+    <aside class="mem-sidebar">
+      <div class="mem-side-scroll">
+
+        <div class="mem-side-group">
+          <button class="mem-side-item mem-side-item--root" data-nav="dashboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>工作台</span>
+          </button>
+        </div>
+
+        <div class="mem-side-group">
+          <div class="mem-side-group-title">厂商管理</div>
+          <button class="mem-side-item active" data-nav="members">
+            <span class="mem-side-dot"></span>
+            <span>厂商会员</span>
+          </button>
+          <button class="mem-side-item" data-nav="public-pool">
+            <span class="mem-side-dot"></span>
+            <span>会员规则</span>
+          </button>
+        </div>
+
+        <div class="mem-side-group">
+          <div class="mem-side-group-title">系统设置</div>
+          <button class="mem-side-item" data-nav="categories">
+            <span class="mem-side-dot"></span>
+            <span>船型分类</span>
+          </button>
+          <button class="mem-side-item" data-nav="admin">
+            <span class="mem-side-dot"></span>
+            <span>船型管理</span>
+          </button>
+          <button class="mem-side-item" data-nav="drawings">
+            <span class="mem-side-dot"></span>
+            <span>定制图纸管理</span>
+          </button>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ===== 主内容区 ===== -->
+    <section class="mem-main">
+
+      <!-- ===== 工作台面板 ===== -->
+      <div class="mem-panel" id="panel-dashboard">
+        <div class="mem-head">
+          <div class="mem-head-left">
+            <h1 class="mem-head-title">工作台</h1>
+            <span class="mem-head-sub">数据概览</span>
+          </div>
+        </div>
+        <div class="mem-cards">
+          <div class="mem-card">
+            <div class="mem-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="mem-card-body">
+              <div class="mem-card-label">会员总数</div>
+              <div class="mem-card-value" id="dashTotalMembers">—</div>
+            </div>
+          </div>
+          <div class="mem-card">
+            <div class="mem-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div class="mem-card-body">
+              <div class="mem-card-label">正常会员</div>
+              <div class="mem-card-value" id="dashActiveMembers">—</div>
+            </div>
+          </div>
+          <div class="mem-card">
+            <div class="mem-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11H1v12h8V11z"/><path d="M23 1h-8v22h8V1z"/><path d="M16 9h2M16 14h2M16 4h2"/></svg>
+            </div>
+            <div class="mem-card-body">
+              <div class="mem-card-label">定制订单</div>
+              <div class="mem-card-value" id="dashOrders">—</div>
+            </div>
+          </div>
+          <div class="mem-card">
+            <div class="mem-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="mem-card-body">
+              <div class="mem-card-label">船型数量</div>
+              <div class="mem-card-value" id="dashBoats">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 用户列表面板 ===== -->
+      <div class="mem-panel active" id="panel-members">
+
+      <!-- 顶部标题栏 -->
+      <div class="mem-head">
+        <div class="mem-head-left">
+          <h1 class="mem-head-title">厂商会员</h1>
+          <span class="mem-head-sub" id="memTotalLabel">全部厂商</span>
+        </div>
+        <div class="mem-head-right">
+          <select class="mem-scope-select" id="scopeSelect">
+            <option value="all">全部厂商</option>
+            <option value="normal">正常会员</option>
+            <option value="disabled">已停用</option>
+            <option value="expired">会员已到期</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 操作 + 筛选栏 -->
+      <div class="mem-filter">
+        <div class="mem-filter-actions">
+          <button class="mem-btn mem-btn--primary" id="addMemberBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新增厂商
+          </button>
+        </div>
+        <div class="mem-filter-fields">
+          <div class="mem-field">
+            <input type="text" id="filterKeyword" placeholder="厂商 / 主账号 / 联系方式">
+          </div>
+          <div class="mem-field">
+            <select id="filterRole">
+              <option value="all">全部等级</option>
+              <option value="free">普通会员</option>
+              <option value="silver">白银会员</option>
+              <option value="gold">黄金会员</option>
+              <option value="platinum">铂金会员</option>
+              <option value="diamond">钻石会员</option>
+            </select>
+          </div>
+          <div class="mem-field" style="display:none">
+            <select id="filterIntention">
+              <option value="all">全部意向</option>
+              <option value="高意向">高意向</option>
+              <option value="中意向">中意向</option>
+              <option value="低意向">低意向</option>
+              <option value="无意向">无意向</option>
+            </select>
+          </div>
+          <div class="mem-field" style="display:none">
+            <select id="filterStatus">
+              <option value="all">全部状态</option>
+              <option value="正常">正常</option>
+              <option value="禁用">禁用</option>
+            </select>
+          </div>
+          <div class="mem-field mem-field--date" style="display:none">
+            <input type="date" id="filterDate" title="注册时间">
+          </div>
+          <button class="mem-btn mem-btn--ghost" id="searchBtn">搜索</button>
+          <button class="mem-btn mem-btn--text" id="resetBtn">重置</button>
+        </div>
+      </div>
+
+      <!-- 数据表格 -->
+      <div class="mem-table-wrap">
+        <table class="mem-table" id="memberTable">
+          <thead>
+            <tr>
+              <th>厂商ID</th>
+              <th>厂商名称</th>
+              <th>主账号</th>
+              <th>会员等级</th>
+              <th>船型额度</th>
+              <th>已绑定</th>
+              <th>联系人</th>
+              <th>会员到期</th>
+              <th>创建时间</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="memberTableBody">
+            <tr><td colspan="11" class="mem-loading">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 底部：批量操作 + 分页 -->
+      <div class="mem-footer">
+        <div class="mem-pagination" id="pagination"></div>
+      </div>
+
+      </div><!-- /#panel-members -->
+
+      <!-- ===== 会员规则面板 ===== -->
+      <div class="mem-panel" id="panel-public-pool">
+        <div class="mem-head">
+          <div class="mem-head-left">
+            <h1 class="mem-head-title">会员规则</h1>
+            <span class="mem-head-sub">会员等级决定厂商可绑定并在 PICO 查看模型的数量</span>
+          </div>
+        </div>
+        <div class="membership-rule-grid" id="membershipRuleGrid"><article><span>正在加载会员规则…</span></article></div>
+        <div class="mem-placeholder">
+          <p>会员控制规则已启用</p>
+          <span>到期后保留历史绑定，但暂停新增绑定和 PICO 模型目录；续费后自动恢复。降级超额时保留已有绑定，但不能继续增加。</span>
+        </div>
+      </div>
+
+      <div class="mem-panel" id="panel-categories">
+        <div class="mem-head">
+          <div class="mem-head-left"><h1 class="mem-head-title">船型分类</h1><span class="mem-head-sub">管理前台左侧显示的大类和小类</span></div>
+          <button type="button" class="mem-btn mem-btn--primary" id="addMainCategoryBtn">＋ 新增大类</button>
+        </div>
+        <div class="mem-placeholder" style="margin-bottom:16px"><p>分类与前台船型筛选同步</p><span>已有船型正在使用的分类不能直接删除，请先在船型管理中完成迁移。</span></div>
+        <div id="fieldManageWrap"><p class="mfr-empty" style="padding:24px">加载中…</p></div>
+      </div>
+
+      <div class="mem-panel" id="panel-admin">
+        <div class="mem-head">
+          <div class="mem-head-left">
+            <h1 class="mem-head-title">船型管理</h1>
+            <span class="mem-head-sub">船型列表与定制订单</span>
+          </div>
+        </div>
+        <iframe class="mem-admin-frame" src="about:blank" data-src="admin.html"></iframe>
+      </div>
+
+      <!-- ===== 定制图纸管理面板 ===== -->
+      <div class="mem-panel" id="panel-drawings">
+        <div class="mem-head">
+          <div class="mem-head-left">
+            <h1 class="mem-head-title">定制图纸管理</h1>
+            <span class="mem-head-sub">用户上传的定制图纸信息</span>
+          </div>
+        </div>
+        <div class="mfr-toolbar">
+          <input type="text" id="drawingSearch" placeholder="搜索联系人 / 手机号 / 订单号" class="mfr-search-input">
+          <button class="mfr-reset-btn" onclick="resetDrawingSearch()">重置</button>
+          <button type="button" class="mfr-reset-btn drawing-export-btn" id="drawingExportExcel">导出当前结果 Excel</button>
+          <span class="mfr-count" id="drawingCount" style="margin-left:auto;"></span>
+        </div>
+        <div class="mfr-table-wrap">
+          <table class="mfr-table" id="drawingTable">
+            <thead>
+              <tr>
+                <th style="width:42px;"><input type="checkbox" id="drawingCheckAll" aria-label="选择当前列表全部图纸"></th>
+                <th style="width:40px;">序号</th>
+                <th style="width:160px;">订单号</th>
+                <th style="width:90px;">联系人</th>
+                <th style="width:130px;">手机号</th>
+                <th>备注</th>
+                <th style="width:80px;">文件数</th>
+                <th>图纸文件</th>
+                <th style="width:140px;">提交时间</th>
+              </tr>
+            </thead>
+            <tbody id="drawingTbody">
+              <tr><td colspan="9" class="mfr-empty">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <!-- ===== 新增/编辑 弹窗 ===== -->
+  <div class="mem-modal-overlay" id="memberModal">
+    <div class="mem-modal">
+      <div class="mem-modal-head">
+        <h2 class="mem-modal-title" id="modalTitle">新增厂商会员</h2>
+        <button class="mem-modal-close" id="modalClose">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form class="mem-modal-form" id="memberForm">
+        <input type="hidden" id="memberId">
+        <div class="mem-modal-row">
+          <div class="mem-modal-field">
+            <label>厂商名称 <span class="req">*</span></label>
+            <input type="text" id="memberUsername" placeholder="请输入厂商完整名称">
+          </div>
+          <div class="mem-modal-field">
+            <label>厂商主账号 <span class="req">*</span></label>
+            <input type="text" id="memberOwnerUsername" placeholder="3-16 位字母/数字/中文">
+          </div>
+        </div>
+        <div class="mem-modal-row">
+          <div class="mem-modal-field">
+            <label id="pwdLabel">主账号初始密码 <span class="req">*</span></label>
+            <input type="password" id="memberPassword" placeholder="6-18 位，两种字符组合">
+            <p class="mem-modal-hint" id="pwdHint">6-18 位数字、字母、符号任意两种组合</p>
+          </div>
+          <div class="mem-modal-field">
+            <label>会员等级 <span class="req">*</span></label>
+            <select id="memberIntentionBoat">
+              <option value="free">普通会员（5个模型）</option>
+              <option value="silver">白银会员（10个模型）</option>
+              <option value="gold">黄金会员（20个模型）</option>
+              <option value="platinum">铂金会员（30个模型）</option>
+              <option value="diamond">钻石会员（40个模型）</option>
+            </select>
+          </div>
+        </div>
+        <div class="mem-modal-row">
+          <div class="mem-modal-field">
+            <label>联系人</label>
+            <input type="text" id="memberConsultant" placeholder="联系人姓名">
+          </div>
+          <div class="mem-modal-field">
+            <label>联系电话</label>
+            <input type="text" id="memberPhone" placeholder="手机号或座机">
+          </div>
+        </div>
+        <div class="mem-modal-row">
+          <div class="mem-modal-field">
+            <label>会员到期日期</label>
+            <input type="date" id="memberIntentionLevel">
+          </div>
+          <div class="mem-modal-field">
+            <label>状态</label>
+            <select id="memberStatus">
+              <option value="active">正常</option>
+              <option value="disabled">停用</option>
+            </select>
+          </div>
+        </div>
+        <div class="mem-modal-row">
+          <div class="mem-modal-field">
+            <label>地址</label>
+            <input type="text" id="memberSource" placeholder="厂商地址">
+          </div>
+          <div class="mem-modal-field">
+            <label>主账号状态</label>
+            <select id="memberOwnerStatus">
+              <option value="active">正常</option>
+              <option value="disabled">停用</option>
+            </select>
+          </div>
+        </div>
+        <p class="mem-modal-error" id="modalError"></p>
+        <div class="mem-modal-actions">
+          <button type="button" class="mem-btn mem-btn--ghost" id="modalCancel">取消</button>
+          <button type="submit" class="mem-btn mem-btn--primary" id="modalSubmit">确定</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== 详情弹窗 ===== -->
+  <div class="mem-modal-overlay" id="detailModal">
+    <div class="mem-modal mem-modal--detail">
+      <div class="mem-modal-head">
+        <h2 class="mem-modal-title">厂商会员详情</h2>
+        <button class="mem-modal-close" id="detailClose">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="mem-detail-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ===== 图纸预览弹窗 ===== -->
+  <div class="mfr-overlay" id="drawingPreviewOverlay"></div>
+  <div class="mfr-boat-popup" id="drawingPreviewModal">
+    <div class="mfr-boat-popup-head">
+      <span class="mfr-boat-popup-title" id="drawingPreviewTitle">图纸预览</span>
+      <button class="mfr-boat-popup-close" id="drawingPreviewClose">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="mfr-boat-popup-body" id="drawingPreviewBody"></div>
+  </div>
+
+  <script src="js/members.js"></script>
+</body>
+</html>
