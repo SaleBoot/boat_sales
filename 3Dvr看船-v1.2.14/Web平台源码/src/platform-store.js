@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { Pool } = require('pg');
@@ -399,6 +399,12 @@ class PlatformStore {
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         reviewed_at TIMESTAMPTZ
       );
+      CREATE TABLE IF NOT EXISTS v12_vr_account_sync (
+        user_id BIGINT PRIMARY KEY REFERENCES v12_users(id) ON DELETE CASCADE,
+        variant_id TEXT NOT NULL REFERENCES v12_vr_models(variant_id) ON DELETE CASCADE,
+        updated_by BIGINT REFERENCES v12_users(id),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
       CREATE TABLE IF NOT EXISTS v12_submissions (
         id TEXT PRIMARY KEY,
         contact_name TEXT NOT NULL,
@@ -520,7 +526,13 @@ class PlatformStore {
       "ALTER TABLE v12_customizations ADD COLUMN IF NOT EXISTS pricing_snapshot_json TEXT NOT NULL DEFAULT '{}'",
       "ALTER TABLE v12_customizations ADD COLUMN IF NOT EXISTS customer_name TEXT NOT NULL DEFAULT ''",
       "ALTER TABLE v12_customizations ADD COLUMN IF NOT EXISTS customer_phone TEXT NOT NULL DEFAULT ''",
-      "ALTER TABLE v12_customizations ADD COLUMN IF NOT EXISTS customer_note TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE v12_customizations ADD COLUMN IF NOT EXISTS customer_note TEXT NOT NULL DEFAULT ''",
+      "ALTER TABLE v12_sessions ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'web'",
+      "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS asset_format TEXT NOT NULL DEFAULT 'assetbundle'",
+      "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS detailed_interior BOOLEAN NOT NULL DEFAULT FALSE",
+      "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS source_file TEXT NOT NULL DEFAULT ''",
+      "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS processing_status TEXT NOT NULL DEFAULT 'pending'",
+      "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS processing_error TEXT NOT NULL DEFAULT ''"
     ];
     for (const sql of statements) await this.pool.query(sql);
   }
@@ -684,7 +696,7 @@ class PlatformStore {
         [profile.shipId, ownerShipyardId, profile.name, profile.category, profile.categoryName, profile.subtype,
           profile.typeName, `${catalogEntry ? catalogEntry.length : 0}米`, profile.capacity, profile.maxSpeed,
           profile.price, catalogEntry ? catalogEntry.description : '', JSON.stringify(profile.features || []),
-          primary.thumbnailUrl || '', profile.sceneImage || '', JSON.stringify(variants), JSON.stringify(configTabs)]
+          profile.image || primary.thumbnailUrl || '', profile.sceneImage || '', JSON.stringify(variants), JSON.stringify(configTabs)]
       );
     }
   }
@@ -753,17 +765,21 @@ class PlatformStore {
   }
 
   async importLegacyUsers() {
-    const count = Number((await this.pool.query('SELECT COUNT(*) AS count FROM v12_users')).rows[0].count);
-    if (count > 0) return;
     const userFile = path.join(this.rootDir, 'users.json');
     let users = [];
     try { users = JSON.parse(fs.readFileSync(userFile, 'utf8')); } catch {}
     for (const user of users) {
+      const usernameKey = String(user.username || '').trim().toLowerCase();
+      if (!usernameKey) continue;
+      // 按 username_key 去重：seedDemoShipyardVendors 等演示数据会先于本步骤写入 v12_users，
+      // 不能再用“表非空就整体跳过”的守卫，否则 users.json 中的 admin 等历史账号永远无法导入。
+      const exists = (await this.pool.query('SELECT 1 FROM v12_users WHERE username_key=$1', [usernameKey])).rowCount;
+      if (exists) continue;
       const role = user.role === 'admin' ? 'platform_admin' : 'customer';
       await this.pool.query(
         `INSERT INTO v12_users(legacy_id,username,username_key,salt,password_hash,security_question,security_answer_hash,role,status,phone,display_name,intention_boat,intention_level,consultant,source)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
-        [String(user.id || ''), user.username, user.username.toLowerCase(), user.salt, user.passwordHash,
+        [String(user.id || ''), user.username, usernameKey, user.salt, user.passwordHash,
           user.securityQuestion || '', user.securityAnswer ? hashAnswer(user.securityAnswer) : '', role,
           user.status === '禁用' ? 'disabled' : 'active', user.phone || '', user.username || '', user.intentionBoat || '',
           user.intentionLevel || '无意向', user.consultant || '', user.source || '自主注册']
@@ -831,12 +847,17 @@ class PlatformStore {
     return user;
   }
 
-  async createSession(userId) {
+  async createSession(userId, kind = 'web') {
     const token = makeToken();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    await this.pool.query('INSERT INTO v12_sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',
-      [hashToken(token), userId, expiresAt]);
+    await this.pool.query('INSERT INTO v12_sessions(token_hash,user_id,expires_at,kind) VALUES($1,$2,$3,$4)',
+      [hashToken(token), userId, expiresAt, kind]);
     return { token, expiresAt };
+  }
+
+  async deletePlatformSessions(userId) {
+    if (!userId) return;
+    await this.pool.query('DELETE FROM v12_sessions WHERE user_id=$1 AND kind=$2', [userId, 'web']);
   }
 
   async deleteSession(token) {
@@ -983,14 +1004,17 @@ class PlatformStore {
     const result = await this.pool.query(
       `SELECT m.*,boat.id AS boat_id,
         CASE WHEN b.active=TRUE THEN TRUE ELSE FALSE END AS is_bound,
-        EXISTS(
-          SELECT 1 FROM v12_shipyard_model_bindings sb
-          JOIN v12_vr_models sm ON sm.variant_id=sb.variant_id
-          WHERE sb.shipyard_id=$1 AND sb.active=TRUE AND sm.ship_id=m.ship_id
-        ) AS is_ship_bound
+        CASE WHEN ship_bound.ship_count IS NOT NULL THEN TRUE ELSE FALSE END AS is_ship_bound
        FROM v12_vr_models m
        LEFT JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
        LEFT JOIN v12_shipyard_model_bindings b ON b.variant_id=m.variant_id AND b.shipyard_id=$1
+       LEFT JOIN (
+         SELECT sm.ship_id, COUNT(*) AS ship_count
+         FROM v12_shipyard_model_bindings sb
+         JOIN v12_vr_models sm ON sm.variant_id=sb.variant_id
+         WHERE sb.shipyard_id=$1 AND sb.active=TRUE
+         GROUP BY sm.ship_id
+       ) ship_bound ON ship_bound.ship_id=m.ship_id
        WHERE $2=TRUE OR (m.is_published=TRUE AND boat.id IS NOT NULL)
        ORDER BY m.ship_name,m.variant_name`,
       [shipyardId || null, Boolean(user && user.role === 'platform_admin')]
@@ -1030,7 +1054,9 @@ class PlatformStore {
       return { version: String(Date.now()), generatedAtUtc: new Date().toISOString(), entries: [] };
     }
     const result = await this.pool.query(
-      `SELECT m.variant_id,m.bundle_version,m.bundle_file,m.bundle_size,m.bundle_sha256
+      `SELECT m.variant_id,m.ship_id,m.ship_name,m.variant_name,m.category,m.description,m.length_m,
+              m.bundle_version,m.bundle_file,m.bundle_size,m.bundle_sha256,m.thumbnail_url,
+              m.asset_format,m.detailed_interior
        FROM v12_vr_models m JOIN v12_shipyard_model_bindings b ON b.variant_id=m.variant_id
        WHERE b.shipyard_id=$1 AND b.active=TRUE AND m.is_published=TRUE
          AND m.bundle_file<>'' AND m.bundle_sha256<>'' ORDER BY m.variant_id`, [user.shipyard_id]
@@ -1039,10 +1065,64 @@ class PlatformStore {
       version: crypto.createHash('sha1').update(JSON.stringify(result.rows)).digest('hex').slice(0, 16),
       generatedAtUtc: new Date().toISOString(),
       entries: result.rows.map(row => ({
-        variantId: row.variant_id, version: row.bundle_version, file: row.bundle_file,
+        variantId: row.variant_id, shipId: row.ship_id, shipName: row.ship_name,
+        variantName: row.variant_name, category: row.category, description: row.description,
+        length: Number(row.length_m), thumbnailUrl: row.thumbnail_url,
+        detailedInterior: Boolean(row.detailed_interior), assetFormat: row.asset_format || 'assetbundle',
+        version: row.bundle_version, file: row.bundle_file,
         size: Number(row.bundle_size), sha256: row.bundle_sha256
       }))
     };
+  }
+
+  async currentVrModel(user) {
+    const result = await this.pool.query(
+      `SELECT m.variant_id,m.ship_id,m.ship_name,m.variant_name,m.category,m.description,m.length_m,
+              m.bundle_version,m.bundle_file,m.bundle_size,m.bundle_sha256,m.thumbnail_url,
+              m.asset_format,m.detailed_interior,s.updated_at
+       FROM v12_vr_account_sync s
+       JOIN v12_vr_models m ON m.variant_id=s.variant_id
+       LEFT JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
+       WHERE s.user_id=$1 AND m.is_published=TRUE AND boat.id IS NOT NULL
+         AND m.bundle_file<>'' AND m.bundle_sha256<>''`, [user.id]
+    );
+    if (!result.rowCount) return null;
+    const row = result.rows[0];
+    return {
+      variantId: row.variant_id, shipId: row.ship_id, shipName: row.ship_name,
+      variantName: row.variant_name, category: row.category, description: row.description,
+      length: Number(row.length_m), thumbnailUrl: row.thumbnail_url,
+      detailedInterior: Boolean(row.detailed_interior), assetFormat: row.asset_format || 'assetbundle',
+      version: row.bundle_version, file: row.bundle_file, size: Number(row.bundle_size),
+      sha256: row.bundle_sha256, syncedAtUtc: row.updated_at.toISOString()
+    };
+  }
+
+  async setCurrentVrModel(user, variantId) {
+    const isAdmin = user.role === 'platform_admin';
+    const params = [variantId];
+    let accessJoin = '';
+    if (!isAdmin) {
+      params.push(user.shipyard_id);
+      accessJoin = `INNER JOIN v12_shipyard_model_bindings b
+                      ON b.variant_id=m.variant_id AND b.shipyard_id=$2 AND b.active=TRUE`;
+    }
+    const model = await this.pool.query(
+      `SELECT m.variant_id FROM v12_vr_models m
+       INNER JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
+       ${accessJoin}
+       WHERE m.variant_id=$1 AND m.is_published=TRUE
+         AND m.bundle_file<>'' AND m.bundle_sha256<>''`, params
+    );
+    if (!model.rowCount) throw Object.assign(new Error('该模型尚未就绪、未上架或当前账号无权使用'), { status: 403 });
+    await this.pool.query(
+      `INSERT INTO v12_vr_account_sync(user_id,variant_id,updated_by,updated_at)
+       VALUES($1,$2,$1,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE
+       SET variant_id=EXCLUDED.variant_id,updated_by=EXCLUDED.updated_by,updated_at=CURRENT_TIMESTAMP`,
+      [user.id, variantId]
+    );
+    await this.audit(user.id, 'vr.sync', 'vr_model', variantId, {});
+    return this.currentVrModel(user);
   }
 
   async requestBinding(user, variantId, note) {
@@ -1486,7 +1566,7 @@ class PlatformStore {
 
   async adminBoats(filters = {}) {
     const params = [];
-    const where = ['b.is_published=TRUE'];
+    const where = [];
     if (filters.shipyardId) { params.push(filters.shipyardId); where.push(`b.owner_shipyard_id=$${params.length}`); }
     if (!filters.includeArchived) where.push('b.archived_at IS NULL');
     const result = await this.pool.query(
@@ -1867,14 +1947,19 @@ class PlatformStore {
     return (await this.pool.query(
       `SELECT r.*,s.name AS shipyard_name,m.ship_id,m.ship_name,m.variant_name,u.username AS requester,
        owner.name AS owner_shipyard_name,p.model_quota,
-       (SELECT COUNT(DISTINCT bm.ship_id) FROM v12_shipyard_model_bindings bb
-        JOIN v12_vr_models bm ON bm.variant_id=bb.variant_id
-        WHERE bb.shipyard_id=r.shipyard_id AND bb.active=TRUE) AS bound_ship_count
+       COALESCE(bc.bound_ship_count,0) AS bound_ship_count
        FROM v12_binding_requests r JOIN v12_shipyards s ON s.id=r.shipyard_id
        JOIN v12_membership_plans p ON p.code=s.plan_code
        JOIN v12_vr_models m ON m.variant_id=r.variant_id
        LEFT JOIN v12_shipyards owner ON owner.id=m.owner_shipyard_id
        JOIN v12_users u ON u.id=r.requested_by
+       LEFT JOIN (
+         SELECT bb.shipyard_id, COUNT(DISTINCT bm.ship_id) AS bound_ship_count
+         FROM v12_shipyard_model_bindings bb
+         JOIN v12_vr_models bm ON bm.variant_id=bb.variant_id
+         WHERE bb.active=TRUE
+         GROUP BY bb.shipyard_id
+       ) bc ON bc.shipyard_id=r.shipyard_id
        ${where} ORDER BY r.id DESC`, params
     )).rows;
   }

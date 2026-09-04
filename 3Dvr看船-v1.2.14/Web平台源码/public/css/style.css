@@ -189,6 +189,24 @@ body {
   border-color: var(--border-strong);
 }
 
+/* 同步到VR按钮：近黑 Pill，右上角 */
+.nav-vr-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #fff;
+  background: #111827;
+  border: 1px solid #111827;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.nav-vr-sync-btn:hover { background: #344054; border-color: #344054; }
+.nav-vr-sync-btn:disabled { opacity: .55; cursor: wait; }
+
 /* 登录按钮:B 端近纯黑 Pill,和 accent 一致 */
 .nav-login-btn {
   padding: 6px 18px;
@@ -1782,6 +1800,211 @@ body {
 .detail-empty-option{padding:36px;border:1px dashed var(--border);border-radius:var(--radius-md);color:var(--text-tertiary);text-align:center}
 .config-option-image{display:block;width:100%;height:92px;margin-bottom:10px;border-radius:8px;object-fit:cover;background:var(--bg-secondary)}
 .config-option-card .config-option-detail{min-height:18px}
+.config-option-image.is-zoomable{cursor:zoom-in}
+
+/* ===== 方案对比模式 ===== */
+.config-action-group { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+.config-compare-btn {
+  padding: 14px 22px;
+  white-space: nowrap;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #0b0f19;
+  border: 1px solid #d8dbe3;
+  cursor: pointer;
+  transition: background-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.config-compare-btn:hover {
+  background: #f5f6fa;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.08);
+}
+/* iframe 内嵌对比模式:强制隐藏对比按钮,避免无限嵌套套娃 */
+html[data-in-iframe="true"] .config-compare-btn {
+  display: none !important;
+}
+/* 对比模式激活时按钮高亮(警示用户当前处于对比模式) */
+.config-compare-btn.is-active {
+  background: #c33;
+  color: #fff;
+  border-color: #c33;
+}
+.config-compare-btn.is-active:hover {
+  background: #a00;
+  border-color: #a00;
+}
+/* 进入对比模式后,左右两栏均为 iframe 等比例(scale 0.7)缩放显示,样式不变形 */
+body.compare-active {
+  overflow: hidden;
+}
+body.compare-active .config-page {
+  display: none;
+}
+body.compare-active .top-nav { z-index: 1100; }
+.compare-overlay {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: row;
+  background: #fff;
+  z-index: 999;
+  overflow: hidden;
+}
+.compare-side {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+}
+.compare-left {
+  border-right: none;  /* 由 VS 徽章承担视觉分隔,去掉单边线 */
+  position: relative;
+}
+/* 左右两栏之间的渐变分隔线 + 中央 VS 徽章 */
+.compare-left::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent 0%, #d8dbe3 15%, #d8dbe3 85%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+/* 中央 VS 徽章:圆形,浮在两栏中间偏上位置 */
+.compare-vs-badge {
+  position: fixed;
+  top: 100px;        /* 略下移,让出退出按钮位置 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #0b0f19 0%, #1f2937 100%);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  z-index: 1200;
+  box-shadow: 0 6px 18px rgba(11, 15, 25, 0.35), 0 0 0 4px #fff;
+  font-family: inherit;
+  pointer-events: none;
+  user-select: none;
+}
+.compare-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #fff 0%, #fafbfc 100%);
+  flex-shrink: 0;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.compare-exit-floating {
+  position: fixed;
+  top: 64px;            /* 位于顶部 nav 下方,header 上方 */
+  left: 50%;            /* 水平居中 */
+  transform: translateX(-50%);
+  z-index: 1300;        /* 高于 VS 徽章 */
+  padding: 6px 14px;
+  border: 1px solid #fcc;
+  background: #fee;
+  color: #c33;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+.compare-exit-floating:hover { background: #fdd; }
+.compare-home-btn {
+  padding: 8px 14px;
+  border: 1px solid #0b0f19;
+  background: #0b0f19;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.compare-home-btn:hover { background: #1f2937; border-color: #1f2937; }
+.compare-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: #0b0f19;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.compare-tag-current { background: #1f6feb; }
+/* 车名:更醒目(参考汽车销售网站对比页的粗体车型名展示) */
+.compare-current-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  flex: 0 1 auto;
+  min-width: 60px;
+}
+.compare-boat-select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid #d8dbe3;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.compare-frame-wrap {
+  flex: 1;
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+}
+.compare-frame-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: 24px;
+}
+.compare-frame-placeholder span { font-size: 1rem; font-weight: 500; color: var(--text-secondary); }
+.compare-frame-placeholder small { font-size: 0.8125rem; }
+.compare-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 142.857%;   /* = 100/0.7,确保视觉宽度恰好填满容器 */
+  height: 142.857%;
+  border: 0;
+  transform: scale(0.7);   /* 从 0.5 调到 0.7,文字视觉大小提升 40%(16px 原 8px → 现 11.2px) */
+  transform-origin: 0 0;
+  background: #fff;
+}
 .detail-error{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;min-height:360px;color:#b42318}
 .detail-loading-retry{border:1px solid #1d1d1f;border-radius:9px;background:#1d1d1f;color:#fff;padding:10px 18px;font:inherit;cursor:pointer}
 .detail-back-bar .back-btn{appearance:none;text-decoration:none;border:1px solid var(--border);background:#fff;color:var(--text-primary);font-family:var(--font)}
@@ -2380,9 +2603,173 @@ body {
   line-height: 1.6;
 }
 
+/* ===== 管理员板块编辑按钮 ===== */
+.section-edit-btn {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 6px 16px;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.section-edit-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.config-section { position: relative; }
+
+/* ===== 管理员编辑弹窗 ===== */
+.section-editor-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.section-editor-overlay.show { display: flex; }
+.section-editor-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+.section-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+  cursor: move;
+  user-select: none;
+}
+.section-editor-header h3 { font-size: 1.125rem; font-weight: 600; }
+.section-editor-close {
+  background: none; border: none;
+  font-size: 1.5rem; cursor: pointer;
+  color: #999; padding: 0 4px;
+}
+.section-editor-close:hover { color: #333; }
+.section-editor-form { padding: 24px; }
+.editor-field { margin-bottom: 16px; }
+.editor-field label {
+  display: block;
+  font-size: 0.8125rem;
+  color: #666;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.editor-field input, .editor-field textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+.editor-field textarea { resize: vertical; }
+.editor-field-row {
+  display: flex;
+  gap: 12px;
+}
+.editor-field-row .editor-field { flex: 1; }
+.editor-option-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #fafafa;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+}
+.editor-option-row input {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+}
+.editor-option-row .opt-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.editor-option-row .opt-name { flex: 1 1 160px; min-width: 120px; }
+.opt-price-wrap { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.editor-option-row .opt-price { width: 80px; }
+.opt-price-unit { font-size: 0.8125rem; color: #666; }
+.opt-color-wrap { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.editor-option-row .opt-color-text { width: 80px; font-family: monospace; }
+.editor-option-row .opt-color { width: 36px; height: 36px; padding: 2px; border: 1px solid #ddd; border-radius: 6px; flex: 0 0 auto; cursor: pointer; }
+.editor-option-row .opt-row-desc { display: flex; }
+.editor-option-row .opt-row-desc .opt-desc { flex: 1; }
+.editor-option-row .opt-row-image { display: flex; align-items: center; gap: 8px; }
+.editor-option-row .opt-image-url { flex: 1; min-width: 0; }
+.editor-option-row .opt-image-upload { padding: 6px 12px; white-space: nowrap; flex: 0 0 auto; cursor: pointer; }
+.editor-option-row .opt-image-preview { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: zoom-in; flex: 0 0 auto; }
+.image-preview-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
+.image-preview-overlay img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 8px; }
+.editor-option-row .opt-remove {
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  color: #c33;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: 0.9375rem;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.editor-option-row .opt-remove:hover { background: #fdd; }
+.editor-add-option-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background: #f5f5f5;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  margin-top: 8px;
+}
+.editor-add-option-btn:hover { background: #eee; }
+.section-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+.section-editor-footer button {
+  padding: 8px 20px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.section-editor-footer .section-editor-save {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 .config-scene-image {
   width: 100%;
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
   display: block;
   margin: 0 0 18px;
@@ -3014,3 +3401,17 @@ body {
   }
 }
 .customer-order-overlay{position:fixed;inset:0;z-index:5000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.5);backdrop-filter:blur(5px)}.customer-order-overlay.show{display:flex}.customer-order-dialog{width:min(520px,100%);padding:26px;border-radius:22px;background:#fff;box-shadow:0 28px 80px rgba(15,23,42,.28)}.customer-order-dialog header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}.customer-order-dialog header small{color:#667085;letter-spacing:.16em}.customer-order-dialog h2{margin:5px 0 4px;font-size:25px}.customer-order-dialog p{margin:0;color:#667085;font-size:13px}.customer-order-dialog header button{width:38px;height:38px;border:0;border-radius:50%;background:#f2f4f7;color:#475467;font-size:25px;cursor:pointer}.customer-order-dialog label{display:flex;flex-direction:column;gap:8px;margin:13px 0;color:#344054;font-size:13px;font-weight:600}.customer-order-dialog label b{display:inline;color:#d92d20}.customer-order-dialog input,.customer-order-dialog textarea{width:100%;padding:12px 14px;border:1px solid #d0d5dd;border-radius:11px;background:#fff;color:#101828;font:inherit;font-weight:400;resize:vertical}.customer-order-dialog input:focus,.customer-order-dialog textarea:focus{outline:0;border-color:#101828;box-shadow:0 0 0 3px rgba(16,24,40,.08)}.customer-order-dialog footer{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.customer-order-dialog footer button{min-width:108px;padding:12px 18px;border-radius:11px;font-weight:650;cursor:pointer}.customer-order-cancel{border:1px solid #d0d5dd;background:#fff;color:#344054}.customer-order-confirm{border:1px solid #101828;background:#101828;color:#fff}.customer-order-confirm:disabled{opacity:.55;cursor:wait}
+
+/* ===== 首页底部备案号 ===== */
+.site-footer{display:flex;justify-content:center;align-items:center;padding:18px 16px;margin-top:auto;background:#f7f8fa;border-top:1px solid #e9edf3;text-align:center}
+.site-footer .icp-link{color:#667085;font-size:13px;letter-spacing:.04em;text-decoration:none;transition:color .2s ease}
+.site-footer .icp-link:hover{color:#101828;text-decoration:underline}
+
+/* ===== 3D 模型双击全屏展示 ===== */
+.scene3d-viewport:fullscreen,.scene3d-viewport:-webkit-full-screen{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;background:#ffffff}
+.scene3d-viewport:fullscreen .model-loading,.scene3d-viewport:-webkit-full-screen .model-loading{display:flex;align-items:center;justify-content:center}
+@media (max-width:600px){.scene3d-viewport:fullscreen,.scene3d-viewport:-webkit-full-screen{width:100vw!important;height:100vh!important}}
+
+/* ===== 3D 视口「双击最大化」说明角标 ===== */
+.config-model-placeholder{position:relative}
+.model-fullscreen-hint{position:absolute;top:8px;right:10px;z-index:5;font-size:12px;color:#475467;background:rgba(255,255,255,.85);padding:3px 10px;border-radius:10px;pointer-events:none;letter-spacing:.03em;box-shadow:0 1px 4px rgba(15,23,42,.10);border:1px solid rgba(15,23,42,.06)}

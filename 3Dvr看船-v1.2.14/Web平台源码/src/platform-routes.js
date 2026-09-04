@@ -81,6 +81,13 @@ function installPlatformRoutes(app, store, options = {}) {
     }
     next();
   };
+  const requireVrUser = (req, res, next) => {
+    if (!req.platformUser) return res.status(401).json({ success: false, message: '请先登录' });
+    const allowed = req.platformUser.role === 'platform_admin' ||
+      (['shipyard_owner', 'sales'].includes(req.platformUser.role) && req.platformUser.shipyard_id);
+    if (!allowed) return res.status(403).json({ success: false, message: '该账号不能登录VR' });
+    next();
+  };
   const requireOwner = (req, res, next) => {
     if (!req.platformUser) return res.status(401).json({ success: false, message: '请先登录' });
     if (req.platformUser.role !== 'shipyard_owner' || !req.platformUser.shipyard_id) {
@@ -100,7 +107,8 @@ function installPlatformRoutes(app, store, options = {}) {
     if (!username || !password) return res.status(400).json({ success: false, message: '请输入用户名和密码' });
     const user = await store.authenticate(username, password);
     if (!user) return res.status(401).json({ success: false, message: '用户名或密码错误' });
-    const session = await store.createSession(user.id);
+    await store.deletePlatformSessions(user.id);
+    const session = await store.createSession(user.id, 'web');
     setSessionCookie(res, session.token, session.expiresAt);
     res.json({ success: true, message: '登录成功', data: store.userDto(user) });
   }));
@@ -167,7 +175,7 @@ function installPlatformRoutes(app, store, options = {}) {
     if (!user || !['shipyard_owner', 'sales'].includes(user.role) || !user.shipyard_id) {
       return res.status(401).json({ success: false, message: '船厂账号或密码错误' });
     }
-    const session = await store.createSession(user.id);
+    const session = await store.createSession(user.id, 'vr');
     const catalog = await store.vrCatalog(user);
     res.json({
       success: true,
@@ -178,6 +186,18 @@ function installPlatformRoutes(app, store, options = {}) {
 
   app.get('/api/vr/catalog', requireShipyard, asyncRoute(async (req, res) => {
     res.json(await store.vrCatalog(req.platformUser));
+  }));
+
+  app.get('/api/vr/current-model', requireVrUser, asyncRoute(async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.json({ success: true, data: await store.currentVrModel(req.platformUser) });
+  }));
+
+  app.put('/api/vr/current-model', requireVrUser, asyncRoute(async (req, res) => {
+    const variantId = String(req.body.variantId || '').trim();
+    if (!variantId) return res.status(400).json({ success: false, message: '请选择需要同步的船舶模型' });
+    const data = await store.setCurrentVrModel(req.platformUser, variantId);
+    res.json({ success: true, message: '已同步到当前账号的VR头显', data });
   }));
 
   app.get('/api/platform/models', asyncRoute(async (req, res) => {
@@ -413,6 +433,17 @@ function installPlatformRoutes(app, store, options = {}) {
     const data = await store.updateBoat(req.params.id, req.body, req.platformUser.id);
     res.json({ success: true, message: '船型信息已保存到数据库', data });
   }));
+  admin.put('/boats/:id/config-tabs', asyncRoute(async (req, res) => {
+    const { tabId, options, label } = req.body;
+    const boat = await store.boat(req.params.id);
+    if (!boat) return res.status(404).json({ success: false, message: '船型不存在' });
+    const tab = boat.configTabs.find(t => String(t.id) === String(tabId));
+    if (!tab) return res.status(404).json({ success: false, message: '配置板块不存在' });
+    tab.options = options;
+    if (label != null) tab.label = label;
+    await store.updateBoat(req.params.id, { configTabs: boat.configTabs }, req.platformUser.id);
+    res.json({ success: true, message: '配置板块已保存' });
+  }));
   admin.put('/boats/:id/archive', asyncRoute(async (req, res) => {
     const data = await store.archiveBoat(req.params.id, req.body.archived !== false, req.platformUser.id);
     res.json({ success: true, message: data.archived ? '船型已归档' : '船型已恢复', data });
@@ -555,6 +586,10 @@ function installPlatformRoutes(app, store, options = {}) {
       await store.updateBoatImage(req.params.id, image, req.platformUser.id);
       res.json({ success: true, message: '船型图片已上传', image });
     }));
+    admin.post('/boats/:id/option-image', options.imageUpload.single('image'), asyncRoute(async (req, res) => {
+      if (!req.file) return res.status(400).json({ success: false, message: '请选择图片文件' });
+      res.json({ success: true, image: `/uploads/${req.file.filename}` });
+    }));
   }
   admin.put('/vr-models/:variantId/publish', asyncRoute(async (req, res) => {
     const data = await store.setModelPublished(req.params.variantId, req.body.published, req.platformUser.id);
@@ -581,7 +616,7 @@ function installPlatformRoutes(app, store, options = {}) {
   }));
   app.use('/api/admin', admin);
 
-  return { requireAdmin, requireLogin, requireShipyard };
+  return { requireAdmin, requireLogin, requireShipyard, requireVrUser };
 }
 
 module.exports = { installPlatformRoutes };
