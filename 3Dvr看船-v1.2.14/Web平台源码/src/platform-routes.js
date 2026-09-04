@@ -225,6 +225,12 @@ function installPlatformRoutes(app, store, options = {}) {
     res.json({ success: true, data });
   }));
 
+  // 保存数字孪生配置（勾选的系统 + 智能大类选择），需登录
+  app.put('/api/boats/:id/twin-config', requireLogin, asyncRoute(async (req, res) => {
+    const data = await store.updateBoatTwinConfig(Number(req.params.id), req.body || {}, req.platformUser.id);
+    res.json({ success: true, data });
+  }));
+
   // 数字孪生（独立系统）：目录与页面须登录后才能访问，公众不可见。
   // 目录位于项目根下 twin/（不在 public 静态目录），仅由该受保护路由对外。
   app.use('/twin', requireLogin, express.static(path.join(__dirname, '..', 'twin'), {

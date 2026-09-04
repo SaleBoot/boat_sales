@@ -222,6 +222,22 @@ body {
 }
 .nav-twin-btn:hover { filter: brightness(1.06); }
 
+/* 后台定制页：数字孪生配置 */
+.config-section .twin-config-card {
+  margin: 0 0 1.25rem; padding: 1rem 1.1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-secondary);
+}
+.twin-config-title { font-size: .9rem; font-weight: 600; margin-bottom: .6rem; }
+.twin-config-sub { font-size: .78rem; color: var(--text-secondary); margin: .6rem 0 .4rem; }
+.twin-sys-grid { display: flex; flex-wrap: wrap; gap: .5rem; }
+.twin-sys-box { display: inline-flex; align-items: center; gap: .35rem; padding: .4rem .6rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; font-size: .82rem; }
+.twin-sys-box input { accent-color: var(--accent); }
+.twin-cat-grid { display: flex; flex-direction: column; gap: .5rem; }
+.twin-cat { display: flex; align-items: center; gap: .6rem; font-size: .82rem; }
+.twin-cat span { min-width: 118px; color: var(--text-secondary); }
+.twin-cat select { flex: 1; padding: .42rem .5rem; border: 1px solid var(--border); border-radius: 8px; background: #fff; font-size: .82rem; }
+.twin-save-btn { margin-top: .8rem; padding: .5rem 1rem; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; font-size: .82rem; }
+.twin-save-btn:hover { filter: brightness(1.06); }
+
 /* 登录按钮:B 端近纯黑 Pill,和 accent 一致 */
 .nav-login-btn {
   padding: 6px 18px;

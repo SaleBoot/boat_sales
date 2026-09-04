@@ -198,7 +198,49 @@ function renderTab() {
   if (tab.kind === 'overview') { container.innerHTML = overviewHtml(tab); return; }
   const options = Array.isArray(tab.options) ? tab.options : [];
   const editBtn = isAdminMode ? `<button class="section-edit-btn" onclick="openSectionEditor('${escapeJs(tab.id)}')">编辑</button>` : '';
-  container.innerHTML = `<div class="config-section"><div class="config-section-header"><div><h3 class="config-section-title">${escapeHtml(tab.label)}</h3><p class="config-section-desc">${escapeHtml(tab.description || '')}</p></div></div>${options.length ? `<div class="config-option-grid">${options.map(option => optionHtml(tab, option)).join('')}</div>` : '<div class="detail-empty-option">该船型暂未配置此项，请联系厂家确认。</div>'}${editBtn}</div>`;
+  const twinEditor = (tab.kind === 'accessory' && isAdminMode) ? twinConfigHtml(tab) : '';
+  container.innerHTML = `<div class="config-section"><div class="config-section-header"><div><h3 class="config-section-title">${escapeHtml(tab.label)}</h3><p class="config-section-desc">${escapeHtml(tab.description || '')}</p></div></div>${twinEditor}${options.length ? `<div class="config-option-grid">${options.map(option => optionHtml(tab, option)).join('')}</div>` : '<div class="detail-empty-option">该船型暂未配置此项，请联系厂家确认。</div>'}${editBtn}</div>`;
+  const saveBtn = container.querySelector('.twin-save-btn');
+  if (saveBtn) saveBtn.addEventListener('click', saveTwinConfig);
+}
+
+const TWIN_GROUP_META = [
+  { id: 'fire', name: '消防系统' }, { id: 'elec', name: '电气系统' }, { id: 'nav', name: '航行与通信' },
+  { id: 'cam', name: '视频监控' }, { id: 'cnc', name: '船舶数控系统' }, { id: 'hvac', name: '空调系统' }
+];
+function twinSmartGroups(tab) {
+  const opts = Array.isArray(tab.options) ? tab.options : []
+  const groups = {}; const order = []
+  opts.forEach(o => { const cat = String(o.name || '').split('·')[0].trim() || String(o.name || '智能'); if (!groups[cat]) { groups[cat] = []; order.push(cat) } groups[cat].push(o) })
+  return order.map(cat => ({ category: cat, options: groups[cat] }))
+}
+function twinConfigHtml(tab) {
+  const cfg = (boatData.twinConfig && boatData.twinConfig.systems) || ['fire', 'elec', 'nav', 'cam']
+  const smartCfg = (boatData.twinConfig && boatData.twinConfig.smart) || {}
+  const sysBoxes = TWIN_GROUP_META.map(s => `<label class="twin-sys-box"><input type="checkbox" data-twin-sys="${s.id}" ${cfg.includes(s.id) ? 'checked' : ''}><span>${escapeHtml(s.name)}</span></label>`).join('')
+  const catSelects = twinSmartGroups(tab).map(g => {
+    const enabled = !!smartCfg[g.category]
+    const sel = smartCfg[g.category] || (g.options[0] && g.options[0].id) || ''
+    return `<label class="twin-cat"><input type="checkbox" data-twin-cat-check="${escapeAttr(g.category)}" ${enabled ? 'checked' : ''}><span>${escapeHtml(g.category)}</span><select data-twin-cat="${escapeAttr(g.category)}" ${enabled ? '' : 'disabled'}>${g.options.map(o => `<option value="${escapeAttr(o.id)}" ${o.id === sel ? 'selected' : ''}>${escapeHtml(o.name)}</option>`).join('')}</select></label>`
+  }).join('')
+  return `<div class="twin-config-card"><div class="twin-config-title">数字孪生配置（勾选后数字孪生左侧显示）</div>
+    <div class="twin-config-block"><div class="twin-config-sub">展示的物理系统（可多选）</div><div class="twin-sys-grid">${sysBoxes}</div></div>
+    <div class="twin-config-block"><div class="twin-config-sub">智能系统（每类单选）</div><div class="twin-cat-grid">${catSelects || '<span class="muted">智能板块暂无选项</span>'}</div></div>
+    <button type="button" class="twin-save-btn">保存数字孪生配置</button></div>`
+}
+async function saveTwinConfig() {
+  if (!boatData || !boatData.id) return toast('未找到船型', true)
+  const systems = Array.from(document.querySelectorAll('[data-twin-sys]')).filter(i => i.checked).map(i => i.dataset.twinSys)
+  const smart = {}
+  document.querySelectorAll('[data-twin-cat-check]').forEach(chk => {
+    const cat = chk.dataset.twinCatCheck
+    if (chk.checked) { const sel = document.querySelector(`[data-twin-cat="${CSS.escape(cat)}"]`); if (sel) smart[cat] = sel.value }
+  })
+  try {
+    const res = await fetch(`/api/boats/${boatData.id}/twin-config`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ systems, smart }), credentials: 'same-origin' })
+    const json = await res.json(); if (!res.ok || !json.success) throw new Error(json.message || '保存失败')
+    boatData.twinConfig = json.data.twinConfig; toast('数字孪生配置已保存'); renderTab()
+  } catch (e) { toast(e.message || '保存失败', true) }
 }
 
 function overviewHtml(tab) {

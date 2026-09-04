@@ -1743,6 +1743,20 @@ class PlatformStore {
     return this.boatDto(row);
   }
 
+  async updateBoatTwinConfig(id, twinConfig, actorId) {
+    const current = await this.boat(id);
+    if (!current) throw Object.assign(new Error('船型不存在'), { status: 404 });
+    const cfg = normalizeTwinConfig(twinConfig);
+    const result = await this.pool.query(
+      'UPDATE v12_boats SET twin_config=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *',
+      [id, JSON.stringify(cfg)]
+    );
+    await this.audit(actorId, 'boat.twin_config', 'boat', id, cfg);
+    const row = result.rows[0];
+    row.manufacturer = (await this.pool.query('SELECT name FROM v12_shipyards WHERE id=$1', [row.owner_shipyard_id])).rows[0].name;
+    return this.boatDto(row);
+  }
+
   async createBoat(data, actorId) {
     const ownerShipyardId = Number(data.ownerShipyardId);
     const owner = (await this.pool.query('SELECT id FROM v12_shipyards WHERE id=$1', [ownerShipyardId])).rows[0];
