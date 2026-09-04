@@ -194,6 +194,7 @@ function renderSystemTree() {
       const system = key.slice(4)
       state.systemFocus = system; state.selected = null; state.scene.setSystemFocus(system)
       fadeView(() => state.scene.focusView('system', system, { dur: 0.7 }))
+      if (system === 'cam') { state.rightTab = 'camera'; document.querySelectorAll('.right-tabs button').forEach(b => b.classList.toggle('active', b.dataset.panel === 'camera')); renderRight() }
     } else if (key.indexOf('smart:') === 0) {
       const gid = key.slice(6)
       state.systemFocus = gid; state.selected = { id: gid, name: gid.replace('smart-', ''), system: 'smart', kind: 'smart' }
@@ -269,13 +270,14 @@ function renderRight() {
     case 'camera': c.innerHTML = renderCameraPanel(); c.querySelectorAll('[data-cam]').forEach(b => b.addEventListener('click', () => openCamera(b.dataset.cam))); break
     case 'energy': c.innerHTML = renderEnergyPanel(); drawCurve($('energyCurve')); break
     case 'report': c.innerHTML = renderReportPanel(); c.querySelectorAll('[data-report]').forEach(b => b.addEventListener('click', () => exportReport(b.dataset.report))); break
+    case 'engine': c.innerHTML = renderEngineStatus(); break
   }
   c.classList.remove('anim'); void c.offsetWidth; c.classList.add('anim')
 }
 
 function renderDevicePanel() {
   const d = state.selected
-  if (!d) return `<div class="empty-panel"><b>发动机与动力</b><p>左主机 · 右主机 · 齿轮箱 · 舵机 · 燃油/机油/油耗/航程/航线</p></div>` + renderEngineCard()
+  if (!d) return `<div class="empty-panel"><b>请在左侧选择系统，或在 3D 模型上点击设备点位</b><p>左侧为已勾选的系统与智能大类；发动机状态请在右侧「发动机状态」磁条查看。</p></div>`
   if (d.kind === 'smart') {
     const opt = d.option || {}
     return `<div class="dev-detail"><div class="dd-head"><span class="dd-sys" style="background:#38bdf8">智能系统</span><h3>${esc(d.name)}</h3><span class="dd-status">已选</span></div>
@@ -310,14 +312,30 @@ function renderEngineCard() {
 
 // 该船在「动力」板块选择的发动机型号（默认取第一个已选/第一个选项）
 function engineModelName() {
+  const pow = enginePowerOption()
+  if (pow && pow.name) return pow.name
+  return '标准动力'
+}
+function enginePowerOption() {
   const tabs = Array.isArray(state.boat.configTabs) ? state.boat.configTabs : []
   const power = tabs.find(t => t.id === 'power' || /动力/.test(t.label || ''))
   const opts = (power && Array.isArray(power.options)) ? power.options : []
-  if (opts.length) {
-    const sel = opts.find(o => o.selected) || opts[0]
-    return sel.name || ''
-  }
-  return '标准动力'
+  return opts.find(o => o.selected) || opts[0] || null
+}
+
+function renderEngineStatus() {
+  const k = kpiData()
+  const pow = enginePowerOption()
+  const desc = pow && pow.description ? pow.description : '型号详细参数以厂家确认为准'
+  return `<div class="dev-detail">
+    <div class="dd-head"><span class="dd-sys" style="background:#ef4444">发动机状态</span><h3>发动机与动力</h3></div>
+    <div class="dd-params">
+      <div class="dd-param"><span>发动机型号</span><b>${esc(engineModelName())}</b></div>
+      <div class="dd-param"><span>推进形式</span><b>双机双桨</b></div>
+    </div>
+    <div class="route-line"><span>类型详细参数</span><b>${esc(desc)}</b></div>
+    ${renderEngineCard()}
+  </div>`
 }
 
 function onSmartSelect(gid) {
