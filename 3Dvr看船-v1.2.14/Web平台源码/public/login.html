@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -9,9 +9,9 @@
 </head>
 <body class="auth-body">
 
-  <!-- ===== 全屏水波纹背景 ===== -->
-  <canvas id="rippleCanvas" class="ripple-canvas"></canvas>
-  <div class="ripple-overlay"></div>
+  <!-- ===== GPU 水波纹背景（Three.js Ping-Pong 波动方程 + 焦散光斑） ===== -->
+  <!-- canvas 由 ripple.js 动态创建 -->
+  <!-- 移除旧 canvas + overlay，改由 Three.js 管理 -->
 
   <!-- ===== 居中登录卡片 ===== -->
   <div class="auth-center">
@@ -164,7 +164,8 @@
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
-  <script src="js/ripple.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+  <script src="js/ripple.js?v=2"></script>
   <script src="js/auth.js"></script>
 </body>
 </html>

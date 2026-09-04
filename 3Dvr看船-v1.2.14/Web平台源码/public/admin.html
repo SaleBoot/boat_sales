@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>后台管理 | 船舶定制系统</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/admin-v2.css">
+  <link rel="stylesheet" href="css/admin-v2.css?v=20260903b">
   <script>
     if (window.self !== window.top) document.documentElement.classList.add('embedded-admin');
   </script>
@@ -13,27 +13,17 @@
 <body class="admin-v2-body">
   <nav class="top-nav admin-top-nav">
     <div class="nav-inner">
-      <button class="ui-back-button" onclick="location.href='members.html'" aria-label="返回管理控制台">← 返回管理控制台</button>
+      <button class="ui-back-button" id="adminBackBtn" onclick="adminBack(event)" aria-label="返回首页">← 首页</button>
       <div class="nav-right"><span class="admin-identity">平台管理员</span><button class="ui-button ui-button--ghost" id="logoutBtn">退出登录</button></div>
     </div>
   </nav>
 
   <main class="admin-v2-shell">
-    <header class="admin-v2-heading">
-      <div><span class="eyebrow">ADMIN</span><h1>厂家与船型管理</h1><p>船型按所属厂家管理；厂家端只浏览和申请绑定，所有船型资料、模型与定制选项均由平台维护。</p></div>
-      <button class="ui-button ui-button--primary" id="newBoatBtn">＋ 新增船型</button>
-    </header>
-
-    <div class="admin-v2-tabs" role="tablist">
-      <button class="active" data-panel="boats">船型管理</button>
-      <button data-panel="membership">会员升级申请</button>
-      <button data-panel="bindings">船型绑定申请</button>
-      <button data-panel="orders">定制订单</button>
-    </div>
 
     <section class="admin-panel active" id="panel-boats">
       <div class="admin-toolbar-v2">
-        <input id="boatSearch" type="search" placeholder="搜索厂家、船型、型号">
+        <button class="ui-button ui-button--primary back-to-list-btn" id="backToListBtn" style="display:none" onclick="closeShipyardDetail()">返回船型管理</button>
+        <input id="boatSearch" type="search" placeholder="搜索厂家">
         <label class="switch-label"><input type="checkbox" id="showArchived">显示已归档</label>
         <span id="boatCount"></span>
       </div>
@@ -136,6 +126,6 @@
   </div>
 
   <div class="admin-toast" id="adminToast"></div>
-  <script src="js/admin.js"></script>
+  <script src="js/admin.js?v=20260903d"></script>
 </body>
 </html>

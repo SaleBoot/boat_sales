@@ -97,6 +97,19 @@ export default class Scene {
 
     this._onResize = () => this.onResize()
     window.addEventListener('resize', this._onResize)
+
+    // 双击模型视口进入/退出全屏最大化展示
+    container.classList.add('scene3d-viewport')
+    this._onDblClick = () => this.toggleFullscreen()
+    container.addEventListener('dblclick', this._onDblClick)
+    this._onFullscreenChange = () => {
+      // 全屏状态切换后需等布局稳定再重设渲染尺寸与相机宽高比
+      requestAnimationFrame(() => this.onResize())
+      setTimeout(() => this.onResize(), 60)
+    }
+    document.addEventListener('fullscreenchange', this._onFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', this._onFullscreenChange)
+
     this.animate()
 
     // 调试与远程验证用:暴露到 window,便于诊断模型是否居中,生产部署可删除
@@ -106,6 +119,14 @@ export default class Scene {
 
   destroy() {
     window.removeEventListener('resize', this._onResize)
+    if (this.container) this.container.removeEventListener('dblclick', this._onDblClick)
+    document.removeEventListener('fullscreenchange', this._onFullscreenChange)
+    document.removeEventListener('webkitfullscreenchange', this._onFullscreenChange)
+    // 销毁时若正处于全屏，顺手退出，避免页面残留全屏黑底
+    if (document.fullscreenElement && this.container === document.fullscreenElement) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen
+      if (exit) { const p = exit.call(document); if (p && p.catch) p.catch(() => {}) }
+    }
     window.removeEventListener('pointermove', this._onFirstPersonPointerMove)
     window.removeEventListener('pointerup', this._onFirstPersonPointerUp)
     window.removeEventListener('keydown', this._onFirstPersonKeyDown)
@@ -672,6 +693,20 @@ export default class Scene {
     this.camera.aspect = width / height
     this.renderer.setSize(width, height, false)
     this.camera.updateProjectionMatrix()
+  }
+
+  // 双击切换全屏：进入时 container 铺满屏幕并由 onResize 重设渲染尺寸；再次双击或按 Esc 退出
+  toggleFullscreen() {
+    const el = this.container
+    if (!el) return
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement
+    if (isFullscreen) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen
+      if (exit) { const p = exit.call(document); if (p && p.catch) p.catch(() => {}) }
+    } else {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen
+      if (req) { const p = req.call(el); if (p && p.catch) p.catch(() => {}) }
+    }
   }
 
   animate() {

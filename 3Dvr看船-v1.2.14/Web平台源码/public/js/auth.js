@@ -3,12 +3,22 @@
 const API_BASE = '';
 let currentCaptcha = '';
 
-document.addEventListener('DOMContentLoaded', () => {
-  // 已登录则直接跳首页
+document.addEventListener('DOMContentLoaded', async () => {
+  // 已登录则直接跳首页（先用接口验证 session 有效性，避免 localStorage 残留导致重定向循环）
   const session = getSession();
   if (session && session.username) {
-    window.location.href = roleHome(session.role);
-    return;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: 'same-origin' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          window.location.href = roleHome(json.data.role || session.role);
+          return;
+        }
+      }
+    } catch (e) { /* 验证失败则继续显示登录页 */ }
+    // session 已失效，清除 localStorage 残留
+    localStorage.removeItem('auth_user');
   }
 
   initCaptcha();

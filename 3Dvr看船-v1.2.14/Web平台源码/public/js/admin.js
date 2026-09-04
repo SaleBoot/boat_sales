@@ -7,12 +7,27 @@ const COLOR_PRESETS = [
 
 document.addEventListener('DOMContentLoaded', async () => {
   bindUi();
+  window.addEventListener('hashchange', syncFromHash);
+  syncFromHash();
   await loadAll();
 });
 
+// 根据地址栏 hash 激活对应板块（无 hash 默认 boats）；hash 为单一事实源，switchPanel 只切 UI 不写 hash，避免循环
+function syncFromHash() {
+  const name = (location.hash.slice(1) || 'boats').trim() || 'boats';
+  switchPanel(name);
+}
+
 function bindUi() {
-  document.querySelectorAll('.admin-v2-tabs button').forEach(button => button.addEventListener('click', () => switchPanel(button.dataset.panel)));
-  document.getElementById('newBoatBtn').addEventListener('click', () => openBoatEditor());
+  document.querySelectorAll('.admin-v2-tabs button').forEach(button => button.addEventListener('click', () => {
+    const name = button.dataset.panel;
+    if (location.hash.slice(1) !== name) {
+      location.hash = name; // 触发 hashchange → syncFromHash → switchPanel
+    } else {
+      switchPanel(name); // hash 已是目标值，hashchange 不会触发，直接切
+    }
+  }));
+  document.getElementById('newBoatBtn')?.addEventListener('click', () => openBoatEditor());
   document.getElementById('boatSearch').addEventListener('input', renderHierarchy);
   document.getElementById('showArchived').addEventListener('change', loadBoats);
   document.getElementById('refreshMembership').addEventListener('click', loadMembershipRequests);
@@ -102,40 +117,30 @@ function renderHierarchy() {
   let visibleCount = 0;
   const groups = state.shipyards.map(shipyard => {
     const matches = boat => !keyword || `${shipyard.name} ${boat.name} ${boat.shipId} ${boat.typeName} ${boat.manufacturer}`.toLowerCase().includes(keyword);
-    const visibleBoats = state.boats.filter(boat => isBoatVisibleInRoot(boat));
-    const ownedBoats = visibleBoats.filter(boat => Number(boat.ownerShipyardId) === Number(shipyard.id) && matches(boat));
-    const boundBoats = visibleBoats.filter(boat => Number(boat.ownerShipyardId) !== Number(shipyard.id) && (boat.boundShipyardIds || []).map(Number).includes(Number(shipyard.id)) && matches(boat));
+    const ownedBoats = state.boats.filter(boat => Number(boat.ownerShipyardId) === Number(shipyard.id) && matches(boat));
+    const boundBoats = state.boats.filter(boat => Number(boat.ownerShipyardId) !== Number(shipyard.id) && (boat.boundShipyardIds || []).map(Number).includes(Number(shipyard.id)) && matches(boat));
     if (keyword && !ownedBoats.length && !boundBoats.length && !String(shipyard.name).toLowerCase().includes(keyword)) return '';
     visibleCount += ownedBoats.length + boundBoats.length;
-    return `<article class="shipyard-group">
-      <header class="shipyard-group-head">
-        <div class="shipyard-title"><span class="shipyard-avatar">${shipyard.logo_url ? `<img src="${escapeAttr(shipyard.logo_url)}" alt="${escapeAttr(shipyard.name)}图标">` : escapeHtml(String(shipyard.name || '厂').slice(0, 1))}</span><div><h2>${escapeHtml(shipyard.name)}</h2><p>${escapeHtml(shipyard.plan_name)} · ${shipyard.bound_count || 0}/${shipyard.model_quota} 艘已绑定船型</p></div></div>
-        <div class="shipyard-head-actions"><span>自有 ${ownedBoats.length} 艘 · 跨厂绑定 ${boundBoats.length} 艘</span><button class="ui-button ui-button--ghost" onclick="openBoatEditor(null,${Number(shipyard.id)})">＋ 添加该厂船型</button></div>
+    return `<article class="shipyard-group collapsed" data-shipyard-id="${shipyard.id}">
+      <header class="shipyard-group-head" onclick="openShipyardDetail(this)">
+        <div class="shipyard-title"><span class="shipyard-avatar">${shipyard.logo_url ? `<img src="${escapeAttr(shipyard.logo_url)}" alt="${escapeAttr(shipyard.name)}图标">` : escapeHtml(String(shipyard.name || '厂').slice(0, 1))}</span><div><h2>${escapeHtml(shipyard.name)}</h2></div></div>
+        <div class="shipyard-meta">
+          <span class="shipyard-meta-plan" title="会员等级">${escapeHtml(shipyard.plan_name || '—')}</span>
+          <span class="shipyard-meta-count" title="自有 + 跨厂绑定船型数">船型 ${ownedBoats.length + boundBoats.length} 艘</span>
+          <small class="shipyard-meta-sub">自有 ${ownedBoats.length} · 绑定 ${boundBoats.length}</small>
+        </div>
+        <span class="shipyard-toggle">›</span>
       </header>
-      ${boatDirectoryTable('本厂自有船型', ownedBoats, false)}
-      ${boundBoats.length ? boatDirectoryTable('已绑定其他厂家船型', boundBoats, true) : ''}
-      ${!ownedBoats.length && !boundBoats.length ? '<div class="empty-small">该厂家暂无船型</div>' : ''}
+      <div class="shipyard-group-body">
+        <div class="shipyard-body-summary"><span>${escapeHtml(shipyard.plan_name)} · ${shipyard.bound_count || 0}/${shipyard.model_quota} 艘已绑定 · 自有 ${ownedBoats.length} 艘 · 跨厂绑定 ${boundBoats.length} 艘</span><button class="ui-button ui-button--ghost" onclick="openBoatEditor(null,${Number(shipyard.id)})">＋ 添加该厂船型</button></div>
+        ${boatDirectoryTable('本厂自有船型', ownedBoats, false)}
+        ${boundBoats.length ? boatDirectoryTable('已绑定其他厂家船型', boundBoats, true) : ''}
+        ${!ownedBoats.length && !boundBoats.length ? '<div class="empty-small">该厂家暂无船型</div>' : ''}
+      </div>
     </article>`;
   }).filter(Boolean);
   document.getElementById('boatCount').textContent = `共 ${visibleCount} 艘船型`;
   container.innerHTML = groups.length ? groups.join('') : '<div class="admin-empty-v2">没有符合条件的厂家或船型</div>';
-}
-
-function isInteriorVariant(variant) {
-  const name = String(variant.variantName || '').trim();
-  const id = String(variant.variantId || '').trim();
-  return (
-    Boolean(variant.detailedInterior) ||
-    /内饰|客舱|空间/.test(name) ||
-    /interior/i.test(id)
-  );
-}
-
-function isBoatVisibleInRoot(boat) {
-  if (boat && boat.published === false) return false;
-  const variants = Array.isArray(boat && boat.variants) ? boat.variants : [];
-  if (!variants.length) return true;
-  return variants.some(variant => !isInteriorVariant(variant));
 }
 
 function boatDirectoryTable(title, boats, boundReference) {
@@ -175,7 +180,10 @@ function defaultTabs(isUnmanned = false) {
 }
 
 function openBoatEditor(id = null, ownerId = null) {
-  const boat = id ? state.boats.find(item => Number(item.id) === Number(id)) : null;
+  // 编辑已有船型：跳转到detail页面，带admin标记
+  if (id) { window.open(`detail.html?id=${id}&admin=1`, '_blank'); return; }
+  // 新增船型：保留原有弹窗逻辑
+  const boat = null;
   state.editing = boat ? structuredClone(boat) : {
     id: null, ownerShipyardId: Number(ownerId || (state.shipyards[0] && state.shipyards[0].id)), shipId: '', name: '',
     category: state.categories[0] ? state.categories[0].id : 'commercial', categoryName: state.categories[0] ? state.categories[0].name : '商用船',
@@ -185,14 +193,14 @@ function openBoatEditor(id = null, ownerId = null) {
   state.transferPending = false;
   state.archivePending = false;
   state.editorStep = 'basic';
-  document.getElementById('boatEditorTitle').textContent = boat ? `编辑船型 · ${boat.name}` : '新增船型';
+  document.getElementById('boatEditorTitle').textContent = '新增船型';
   document.getElementById('boatId').value = state.editing.id || '';
   renderOwnerOptions(); renderCategoryOptions(); fillBasicFields(); renderVariants(); renderConfigTabs();
   const archive = document.getElementById('archiveBoatBtn');
   archive.hidden = !boat; archive.textContent = boat && boat.archived ? '恢复船型' : '归档船型';
   document.getElementById('uploadImageBtn').disabled = false;
   document.getElementById('uploadModelBtn').classList.remove('is-disabled');
-  document.getElementById('editorStatus').textContent = boat ? '修改完成后点击“保存并完成”' : '填写带 * 的基本资料后，即可直接选择并预览模型';
+  document.getElementById('editorStatus').textContent = '填写带 * 的基本资料后，即可直接选择并预览模型';
   showEditorStep('basic');
   const overlay = document.getElementById('boatEditorOverlay');
   overlay.classList.add('show'); overlay.setAttribute('aria-hidden', 'false'); document.body.classList.add('modal-open');
@@ -685,4 +693,34 @@ function escapeAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;'); }
 function formatTime(value) { if (!value) return '—'; return new Date(value).toLocaleString('zh-CN'); }
 function formatYuan(value) { const yuan = Math.max(0, Math.round(Number(value) || 0)); if (!yuan) return '¥0'; if (yuan >= 10000) return `¥${(yuan / 10000).toLocaleString('zh-CN', { maximumFractionDigits: 1 })}万`; return `¥${yuan.toLocaleString('zh-CN')}`; }
 
-Object.assign(window, { openBoatEditor, decideMembership, decideBinding, exportOrderPdf });
+function adminBack(event) {
+  if (event) event.preventDefault();
+  const container = document.getElementById('shipyardHierarchy');
+  if (container && container.classList.contains('detail-mode')) {
+    closeShipyardDetail();
+  } else {
+    location.href = 'members.html';
+  }
+}
+
+function openShipyardDetail(header) {
+  const container = document.getElementById('shipyardHierarchy');
+  const group = header.closest('.shipyard-group');
+  container.querySelectorAll('.shipyard-group').forEach(g => { g.classList.add('collapsed'); g.classList.remove('detail-active'); });
+  group.classList.remove('collapsed');
+  group.classList.add('detail-active');
+  container.classList.add('detail-mode');
+  const backBtn = document.getElementById('backToListBtn');
+  if (backBtn) backBtn.style.display = 'inline-flex';
+}
+
+function closeShipyardDetail(event) {
+  if (event) event.stopPropagation();
+  const container = document.getElementById('shipyardHierarchy');
+  container.classList.remove('detail-mode');
+  container.querySelectorAll('.shipyard-group').forEach(g => { g.classList.add('collapsed'); g.classList.remove('detail-active'); });
+  const backBtn = document.getElementById('backToListBtn');
+  if (backBtn) backBtn.style.display = 'none';
+}
+
+Object.assign(window, { openBoatEditor, decideMembership, decideBinding, exportOrderPdf, openShipyardDetail, closeShipyardDetail, adminBack });

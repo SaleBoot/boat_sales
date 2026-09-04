@@ -1,4 +1,4 @@
-import Scene from './Scene.js?v=1.2.14';
+import Scene from './Scene.js?v=1.2.15';
 
 const container = document.getElementById('previewCanvas');
 let scene3d = null;

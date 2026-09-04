@@ -4,7 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>船舶定制系统 | Maritime Atelier</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260903i">
+  <script>
+    if (window.self !== window.top) {
+      document.addEventListener('DOMContentLoaded', function () {
+        var nav = document.querySelector('.top-nav');
+        if (nav) nav.style.display = 'none';
+        var app = document.querySelector('.app-container');
+        if (app) { app.style.marginTop = '0'; app.style.height = '100vh'; }
+        document.body.style.background = '#fff';
+      });
+    }
+  </script>
 </head>
 <body>
 
@@ -170,6 +181,10 @@
 
     </section>
   </main>
+
+  <footer class="site-footer">
+    <a class="icp-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">渝ICP备2026011946号-4</a>
+  </footer>
 
   <div class="detail-overlay" id="detailOverlay">
     <div class="detail-modal" id="detailModal"></div>

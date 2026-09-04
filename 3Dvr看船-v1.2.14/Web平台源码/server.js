@@ -164,7 +164,13 @@ const modelDraftUpload = multer({
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 if (modelUploadDir !== fbxDir) app.use('/FBX', express.static(modelUploadDir));
 app.use('/FBX', express.static(path.join(__dirname, 'FBX')));
 app.use('/uploads', express.static(uploadDir));
@@ -781,7 +787,7 @@ app.put('/api/admin/boats/:id', (req, res) => {
   if (!boat) {
     return res.status(404).json({ success: false, message: '船型不存在' });
   }
-  const fields = ['name', 'description', 'length', 'capacity', 'maxSpeed', 'price', 'typeName', 'features'];
+  const fields = ['name', 'description', 'length', 'capacity', 'maxSpeed', 'price', 'typeName', 'features', 'sceneImage'];
   fields.forEach(f => {
     if (req.body[f] !== undefined) {
       if (f === 'features') {

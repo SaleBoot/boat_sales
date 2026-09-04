@@ -484,6 +484,16 @@ function initSidebarNav() {
       switchPanel(nav, btn);
     });
   });
+  // 二级菜单父项：点击展开/收起子菜单（父项同时仍会被上面的 [data-nav] 绑定触发 switchPanel，属预期）
+  document.querySelectorAll('.mem-side-tree').forEach(tree => {
+    const parentBtn = tree.querySelector('.mem-side-item--parent');
+    if (!parentBtn) return;
+    parentBtn.addEventListener('click', () => {
+      const willOpen = !tree.classList.contains('open');
+      tree.classList.toggle('open', willOpen);
+      parentBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+  });
 }
 
 function switchPanel(nav, btn) {
@@ -502,11 +512,15 @@ function switchPanel(nav, btn) {
   } else if (nav === 'dashboard') {
     loadDashboard();
   } else if (nav === 'admin' || nav === 'platform') {
+    // 二级选项卡：从按钮 data-admin-panel 读取目标板块（fallback boats），通过 hash 路由让 iframe 内 admin.html 切到对应板块
+    const adminPanel = (btn && btn.dataset.adminPanel) || 'boats';
+    // 点子项时确保所属二级菜单已展开（父项点击由 toggle 监听器负责，此处不重复 add，避免与 toggle 抵消）
+    const tree = btn && btn.closest('.mem-side-tree');
+    if (tree && !btn.classList.contains('mem-side-item--parent')) tree.classList.add('open');
     const frame = panel.querySelector('.mem-admin-frame');
-    if (frame && frame.dataset.src) {
-      frame.src = frame.dataset.src;
-      frame.dataset.src = '';
-    }
+    if (!frame) return;
+    // 统一用 src 设置：浏览器对同路径仅 hash 变化不重载页面、仅触发 admin.html 内 hashchange；about:blank 时加载 admin.html
+    frame.src = 'admin.html?v=20260903h#' + adminPanel;
   } else if (nav === 'drawings') {
     loadDrawings();
   } else if (nav === 'public-pool') {
