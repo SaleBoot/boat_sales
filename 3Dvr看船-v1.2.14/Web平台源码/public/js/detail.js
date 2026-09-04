@@ -160,7 +160,18 @@ function tabs() {
   }
   return list.filter(tab => tab.kind === 'overview' || (Array.isArray(tab.options) && tab.options.length)).slice().sort((a,b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 }
-function initializeSelections() { tabs().forEach(tab => { if (tab.options && tab.options[0]) selections[tab.id] = tab.options[0].id; }); currentTabId = tabs()[0] ? tabs()[0].id : ''; currentVariantId = boatData.primaryVariantId || ((boatData.variants || [])[0] || {}).variantId || ''; }
+function initializeSelections() {
+  tabs().forEach(tab => {
+    if (tab.kind === 'accessory') {
+      const sm = (boatData.twinConfig && boatData.twinConfig.smart) || {};
+      selections[tab.id] = Object.assign({}, sm);
+    } else if (tab.options && tab.options[0]) {
+      selections[tab.id] = tab.options[0].id;
+    }
+  });
+  currentTabId = tabs()[0] ? tabs()[0].id : '';
+  currentVariantId = boatData.primaryVariantId || ((boatData.variants || [])[0] || {}).variantId || '';
+}
 
 function updateDigitalTwinEntry() {
   const btn = document.getElementById('digitalTwinBtn');
@@ -198,10 +209,7 @@ function renderTab() {
   if (tab.kind === 'overview') { container.innerHTML = overviewHtml(tab); return; }
   const options = Array.isArray(tab.options) ? tab.options : [];
   const editBtn = isAdminMode ? `<button class="section-edit-btn" onclick="openSectionEditor('${escapeJs(tab.id)}')">编辑</button>` : '';
-  const twinEditor = (tab.kind === 'accessory' && isAdminMode) ? twinConfigHtml(tab) : '';
-  container.innerHTML = `<div class="config-section"><div class="config-section-header"><div><h3 class="config-section-title">${escapeHtml(tab.label)}</h3><p class="config-section-desc">${escapeHtml(tab.description || '')}</p></div></div>${twinEditor}${options.length ? `<div class="config-option-grid">${options.map(option => optionHtml(tab, option)).join('')}</div>` : '<div class="detail-empty-option">该船型暂未配置此项，请联系厂家确认。</div>'}${editBtn}</div>`;
-  const saveBtn = container.querySelector('.twin-save-btn');
-  if (saveBtn) saveBtn.addEventListener('click', saveTwinConfig);
+  container.innerHTML = `<div class="config-section"><div class="config-section-header"><div><h3 class="config-section-title">${escapeHtml(tab.label)}</h3><p class="config-section-desc">${escapeHtml(tab.description || '')}</p></div></div>${options.length ? `<div class="config-option-grid">${options.map(option => optionHtml(tab, option)).join('')}</div>` : '<div class="detail-empty-option">该船型暂未配置此项，请联系厂家确认。</div>'}${editBtn}</div>`;
 }
 
 const TWIN_GROUP_META = [
@@ -254,7 +262,9 @@ function overviewHtml(tab) {
 }
 
 function optionHtml(tab, option) {
-  const selected = selections[tab.id] === option.id;
+  const isAcc = tab.kind === 'accessory';
+  const m = (isAcc && selections[tab.id] && typeof selections[tab.id] === 'object') ? selections[tab.id] : {};
+  const selected = isAcc ? (m[smartCategoryOf(option)] === option.id) : (selections[tab.id] === option.id);
   const priceDeltaYuan = optionPrice(option);
   // 仅「内饰」板块(kind === 'model')选项图显示为16:9卡片，并支持双击查看全图
   const imageHtml = (tab.kind === 'model' && option.imageUrl)
@@ -262,11 +272,24 @@ function optionHtml(tab, option) {
          <img class="config-option-image-169 is-zoomable" src="${escapeAttr(option.imageUrl)}" alt="">
        </div>`
     : '';
-  return `<button class="config-option-card ${selected ? 'selected' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
+  return `<button class="config-option-card ${selected ? 'selected' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${selected && isAcc ? '<span class="accessory-check">✓</span>' : ''}${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
+}
+
+function smartCategoryOf(option) {
+  return String((option && option.name) || '').split('·')[0].trim() || ((option && option.name) || '智能');
 }
 
 async function selectOption(tabId, optionId) {
   const tab = tabs().find(item => item.id === tabId); if (!tab) return; const option = (tab.options || []).find(item => item.id === optionId); if (!option) return;
+  if (tab.kind === 'accessory') {
+    const cat = smartCategoryOf(option);
+    const m = (selections[tabId] && typeof selections[tabId] === 'object') ? selections[tabId] : {};
+    selections[tabId] = { ...m, [cat]: optionId };
+    renderTab(); updatePrice();
+    if (scene3d) await applyConfiguredAccessories();
+    autoSyncTwinConfig();
+    return;
+  }
   selections[tabId] = optionId;
   // 价格与选中态应立即反馈，不能等待大型模型下载完成后才更新。
   renderTab(); updatePrice();
@@ -279,7 +302,31 @@ async function selectOption(tabId, optionId) {
   renderTab(); updatePrice();
 }
 
-function selectedOption(tab) { const id = selections[tab.id]; return (tab.options || []).find(item => item.id === id) || (tab.options || [])[0] || null; }
+// 把“智能”板块的多选（每类一个）自动同步到该船 twin_config（无需点击保存）
+function autoSyncTwinConfig() {
+  if (!isAdminMode || !boatData || !boatData.id) return;
+  const m = (selections['smart'] && typeof selections['smart'] === 'object') ? selections['smart'] : {};
+  const smart = {};
+  Object.keys(m).forEach(cat => { if (m[cat]) smart[cat] = m[cat]; });
+  const sys = (boatData.twinConfig && Array.isArray(boatData.twinConfig.systems)) ? boatData.twinConfig.systems : ['fire', 'elec', 'nav', 'cam'];
+  fetch(`/api/boats/${boatData.id}/twin-config`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ systems: sys, smart }), credentials: 'same-origin'
+  }).then(r => r.json()).then(j => { if (j && j.success && j.data) boatData.twinConfig = j.data.twinConfig; }).catch(() => {});
+}
+
+function selectedOption(tab) {
+  const sel = selections[tab.id];
+  if (tab.kind === 'accessory' && sel && typeof sel === 'object') {
+    return (tab.options || []).find(o => Object.values(sel).includes(o.id)) || (tab.options || [])[0] || null;
+  }
+  return (tab.options || []).find(item => item.id === sel) || (tab.options || [])[0] || null;
+}
+function selectedAccessoryOptions(tab) {
+  if (tab.kind !== 'accessory') return selectedOption(tab) ? [selectedOption(tab)] : [];
+  const sel = selections[tab.id]; if (!sel || typeof sel !== 'object') return [];
+  const options = (tab.options || []).filter(o => Object.values(sel).includes(o.id));
+  return options;
+}
 function selectedVariant() { return (boatData.variants || []).find(item => item.variantId === currentVariantId) || (boatData.variants || [])[0] || null; }
 
 function applyOptionEntryView(tab, option) {
@@ -305,11 +352,11 @@ async function loadCurrentModel(cameraMode, entryView = null) {
 }
 
 function applyConfiguredColor() { const tab = tabs().find(item => item.kind === 'color'); const option = tab && selectedOption(tab); if (scene3d && option && option.color) scene3d.setHullColor(option.color, selectedVariant() && selectedVariant().hullMaterial); }
-async function applyConfiguredAccessories() { const assets = tabs().filter(item => item.kind === 'accessory').flatMap(tab => { const option = selectedOption(tab); return option && Array.isArray(option.accessories) ? option.accessories : []; }); if (scene3d) await scene3d.setAccessories(assets); }
+async function applyConfiguredAccessories() { const assets = tabs().filter(item => item.kind === 'accessory').flatMap(tab => selectedAccessoryOptions(tab).flatMap(option => Array.isArray(option.accessories) ? option.accessories : [])); if (scene3d) await scene3d.setAccessories(assets); }
 
 function optionPrice(option) { return Math.max(0, Math.round(Number(option && option.priceDeltaYuan) || (Number(option && option.priceDelta) || 0) * 10000)); }
 function formatYuan(value, zeroText = '¥0') { const yuan = Math.max(0, Math.round(Number(value) || 0)); if (!yuan) return zeroText; if (yuan >= 10000) { const wan = yuan / 10000; return `¥${wan.toLocaleString('zh-CN', { maximumFractionDigits: 1 })}万`; } return `¥${yuan.toLocaleString('zh-CN')}`; }
-function pricingTotals() { const basePriceYuan = Math.max(0, Math.round(Number(boatData.basePriceYuan) || 0)); const optionPriceYuan = tabs().reduce((sum, tab) => { const option = selectedOption(tab); return sum + optionPrice(option); }, 0); return { basePriceYuan, optionPriceYuan, totalPriceYuan: basePriceYuan + optionPriceYuan }; }
+function pricingTotals() { const basePriceYuan = Math.max(0, Math.round(Number(boatData.basePriceYuan) || 0)); const optionPriceYuan = tabs().reduce((sum, tab) => { const opts = tab.kind === 'accessory' ? selectedAccessoryOptions(tab) : (selectedOption(tab) ? [selectedOption(tab)] : []); return sum + opts.reduce((s, o) => s + optionPrice(o), 0); }, 0); return { basePriceYuan, optionPriceYuan, totalPriceYuan: basePriceYuan + optionPriceYuan }; }
 function updatePrice() { const totals = pricingTotals(); const base = document.getElementById('basePrice'); const extra = document.getElementById('extraPrice'); const total = document.getElementById('totalPrice'); if (base) base.textContent = formatYuan(totals.basePriceYuan, '待厂家确认'); if (extra) extra.textContent = formatYuan(totals.optionPriceYuan); if (total) total.textContent = totals.basePriceYuan ? formatYuan(totals.totalPriceYuan) : '待厂家确认'; }
 
 function submitConfig() {
@@ -346,7 +393,7 @@ function bindCustomerOrderDialog() {
 
 async function submitCustomerOrder(event, closeDialog) {
   event.preventDefault();
-  const selectedValues = {}; tabs().forEach(tab => { const option = selectedOption(tab); if (option) selectedValues[tab.id] = { optionId: option.id }; });
+  const selectedValues = {}; tabs().forEach(tab => { if (tab.kind === 'accessory') { const sm = selections[tab.id]; if (sm && typeof sm === 'object') selectedValues[tab.id] = Object.keys(sm).map(cat => ({ category: cat, optionId: sm[cat] })); } else { const option = selectedOption(tab); if (option) selectedValues[tab.id] = { optionId: option.id }; } });
   const form = event.currentTarget; const button = document.getElementById('confirmCustomerOrder'); const formData = new FormData(form);
   button.disabled = true; button.textContent = '提交中…';
   try {
