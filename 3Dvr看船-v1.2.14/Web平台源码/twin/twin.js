@@ -38,8 +38,9 @@ function smartCategories() {
     if (!groups[cat]) { groups[cat] = { id: 'smart-' + cat, category: cat, options: [], color: palette[order.length % palette.length] }; order.push(cat) }
     groups[cat].options.push(o)
   })
-  const selected = state.boat.twinConfig && state.boat.twinConfig.smart
-  return order.map(cat => {
+  const selected = (state.boat.twinConfig && state.boat.twinConfig.smart) || {}
+  // 只显示用户已勾选（出现在 twin_config.smart 里）的大类；每个大类只是一个去重条目
+  return order.filter(cat => selected[cat] || selected[cat] === '').map(cat => {
     const g = groups[cat]
     const pick = (selected && selected[cat]) || (g.options[0] && g.options[0].id)
     return { ...g, selected: g.options.find(o => o.id === pick) || g.options[0] }
