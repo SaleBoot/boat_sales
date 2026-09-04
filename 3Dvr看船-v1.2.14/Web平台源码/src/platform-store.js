@@ -365,6 +365,17 @@ function normalizeConfigTabs(value) {
   }));
 }
 
+// 数字孪生每船配置：systems=孪生左侧要显示的物理系统；smart=每个智能大类选中的方案 id
+const DEFAULT_TWIN_SYSTEMS = ['fire', 'elec', 'nav', 'cam'];
+function normalizeTwinConfig(value) {
+  const raw = value && typeof value === 'object' ? value : {};
+  const systems = Array.isArray(raw.systems)
+    ? raw.systems.filter(Boolean).map(String)
+    : DEFAULT_TWIN_SYSTEMS.slice();
+  const smart = (raw.smart && typeof raw.smart === 'object') ? raw.smart : {};
+  return { systems, smart };
+}
+
 class PlatformStore {
   constructor(rootDir) {
     this.rootDir = rootDir;
@@ -614,6 +625,7 @@ class PlatformStore {
       "ALTER TABLE v12_users ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT ''",
       "ALTER TABLE v12_users ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT ''",
       "ALTER TABLE v12_boats ADD COLUMN IF NOT EXISTS config_tabs_json TEXT NOT NULL DEFAULT '[]'",
+      "ALTER TABLE v12_boats ADD COLUMN IF NOT EXISTS twin_config TEXT NOT NULL DEFAULT '{}'",
       'ALTER TABLE v12_boats ADD COLUMN IF NOT EXISTS base_price_yuan BIGINT NOT NULL DEFAULT 0',
       'ALTER TABLE v12_boats ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ',
       "ALTER TABLE v12_customizations ADD COLUMN IF NOT EXISTS selections_json TEXT NOT NULL DEFAULT '{}'",
@@ -1633,6 +1645,7 @@ class PlatformStore {
   boatDto(row) {
     const variants = parseJson(row.variants_json, []).map(normalizeVariant);
     const basePriceYuan = normalizeMoneyYuan(row.base_price_yuan);
+    const twinConfig = parseJson(row.twin_config, {});
     return {
       id: Number(row.id), shipId: row.ship_id, name: row.name, category: row.category,
       categoryName: row.category_name, subtype: row.subtype, type: row.subtype, typeName: row.type_name,
@@ -1644,6 +1657,7 @@ class PlatformStore {
       ownerShipyardId: row.owner_shipyard_id ? Number(row.owner_shipyard_id) : null,
       customizable: row.customizable, published: row.is_published, archived: Boolean(row.archived_at),
       archivedAt: row.archived_at || null, configTabs: normalizeConfigTabs(parseJson(row.config_tabs_json, [])),
+      twinConfig: normalizeTwinConfig(twinConfig),
       variants, primaryVariantId: variants[0] ? variants[0].variantId : null,
       modelFile: variants[0] && variants[0].modelFiles[0] ? variants[0].modelFiles[0] : null
     };

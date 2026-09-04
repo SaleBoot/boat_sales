@@ -10,6 +10,53 @@ const state = {
   selected: null, systemFocus: 'all', layers: new Set(), rightTab: 'device', logs: []
 }
 const allDevices = [...DEVICES, ...CAMERAS]
+const SYSTEM_META = Object.fromEntries(SYSTEMS.map(s => [s.id, s]))
+
+// 每船数字孪生左侧 = twinConfig.systems 勾选的物理系统(排除发动机) + 智能大类
+function twinLeftGroups() {
+  const cfg = state.boat.twinConfig || {}
+  const enabled = Array.isArray(cfg.systems) ? cfg.systems : ['fire', 'elec', 'nav', 'cam']
+  const physical = enabled.filter(id => id !== 'engine' && SYSTEM_META[id]).map(id => ({
+    kind: 'system', id, name: SYSTEM_META[id].name, color: SYSTEM_META[id].color
+  }))
+  const smart = smartCategories().map(cat => ({
+    kind: 'smart', id: cat.id, name: cat.category, color: cat.color, option: cat.selected || cat.options[0]
+  }))
+  return [...physical, ...smart]
+}
+
+// 从「智能」配置板块解析大类：选项名以“大类 · 版本”组织，按“·”左边的词分组
+function smartCategories() {
+  const tabs = Array.isArray(state.boat.configTabs) ? state.boat.configTabs : []
+  const smartTab = tabs.find(t => t.kind === 'accessory' || /智能/.test(t.label || ''))
+  const opts = (smartTab && Array.isArray(smartTab.options)) ? smartTab.options : []
+  const groups = {}
+  const order = []
+  const palette = ['#38bdf8', '#22c55e', '#f59e0b', '#a855f7', '#f43f5e', '#06b6d4', '#8b5cf6', '#ef4444']
+  opts.forEach(o => {
+    const cat = String(o.name || '').split('·')[0].trim() || String(o.name || '智能')
+    if (!groups[cat]) { groups[cat] = { id: 'smart-' + cat, category: cat, options: [], color: palette[order.length % palette.length] }; order.push(cat) }
+    groups[cat].options.push(o)
+  })
+  const selected = state.boat.twinConfig && state.boat.twinConfig.smart
+  return order.map(cat => {
+    const g = groups[cat]
+    const pick = (selected && selected[cat]) || (g.options[0] && g.options[0].id)
+    return { ...g, selected: g.options.find(o => o.id === pick) || g.options[0] }
+  })
+}
+
+// 只把「勾选的物理系统」的设备/摄像头传给 3D（点位自动定位）
+function twinDevicesData() {
+  const cfg = state.boat.twinConfig || {}
+  const enabled = Array.isArray(cfg.systems) ? cfg.systems : ['fire', 'elec', 'nav', 'cam']
+  return DEVICES.filter(d => enabled.includes(d.system))
+}
+function twinCamerasData() {
+  const cfg = state.boat.twinConfig || {}
+  const enabled = Array.isArray(cfg.systems) ? cfg.systems : ['fire', 'elec', 'nav', 'cam']
+  return enabled.includes('cam') ? CAMERAS : []
+}
 
 async function ensureAuth() {
   try {
@@ -43,10 +90,11 @@ async function init() {
     bindViewSwitch(); bindRightTabs(); bindLogout(); bindConfirmDialog(); bindCameraOverlay()
 
     state.scene = new TwinScene($('twinViewport'), { onSelect: onMarkerSelect, onHover: onMarkerHover })
-    state.scene.setDevices(DEVICES, CAMERAS)
+    state.scene.setDevices(twinDevicesData(), twinCamerasData())
     await loadModel()
     state.scene.start()
     setFilteredMarkers()
+    renderRight()
     startLiveTicker()
     setInterval(() => renderSystemTree(), 8000)
     window.__twinReady = true
@@ -120,30 +168,40 @@ function renderLegend() {
 
 function renderSystemTree() {
   const tree = $('systemTree')
-  const allActive = state.systemFocus === 'all'
-  tree.innerHTML = `<button class="sys-row sys-all ${allActive ? 'active' : ''}" data-system="all"><i class="sys-dot" style="background:#94a3b8"></i><span>全部专业</span><span class="sys-count">${allDevices.length}</span></button>` +
-    SYSTEMS.map(sys => {
-      const devs = DEVICES.filter(d => d.system === sys.id)
-      const online = devs.filter(d => d.status === 'online').length
-      const alarm = devs.filter(d => d.status === 'alarm').length
-      const open = state.systemFocus === sys.id
-      return `<div class="sys-group">
-        <button class="sys-row ${open ? 'active' : ''}" data-system="${sys.id}"><i class="sys-dot" style="background:${sys.color}"></i><span>${esc(sys.name)}</span><span class="sys-count">${devs.length}</span>${alarm ? `<span class="sys-alarm">${alarm}</span>` : ''}</button>
-        ${open ? `<div class="sys-devices">${devs.map(deviceRow).join('')}</div>` : ''}</div>`
+  const groups = twinLeftGroups()
+  const devTotal = twinDevicesData().length
+  const allActive = state.systemFocus === 'all' && !state.selected
+  tree.innerHTML = `<button class="sys-row sys-all ${allActive ? 'active' : ''}" data-key="all"><i class="sys-dot" style="background:#94a3b8"></i><span>全部专业</span><span class="sys-count">${devTotal}</span></button>` +
+    groups.map(g => {
+      const open = state.systemFocus === g.id
+      if (g.kind === 'system') {
+        const devs = DEVICES.filter(d => d.system === g.id)
+        const alarm = devs.filter(d => d.status === 'alarm').length
+        return `<div class="sys-group"><button class="sys-row ${open ? 'active' : ''}" data-key="sys:${g.id}"><i class="sys-dot" style="background:${g.color}"></i><span>${esc(g.name)}</span><span class="sys-count">${devs.length}</span>${alarm ? `<span class="sys-alarm">${alarm}</span>` : ''}</button>${open ? `<div class="sys-devices">${devs.map(deviceRow).join('')}</div>` : ''}</div>`
+      }
+      const opt = g.option
+      const selName = opt ? String(opt.name || '').split('·')[1] || opt.name || g.name : ''
+      return `<div class="sys-group"><button class="sys-row ${open ? 'active' : ''}" data-key="smart:${g.id}"><i class="sys-dot" style="background:${g.color}"></i><span>${esc(g.name)}</span><span class="sys-count">1</span></button>${open ? `<div class="sys-devices"><button class="dev-row smart-sel" data-key="${g.id}"><span class="status-dot" style="background:${g.color}"></span><span>${esc(opt ? opt.name : '未配置')}</span><span class="dev-status">已选</span></button></div>` : ''}</div>`
     }).join('')
   tree.querySelectorAll('.sys-row').forEach(btn => btn.addEventListener('click', () => {
-    const system = btn.dataset.system
-    if (system === 'all') {
+    const key = btn.dataset.key
+    if (key === 'all') {
       state.systemFocus = 'all'; state.selected = null
       state.scene.resetSystemFocus(); state.scene.setSystemFocus(null); state.scene.highlight(null)
       fadeView(() => state.scene.focusView('system', 'all', { dur: 0.7 }))
-    } else {
+    } else if (key.indexOf('sys:') === 0) {
+      const system = key.slice(4)
       state.systemFocus = system; state.selected = null; state.scene.setSystemFocus(system)
       fadeView(() => state.scene.focusView('system', system, { dur: 0.7 }))
+    } else if (key.indexOf('smart:') === 0) {
+      const gid = key.slice(6)
+      state.systemFocus = gid; state.selected = { id: gid, name: gid.replace('smart-', ''), system: 'smart', kind: 'smart' }
+      state.scene.resetSystemFocus(); state.scene.highlight(null)
     }
     renderSystemTree(); renderRight()
   }))
-  tree.querySelectorAll('.dev-row').forEach(row => row.addEventListener('click', () => onMarkerSelect(row.dataset.device)))
+  tree.querySelectorAll('.dev-row[data-device]').forEach(row => row.addEventListener('click', () => onMarkerSelect(row.dataset.device)))
+  tree.querySelectorAll('.smart-sel[data-key]').forEach(row => row.addEventListener('click', () => onSmartSelect(row.dataset.key)))
 }
 
 function deviceRow(d) {
@@ -216,19 +274,56 @@ function renderRight() {
 
 function renderDevicePanel() {
   const d = state.selected
-  if (!d) return `<div class="empty-panel"><b>请在左侧选择系统，或在 3D 模型上点击设备点位</b><p>设备详情、实时状态与远程控制将显示在这里。</p></div>`
+  if (!d) return `<div class="empty-panel"><b>发动机与动力</b><p>左主机 · 右主机 · 齿轮箱 · 舵机 · 燃油/机油/油耗/航程/航线</p></div>` + renderEngineCard()
+  if (d.kind === 'smart') {
+    const opt = d.option || {}
+    return `<div class="dev-detail"><div class="dd-head"><span class="dd-sys" style="background:#38bdf8">智能系统</span><h3>${esc(d.name)}</h3><span class="dd-status">已选</span></div>
+      <div class="dd-live"><span>当前方案</span><b>${esc(opt.name || '—')}</b></div>
+      <div class="dd-params"><div class="dd-param"><span>说明</span><b>${esc(opt.description || '—')}</b></div></div>
+      <div class="ctl-hint single">该大类为单选配置项，可在定制页修改。</div></div>`
+  }
   const sys = SYSTEMS.find(s => s.id === d.system)
   const stColor = d.status === 'alarm' ? '#ef4444' : d.status === 'offline' ? '#94a3b8' : '#22c55e'
   return `<div class="dev-detail">
     <div class="dd-head"><span class="dd-sys" style="background:${sys ? sys.color : '#94a3b8'}">${esc(sys ? sys.name : '')}</span><h3>${esc(d.name)}</h3><span class="dd-status" style="color:${stColor}">● ${STATUS_TEXT[d.status] || ''}</span></div>
     <div class="dd-live"><span>实时值</span><b>${esc(d.value)}</b><small>${esc(d.unit || '')}</small></div>
     <div class="dd-params">${(d.params || []).map(p => `<div class="dd-param"><span>${esc(p[0])}</span><b>${esc(p[1])}</b></div>`).join('')}</div>
-    ${d.system === 'engine' ? renderEngineGauges() : ''}
     <div class="dd-actions">${d.controllable
       ? `<div class="dd-controls">${(d.commands || []).map(c => `<button class="ctl-btn" data-command="${esc(c)}">${esc(c)}</button>`).join('')}</div><p class="ctl-hint">* 当前为模拟下发，正式上线将实际控制船载设备。</p>`
       : '<p class="ctl-hint single">该设备为只读监测项。</p>'}</div>
     <div class="dd-log">${renderLog()}</div>
   </div>`
+}
+
+function renderEngineCard() {
+  const k = kpiData()
+  return `<div class="engine-gauges">
+    <div class="route-line"><span>发动机型号</span><b>${esc(engineModelName())}</b></div>
+    <div class="gauge"><span>燃油</span><div class="bar"><i style="width:${k.fuel}%"></i></div><b>${k.fuel}%</b></div>
+    <div class="gauge"><span>机油量</span><div class="bar"><i style="width:${k.oil}%"></i></div><b>${k.oil}%</b></div>
+    <div class="gauge"><span>油耗</span><div class="bar"><i style="width:${Math.min(100, k.fuelRate)}%"></i></div><b>${k.fuelRate} L/h</b></div>
+    <div class="gauge"><span>续航航程</span><div class="bar"><i style="width:${Math.min(100, (k.range / 500) * 100)}%"></i></div><b>${k.range} nm</b></div>
+    <div class="route-line"><span>当前航线</span><b>${esc(k.route)}</b></div>
+  </div>`
+}
+
+// 该船在「动力」板块选择的发动机型号（默认取第一个已选/第一个选项）
+function engineModelName() {
+  const tabs = Array.isArray(state.boat.configTabs) ? state.boat.configTabs : []
+  const power = tabs.find(t => t.id === 'power' || /动力/.test(t.label || ''))
+  const opts = (power && Array.isArray(power.options)) ? power.options : []
+  if (opts.length) {
+    const sel = opts.find(o => o.selected) || opts[0]
+    return sel.name || ''
+  }
+  return '标准动力'
+}
+
+function onSmartSelect(gid) {
+  const cat = smartCategories().find(c => c.id === gid)
+  if (!cat) return
+  state.selected = { id: gid, kind: 'smart', name: cat.category, option: cat.selected || cat.options[0] }
+  renderRight()
 }
 
 function renderEngineGauges() {
