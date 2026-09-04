@@ -321,7 +321,6 @@ function openAddModal() {
   document.getElementById('memberOwnerUsername').readOnly = false;
   document.getElementById('memberOwnerUsername').disabled = false;
   document.getElementById('memberPassword').disabled = false;
-  document.getElementById('memberOwnerStatus').value = 'active';
   document.getElementById('memberStatus').value = 'active';
   document.getElementById('modalError').textContent = '';
   openModal('memberModal');
@@ -349,7 +348,6 @@ function openEditModal(id) {
       document.getElementById('memberStatus').value = member.status || 'active';
       document.getElementById('memberConsultant').value = member.contact_name || '';
       document.getElementById('memberSource').value = member.address || '';
-      document.getElementById('memberOwnerStatus').value = member.owner_status || 'active';
       document.getElementById('modalError').textContent = '';
       openModal('memberModal');
 }
@@ -387,8 +385,7 @@ async function submitMember(e) {
     membershipExpiresAt: document.getElementById('memberIntentionLevel').value || null,
     status: document.getElementById('memberStatus').value,
     contactName: document.getElementById('memberConsultant').value.trim(),
-    address: document.getElementById('memberSource').value.trim(),
-    ownerStatus: document.getElementById('memberOwnerStatus').value
+    address: document.getElementById('memberSource').value.trim()
   };
 
   if (editMode) {

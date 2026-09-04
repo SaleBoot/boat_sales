@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS-1300X 数字孪生 · 智能监控中心</title>
+  <link rel="stylesheet" href="twin.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/three.module.js",
+      "three/addons/": "/vendor/three/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header class="twin-header">
+    <div class="brand">
+      <span class="brand-mark">船·数孪</span>
+      <div class="brand-info"><h1 id="boatTitle">JS-1300X 铝合金智能消防艇</h1><p id="boatMeta">智能消防艇 · 数字孪生监控中心</p></div>
+    </div>
+    <div class="kpis" id="kpiBar"></div>
+    <div class="header-actions">
+      <span class="sys-online"><i></i>数孪在线</span>
+      <button id="logoutBtn" class="ghost-btn">退出</button>
+    </div>
+  </header>
+
+  <div class="twin-stage">
+    <div class="viewport" id="twinViewport">
+      <div class="loading" id="modelLoading"><span>正在加载船模与设备点位…</span></div>
+      <div class="marker-tooltip" id="markerTooltip" hidden></div>
+      <div class="view-fade" id="viewFade"></div>
+    </div>
+
+    <aside class="left">
+      <div class="panel-title">展示视图</div>
+      <div class="view-switch">
+        <button data-view="exterior" class="active">船外展示</button>
+        <button data-view="interior">船内展示</button>
+      </div>
+      <div class="panel-title">分专业</div>
+      <div id="systemTree" class="system-tree"></div>
+      <div class="panel-title">分层筛选</div>
+      <div id="layerFilters" class="layer-filters"></div>
+    </aside>
+
+    <aside class="right">
+      <div class="right-tabs">
+        <button data-panel="device" class="active">设备详情</button>
+        <button data-panel="curve">数据曲线</button>
+        <button data-panel="alarm">报警中心</button>
+        <button data-panel="camera">视频监控</button>
+        <button data-panel="energy">能效分析</button>
+        <button data-panel="report">报表导出</button>
+      </div>
+      <div class="right-content" id="rightContent"></div>
+    </aside>
+
+    <div class="stage-bottom">
+      <div class="legend" id="legend"></div>
+      <div class="viewport-hint">视角固定 · 由左侧按钮切换 · 点击设备点位查看详情</div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirmOverlay">
+    <div class="modal small">
+      <h3>下发控制指令</h3>
+      <p class="confirm-msg"></p>
+      <div class="modal-actions"><button class="ghost" data-confirm-no>取消</button><button class="primary" data-confirm-ok>确认下发</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cameraOverlay">
+    <div class="modal big">
+      <div class="cam-title"></div>
+      <div class="big-screen cam-feed" id="bigScreen"><span class="cam-live">LIVE</span><div class="cam-noise"></div><div class="cam-caption">模拟视频流 · 仅界面演示</div></div>
+      <div class="modal-actions"><button class="ghost" id="closeCamera">关闭</button></div>
+    </div>
+  </div>
+
+  <div class="toast-box" id="toastBox"></div>
+  <script type="module" src="twin.js"></script>
+  <script>
+  // 兜底：若 three.js 或模块在 12s 内未就绪，给出明确提示，避免一直卡住
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      if (!window.__twinReady) {
+        const s = document.querySelector('#modelLoading span');
+        if (s && s.textContent.indexOf('失败') < 0) {
+          s.textContent = '3D 依赖加载失败或超时：请确认网络可访问本地资源后刷新（已改为本地 three.js，一般可正常加载）';
+        }
+      }
+    }, 12000);
+  });
+  </script>
+  <script src="/js/session-watch.js" defer></script>
+</body>
+</html>

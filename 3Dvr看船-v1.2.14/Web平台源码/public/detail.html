@@ -24,13 +24,14 @@
   <nav class="top-nav">
     <div class="nav-inner">
       <div class="nav-left-group">
-        <button class="nav-console-btn" id="navConsoleBtn" onclick="window.location.href='members.html'" style="display:none;">
+        <button class="nav-console-btn" id="navConsoleBtn" onclick="window.location.href='index.html'" style="display:none;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           首页
         </button>
       </div>
       <div class="nav-right">
         <a href="admin.html" class="nav-admin-btn" id="navAdminBtn" style="display:none;">后台管理</a>
+        <button class="nav-twin-btn" id="digitalTwinBtn" style="display:none;">数字孪生</button>
         <button class="nav-vr-sync-btn" id="syncCurrentVrBtn" onclick="syncCurrentVariantToVr()" style="display:none;">同步到VR</button>
         <button class="nav-login-btn" id="detailIdentityBtn" style="display:none;"></button>
       </div>
@@ -134,5 +135,6 @@
   </script>
   <script type="module" src="js/detail.js?v=20260903r"></script>
 
+  <script src="js/session-watch.js" defer></script>
 </body>
 </html>

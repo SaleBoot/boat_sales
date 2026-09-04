@@ -235,7 +235,9 @@ function renderBoatPage() {
 
   grid.innerHTML = pageBoats.map((boat, i) => `
     <div class="boat-card" style="animation-delay:${i * 0.08}s;" onclick="openDetail(${boat.id})">
-      <img class="boat-card-img" src="${boat.image}" alt="${boat.name}" loading="lazy">
+      <div class="boat-card-img-wrap">
+        <img class="boat-card-img" src="${boat.sceneImage || boat.image}" alt="${boat.name}" loading="lazy">
+      </div>
       <div class="boat-card-body">
         <div class="boat-card-type">${boat.typeName}</div>
         <h3 class="boat-card-name">${boat.name}</h3>

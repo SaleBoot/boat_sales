@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { Pool } = require('pg');
@@ -163,25 +163,122 @@ function defaultConfigTabs(profile, variants) {
       ]
     });
   } else {
+    // ========= 内饰：布局 × 木饰面 × 软装皮革 × 厨卫 × 娱乐（参考 Princess F 系列 & 丽娃 Riva） =========
+    const interiorBase = (interiorVariants.length ? interiorVariants : modelVariants).map((variant, index) => ({
+      id: optionId('interior', variant.variantId, index), name: variant.variantName || `内饰方案${index + 1}`,
+      description: variant.detailedInterior ? '完整内饰与原始贴图（3D 场景可切换）' : '标准舱内配置方案',
+      modelVariantId: variant.variantId, priceDelta: 0, sortOrder: index
+    }));
+    const woodVeneers = [
+      // 参考 Princess F65 官方 4 档木饰面：Rovere 橡木 / Ash 白蜡木 / Silver 银橡木 / Walnut 胡桃木
+      { id: 'wood-rovere', name: '木饰面 · Rovere 缎面橡木（标配）', description: '意大利暖色调橡木缎面哑光清漆，标配家具地板饰面', priceDelta: 0, sortOrder: 10 },
+      { id: 'wood-ash', name: '木饰面 · Ash 缎面白蜡木（选配）', description: '浅色顺纹白蜡木，通透清爽，适合现代北欧风格舱室', priceDelta: 0, sortOrder: 11 },
+      { id: 'wood-silver', name: '木饰面 · Silver Oak 银橡（选配）', description: '浅银灰水洗橡木，淡化木纹对比，与米白皮革完美搭', priceDelta: 0, sortOrder: 12 },
+      { id: 'wood-walnut-matte', name: '木饰面 · Walnut 哑光胡桃木（选配）', description: '深褐条纹胡桃木，搭配铜金金属嵌条与真皮沙发（参考 Pardo E72）', priceDelta: 0, sortOrder: 13 },
+      { id: 'wood-walnut-gloss', name: '木饰面 · Walnut 高光胡桃木（豪华）', description: '钢琴漆高光胡桃木 + 镜面不锈钢镶嵌（参考丽娃 Riva 96\' Argo Super 官方）', priceDelta: 0, sortOrder: 14 }
+    ];
+    const softLeathers = [
+      // 参考 BRABUS × Sunreef 皮革等级
+      { id: 'soft-std', name: '软装 · 标准布艺（标配）', description: '防污阻燃航海级布艺（米白/沙色/深蓝 三色可选），含全车窗帘与床品', priceDelta: 0, sortOrder: 20 },
+      { id: 'soft-leather', name: '软装 · 半皮升级（选配）', description: '头枕/扶手/沙发接触面采用意大利真皮（头层牛皮、抗 UV 涂层），其余保持航海级布艺', priceDelta: 0, sortOrder: 21 },
+      { id: 'soft-nappa', name: '软装 · Masterpiece 全 Nappa 真皮（豪华）', description: '全舱家具接触面替换 Masterpiece 级 Nappa 皮革，含专属三角绗缝工艺（参考 Brabus × Sunreef 官方）', priceDelta: 0, sortOrder: 22 }
+    ];
+    const galleyBath = [
+      { id: 'galley-std', name: '厨卫 · 标准配置（标配）', description: '标准冰箱 + 电磁炉 2 灶头 + 电热水器 40L；每间卫浴配备淋浴、独立台盆', priceDelta: 0, sortOrder: 30 },
+      { id: 'galley-up', name: '厨卫 · 高端升级（选配）', description: 'Sub-Zero 抽屉冰箱 + Miele 电磁灶/烤箱/洗碗机 + Krion 人造石台面 + Grohe 恒温花洒套件', priceDelta: 0, sortOrder: 31 },
+      { id: 'galley-wine', name: '厨卫 · 酒柜冰吧豪华版', description: '主沙龙加配 48 瓶嵌入式恒温酒柜、船尾独立户外冰箱、吧台区制冰机', priceDelta: 0, sortOrder: 32 }
+    ];
+    const entertainment = [
+      { id: 'av-std', name: '娱乐 · 标准影音（标配）', description: '主沙龙 55" 4K 电视 + 5.1 声道音响系统、客厅区域支持蓝牙/HDMI', priceDelta: 0, sortOrder: 40 },
+      { id: 'av-bw', name: '娱乐 · Bowers & Wilkins Marine 高端音响', description: '全舱 B&W Marine 系列防水高保真音响（12 声道+低音炮），支持 Dolby Atmos（参考 Brabus 官方）', priceDelta: 0, sortOrder: 41 },
+      { id: 'av-ktv', name: '娱乐 · 独立家庭影院/KTV 房', description: '下层甲板独立空间改家庭影院 + KTV 双模式：120"幕、专业卡包箱、点歌系统、氛围灯', priceDelta: 0, sortOrder: 42 },
+      { id: 'av-spa', name: '娱乐 · 阳光甲板 SPA/按摩浴缸', description: '飞桥或阳光甲板加装冲浪按摩浴缸 + 蒸汽淋浴桑拿组合舱（参考 Benetti Oasis 系列）', priceDelta: 0, sortOrder: 43 }
+    ];
+    const layoutOptions = [
+      // 参考 Pardo E72 四舱布局 / 丽娃 96 三间+双床 两种方案
+      { id: 'layout-std', name: '客舱布局 · 标准（标配）', description: '3 间客舱 + 1 间船员舱（主人套房+VIP+双床），可容纳 6-8 位客人', priceDelta: 0, sortOrder: 1 },
+      { id: 'layout-4cabin', name: '客舱布局 · 四舱尊享（选配）', description: '4 间独立客舱（主人+VIP+两间双床）+ 1 间船员舱，共容纳 10 人（参考 Pardo E72）', priceDelta: 0, sortOrder: 2 },
+      { id: 'layout-5cabin', name: '客舱布局 · 全宽五舱（长艇专用）', description: '5 间客舱（全船宽主人套房+独立VIP+3间双床），均配独立卫浴（参考 Benetti Oasis 34m）', priceDelta: 0, sortOrder: 3 },
+      { id: 'layout-superyacht', name: '客舱布局 · 超级游艇主人甲板', description: '主人套房迁移主甲板，配私人露台和户外淋浴；下层另设 4 间客舱（参考丽娃 Riva 96 Argo Super）', priceDelta: 0, sortOrder: 4 }
+    ];
     tabs.push({
       id: 'interior', label: '内饰', kind: 'model', cameraMode: 'interior', sortOrder: 2,
-      description: '选择内饰方案并进入船舱视角',
-      options: (interiorVariants.length ? interiorVariants : modelVariants).map((variant, index) => ({
-        id: optionId('interior', variant.variantId, index), name: variant.variantName || `内饰方案${index + 1}`,
-        description: variant.detailedInterior ? '完整内饰与原始贴图' : '标准舱内配置',
-        modelVariantId: variant.variantId, priceDelta: 0, sortOrder: index
-      }))
+      description: '客舱布局 × 木饰面 × 软装皮革 × 厨卫升级 × 娱乐设施（参考 Princess / Pardo / Ferretti 官方选配）',
+      options: [].concat(layoutOptions, interiorBase, woodVeneers, softLeathers, galleyBath, entertainment)
     });
+  }
+  // ========= 动力：Volvo IPS / MAN / MTU / 柴电混动 / 纯电 / 双机双桨（严谨方案） =========
+  const isElectric = profile.typeName && /电动|新能源|纯电/i.test(profile.typeName);
+  const isPatrol = profile.typeName && /执法|巡逻|公务/i.test(profile.typeName);
+  const isPassenger = profile.typeName && /游览|观光|客舱|客船/i.test(profile.typeName);
+  const powerOptions = [];
+
+  if (isElectric) {
+    // 新能源电动游船（参考：长江新能源 / JS-11米电动观光船）
+    powerOptions.push(
+      { id: 'pow-elec-std', name: '纯电推进 · 标准续航（标配）', description: '磷酸铁锂 CATL 电池组（总容量 200kWh）+ 双吊舱电机，6 节续航 8 小时，CCS2 直流快充 2h', priceDelta: 0, sortOrder: 0 },
+      { id: 'pow-elec-plus', name: '纯电推进 · 长续航（选配）', description: '磷酸铁锂电池扩容至 400kWh + 双 100kW 电机 + 船载 DC 充电口，8 节 12 小时；兼容岸电与光伏充电', priceDelta: 0, sortOrder: 1 },
+      { id: 'pow-elec-range-ext', name: '纯电 · 增程版（柴油发电机）', description: '在纯电基础上加装 80kW 静音柴油增程器（欧 V 排放），远洋作业续航可达 300 海里', priceDelta: 0, sortOrder: 2 },
+      { id: 'pow-elec-solar', name: '纯电 · 光伏补能版', description: '顶篷铺设 2.5kW 柔性单晶光伏 + MPPT 控制器，日间平均补能 8-12kWh，零碳巡航 +15%', priceDelta: 0, sortOrder: 3 }
+    );
+  } else if (isPatrol) {
+    // 公务/执法艇（参考 JS-119B / JS-828B）
+    powerOptions.push(
+      { id: 'pow-diesel-std', name: '双机双桨 · 标准柴油（标配）', description: '两台国产高速柴油机（WD10 系列），总功率 2×280kW，艉机传动，最高航速 28 节', priceDelta: 0, sortOrder: 0 },
+      { id: 'pow-man-v8', name: 'MAN V8 高功率执法版', description: '两台 MAN V8-1200 船用柴油发动机（2×882kW/1200HP）+ ZF 船用齿轮箱，极速 42 节', priceDelta: 0, sortOrder: 1 },
+      { id: 'pow-waterjet', name: '喷水推进 · 执法高速版', description: '双 MJP 喷水推进器 + MAN 12V 发动机组合，浅水域可过，零到 30 节加速时间 < 40s', priceDelta: 0, sortOrder: 2 },
+      { id: 'pow-hybrid', name: '柴电混动 · 巡逻静音版', description: '低速执法/靠近用纯电静音模式（航速 ≤6kn，续航 ≥ 4h）；高速接回柴油机驱动，节省油耗 25%', priceDelta: 0, sortOrder: 3 }
+    );
+  } else if (isPassenger) {
+    // 游览/观光客船（参考 JS-108 108客位）
+    powerOptions.push(
+      { id: 'pow-passenger-std', name: '双机双桨 · 标准柴油推进（标配）', description: '两台潍柴 WP12 系列船机，单台功率 330kW ×2，定距桨推进，经济航速 12kn 载客 108', priceDelta: 0, sortOrder: 0 },
+      { id: 'pow-passenger-4eng', name: '四机四桨 · 大运量高速版', description: '4 台高速柴油机 + 四桨双舵，额定载客 150 人，满载极速 18 节，满足观光高峰', priceDelta: 0, sortOrder: 1 },
+      { id: 'pow-passenger-hybrid', name: '柴电混动 · 环保景区版', description: '近岸/码头 0 排放纯电模式（≥ 2kn/5h），开阔水域柴电混合，满足 A 级景区排放要求', priceDelta: 0, sortOrder: 2 },
+      { id: 'pow-passenger-shaft', name: '对转桨 · 高效节能版（选配）', description: '前桨后置舵叶 + 对转螺旋桨组合，综合续航提升 15%，同等载荷油耗降低约 12%', priceDelta: 0, sortOrder: 3 }
+    );
+  } else {
+    // 通用豪华游艇 / 钓鱼艇 / 运动艇（参考 Princess F65 / Pardo E72 / Brabus）
+    powerOptions.push(
+      { id: 'pow-volvo-ips', name: 'Volvo Penta IPS 操纵系统（标配）', description: 'Volvo Penta IPS 系列（D6/D8/D11/D13）集成式吊舱推进，操控平顺、停靠一键 Joystick（参考 Pardo E72 官方）', priceDelta: 0, sortOrder: 0 },
+      { id: 'pow-man-twin', name: 'MAN V8/V12 高性能双机（选配）', description: '两台 MAN V12 系列柴油机（总功率 2×1550HP）+ V 型驱动，极速突破 33 节（参考 Princess F65）', priceDelta: 0, sortOrder: 1 },
+      { id: 'pow-mtu', name: 'MTU 12V/16V 超级游艇版', description: 'MTU 16V 2000 M96L / Rolls-Royce 动力组合，总功率可达 4000 马力，适用于 28m 以上豪华飞桥（参考丽娃 96 Argo Super）', priceDelta: 0, sortOrder: 2 },
+      { id: 'pow-hybrid', name: '柴油电动混动 · 零排放模式', description: '巡航用柴油机驱动并为电池充电；近岸/码头/锚地切换纯电电动机（0 排放 0 噪音），航程+30%（参考 Benetti B.Now 混动选项）', priceDelta: 0, sortOrder: 3 },
+      { id: 'pow-pods', name: 'Zeus / 水面吊舱高速推进版', description: 'Cummins Zeus 或 Aquadrive 水面吊舱推进器，响应比传统轴系快 40%，高速转弯船体无明显倾斜', priceDelta: 0, sortOrder: 4 },
+      { id: 'pow-custom', name: '定制动力 · 厂家技术部核定', description: '按实际用途（商业/远洋/近海/作业）一对一工程师量身匹配动力方案，含机舱布局计算与 CCS 认证', priceDelta: 0, sortOrder: 9 }
+    );
   }
   tabs.push({
     id: 'power', label: '动力', kind: 'config', cameraMode: 'exterior', sortOrder: 3,
-    description: '选择动力系统方案',
-    options: [
-      { id: 'power-standard', name: '标准动力', description: '标准动力配置，具体参数以厂家确认为准', priceDelta: 0, sortOrder: 0 },
-      { id: 'power-enhanced', name: '增强动力', description: '增强动力配置，具体参数以厂家确认为准', priceDelta: 0, sortOrder: 1 },
-      { id: 'power-custom', name: '定制动力', description: '根据用途定制动力与续航方案', priceDelta: 0, sortOrder: 2 }
-    ]
+    description: '推进系统严谨方案（按船型自动匹配：纯电/公务/客运/通用游艇系列。参考 Princess / Pardo / MTU / Volvo 官方）',
+    options: powerOptions
   });
+  // 通用船型：在动力之后增加「智能」板块（所有非无人艇的船型默认都有，无人艇已有"智能系统"板块不重复）
+  if (!isUnmanned) {
+    tabs.push({
+      id: 'smart', label: '智能', kind: 'accessory', cameraMode: 'exterior', sortOrder: 4,
+      description: '三大类：导航安全 × 通讯娱乐 × 智能航行运维（Garmin/Raymarine/B&W/C-Zone 官方品牌）',
+      options: [
+        // ====== 导航 & 安全 ======
+        { id: 'sm-nav-std', name: '导航安全 · 标配（Garmin 基础版）', description: 'Garmin GPSMAP 8410 10寸海图机 + AIS 收发器 + 磁罗经 + 电子罗盘 + 船位监控', priceDelta: 0, sortOrder: 0 },
+        { id: 'sm-nav-raymarine', name: '导航安全 · Raymarine 专业版', description: 'Raymarine Axiom+ XL 22寸大屏 + Quantum 多普勒雷达 + FLIR M364C 热像仪夜视（参考 Pardo E72 22寸驾驶台大屏）', priceDelta: 0, sortOrder: 1 },
+        { id: 'sm-nav-master', name: '导航安全 · 旗舰主控版', description: '双 24寸 Garmin 8624 海图 + Furuno 固态雷达 + 北斗 GPS 双定位冗余 + 自动舵 AP400 + NAVTEX 航行警告接收机', priceDelta: 0, sortOrder: 2 },
+        { id: 'sm-safety-std', name: '安全设备 · 标配 SOLAS 标准', description: '救生筏/救生圈/灭火器/烟雾报警器 + 标准 EPIRB 应急示位标（符合 CCS 检验要求）', priceDelta: 0, sortOrder: 3 },
+        { id: 'sm-safety-plus', name: '安全设备 · 远洋豪华增强', description: '加配：4 台外置环绕摄像头船坞视频、AIS-SART 搜救应答器、船载卫星电话 Iridium GO! exec、自动灭火器系统', priceDelta: 0, sortOrder: 4 },
+        { id: 'sm-safety-maneuver', name: '安全设备 · 智能靠泊辅助', description: 'Dockmate 遥控靠泊系统 + 船首/船尾/侧推三向遥控 + 6 路 360° AI 距离雷达，距离预警 30cm 精度', priceDelta: 0, sortOrder: 5 },
+        // ====== 通讯 & 娱乐 ======
+        { id: 'sm-net-std', name: '通讯联网 · 船载 WiFi 标配', description: '双频段 4G LTE 船载路由器（海陆自动切换）+ 全舱 Wi-Fi 覆盖，支持船员手机 App', priceDelta: 0, sortOrder: 6 },
+        { id: 'sm-net-vsat', name: '通讯联网 · VSAT 卫星宽带（远海）', description: 'KVH mini-VSAT 24cm 卫星宽带系统，全球海域高带宽联网，满足视频会议/直播/远程监控', priceDelta: 0, sortOrder: 7 },
+        { id: 'sm-av-bw', name: '影音娱乐 · B&W Marine 定制音响', description: 'Bowers & Wilkins Marine 系列防水 16 音箱 + 4 炮 + 22" 折叠电视（参考 Brabus/Sunreef 联名款）', priceDelta: 0, sortOrder: 8 },
+        { id: 'sm-av-synergy', name: '影音娱乐 · 全屋中控 C-Zone + 定制 KTV', description: 'C-Zone 数字船电中控统一控灯/窗帘/空调；独立 KTV 区含专业卡包箱、6T 点歌库、氛围灯联动', priceDelta: 0, sortOrder: 9 },
+        // ====== 智能航行 & 运维 ======
+        { id: 'sm-ai-std', name: '智能航行 · 标准智能包', description: 'C-Zone 船况监测网关（油/电/水/舱底水位传感器 20 点 + 手机告警）、电子海图 + 航线自动规划', priceDelta: 0, sortOrder: 10 },
+        { id: 'sm-ai-plus', name: '智能航行 · 增强智能包', description: '加配：AI 视觉感知 + 雷达 3D 目标识别（自动避障 3nmile 距离）、夜航识别、远程监控 App（实时视频/定位/告警）', priceDelta: 0, sortOrder: 11 },
+        { id: 'sm-ai-pro', name: '智能航行 · 旗舰运维包', description: '船联网远程运维平台 + AI 故障诊断（MTU/Volvo/潍柴原厂接入）、油耗曲线预测、AI 航线规划、自动靠泊辅助系统', priceDelta: 0, sortOrder: 12 },
+        { id: 'sm-ai-autopilot', name: '智能航行 · 全自动近海无人值守版', description: '高级 AI 自动舵 + 近岸水域环境建模 + 锚泊自动警戒，近海航线可做到船长远程监督下的全自动航行', priceDelta: 0, sortOrder: 13 }
+      ]
+    });
+  }
   return tabs;
 }
 
