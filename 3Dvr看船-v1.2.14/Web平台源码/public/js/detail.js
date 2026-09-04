@@ -6,7 +6,6 @@ let currentTabId = '';
 let currentVariantId = '';
 let isAdminMode = false;
 const selections = {};
-const DIGITAL_TWIN_SHIPS = new Set(['js1300x']);
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof window.__detailBootClear === 'function') window.__detailBootClear();
@@ -180,8 +179,7 @@ function updateDigitalTwinEntry() {
   try {
     const sess = JSON.parse(localStorage.getItem('auth_user'));
     const loggedIn = !!(sess && sess.username);
-    const twin = boatData && boatData.shipId && DIGITAL_TWIN_SHIPS.has(boatData.shipId);
-    btn.style.display = (loggedIn && twin) ? 'inline-flex' : 'none';
+    btn.style.display = (loggedIn && boatData && boatData.shipId) ? 'inline-flex' : 'none';
   } catch (e) { btn.style.display = 'none'; }
 }
 function openDigitalTwin() {

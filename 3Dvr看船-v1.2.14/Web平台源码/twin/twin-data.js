@@ -102,6 +102,38 @@ function makeSeries(points) {
 
 function jitterScale() { return 1 + (Math.random() - 0.5) * 0.06; }
 
+/* ===== 通用点位模板：非 js1300x 船型也用这套，按模型包围盒自动定位 ===== */
+const GENERIC_DEVICES = [
+  { id: 'g-fire-1', name: '消防泵',         system: 'fire', layer: 'engine_room', anchor: [0.0, -0.25, 0.1],  status: 'online', value: 1.1, unit: 'MPa', controllable: true, commands: ['启动', '停止'], params: [['状态', '运行'], ['出口', '1.1MPa']] },
+  { id: 'g-fire-2', name: '消防水炮',       system: 'fire', layer: 'main_deck', anchor: [0.72, 0.35, 0.0],  status: 'online', value: 0, unit: '°', controllable: true, commands: ['水平+/俯仰+', '开炮'], params: [['流量', '1200L/min'], ['射程', '65m']] },
+  { id: 'g-fire-3', name: '灭火器箱',       system: 'fire', layer: 'main_deck', anchor: [0.3, 0.1, 0.3],    status: 'online', value: '就绪', unit: '—', controllable: false, commands: [], params: [['配备', '2具'], ['状态', '完好']] },
+  { id: 'g-elec-1', name: '主配电板',       system: 'elec', layer: 'engine_room', anchor: [-0.05, -0.25, 0.15], status: 'online', value: 380, unit: 'V', controllable: true, commands: ['合闸', '分闸'], params: [['频率', '50.0Hz'], ['负载', '62%']] },
+  { id: 'g-elec-2', name: '发电机组',       system: 'elec', layer: 'engine_room', anchor: [-0.1, -0.3, 0.05], status: 'online', value: 50, unit: 'Hz', controllable: true, commands: ['启动', '停车'], params: [['输出', '75kW'], ['油压', '0.4MPa']] },
+  { id: 'g-elec-3', name: '蓄电池组',       system: 'elec', layer: 'lower_deck', anchor: [-0.35, -0.05, -0.1], status: 'alarm', value: 24, unit: 'V', controllable: false, commands: [], params: [['电压', '24.0V'], ['状态', '欠压']] },
+  { id: 'g-elec-4', name: '应急配电板',     system: 'elec', layer: 'pilot', anchor: [0.1, 0.2, 0.12], status: 'online', value: 220, unit: 'V', controllable: true, commands: ['合闸', '分闸'], params: [['状态', '待机']] },
+  { id: 'g-nav-1', name: '船用雷达',        system: 'nav', layer: 'pilot', anchor: [0.35, 0.6, 0.0], status: 'online', value: 24, unit: 'nm', controllable: true, commands: ['量程+', '量程-'], params: [['量程', '24nm']] },
+  { id: 'g-nav-2', name: 'GPS/AIS',         system: 'nav', layer: 'pilot', anchor: [0.35, 0.55, 0.2], status: 'online', value: '锁定', unit: '—', controllable: false, commands: [], params: [['船位', '31.23°N 121.50°E']] },
+  { id: 'g-nav-3', name: 'VHF设备',         system: 'nav', layer: 'pilot', anchor: [0.25, 0.5, 0.0], status: 'online', value: 16, unit: 'CH', controllable: true, commands: ['CH8', 'CH16'], params: [['功率', '25W']] },
+  { id: 'g-cnc-1', name: '中央控制台',      system: 'cnc', layer: 'pilot', anchor: [0.25, 0.55, 0.12], status: 'online', value: '主控', unit: '—', controllable: true, commands: ['解锁', '锁定'], params: [['通讯', '正常']] },
+  { id: 'g-cnc-2', name: '机舱监测单元',    system: 'cnc', layer: 'engine_room', anchor: [-0.2, -0.35, 0.1], status: 'online', value: '待命', unit: '—', controllable: true, commands: ['确认告警'], params: [['组网', '正常']] },
+  { id: 'g-hvac-1', name: '驾驶室空调机组', system: 'hvac', layer: 'pilot', anchor: [0.25, 0.45, 0.1], status: 'online', value: 24.5, unit: '℃', controllable: true, commands: ['温度+', '温度-'], params: [['设定', '24℃']] },
+  { id: 'g-hvac-2', name: '机舱通风机组',   system: 'hvac', layer: 'engine_room', anchor: [-0.15, -0.32, 0.05], status: 'online', value: 1450, unit: 'rpm', controllable: true, commands: ['开启', '关闭'], params: [['风量', '中']] }
+];
+const GENERIC_CAMERAS = [
+  { id: 'g-cam-1', name: '驾驶室监控',   system: 'cam', layer: 'pilot',       anchor: [0.25, 0.5, 0.0],  location: '驾驶台 / 操舵位', tone: 'steel' },
+  { id: 'g-cam-2', name: '机舱监控',     system: 'cam', layer: 'engine_room', anchor: [-0.15, -0.3, 0.0], location: '主机 / 配电板区', tone: 'amber' },
+  { id: 'g-cam-3', name: '船艏甲板摄像', system: 'cam', layer: 'main_deck',  anchor: [0.72, 0.2, 0.0],   location: '演示点位', tone: 'sea' },
+  { id: 'g-cam-4', name: '船艉甲板摄像', system: 'cam', layer: 'main_deck',  anchor: [-0.72, 0.2, 0.0],  location: '演示点位', tone: 'sea' },
+  { id: 'g-cam-5', name: '中央控制室监控', system: 'cam', layer: 'pilot',    anchor: [0.05, 0.4, 0.12],  location: '集控台 / 多屏', tone: 'violet' }
+];
+
+// js1300x 用现有的详细网点；其它船型用通用模板（同样按包围盒自动定位）
+function devicesForBoat(boat) {
+  if (boat && boat.shipId === 'js1300x') return { devices: DEVICES, cameras: CAMERAS };
+  return { devices: GENERIC_DEVICES, cameras: GENERIC_CAMERAS };
+}
+
 export {
-  STATUS_TEXT, SYSTEMS, LAYERS, DEVICES, CAMERAS, ALARMS, makeSeries, jitterScale
+  STATUS_TEXT, SYSTEMS, LAYERS, DEVICES, CAMERAS, ALARMS, makeSeries, jitterScale,
+  GENERIC_DEVICES, GENERIC_CAMERAS, devicesForBoat
 };

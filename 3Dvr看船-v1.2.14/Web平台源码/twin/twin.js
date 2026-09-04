@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { TwinScene } from './twin-scene.js'
-import { STATUS_TEXT, SYSTEMS, LAYERS, DEVICES, CAMERAS, ALARMS, makeSeries, jitterScale } from './twin-data.js'
+import { STATUS_TEXT, SYSTEMS, LAYERS, DEVICES, CAMERAS, ALARMS, makeSeries, jitterScale, devicesForBoat } from './twin-data.js'
 
 const $ = id => document.getElementById(id)
 const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
@@ -11,6 +11,15 @@ const state = {
 }
 const allDevices = [...DEVICES, ...CAMERAS]
 const SYSTEM_META = Object.fromEntries(SYSTEMS.map(s => [s.id, s]))
+
+// 按当前船取设备/点位（js1300x 用详细网点；其它船用通用模板）
+function currentDevices() {
+  const d = state.boat ? devicesForBoat(state.boat) : { devices: DEVICES, cameras: CAMERAS }
+  return [...d.devices, ...d.cameras]
+}
+function currentDeviceGroups() {
+  return state.boat ? devicesForBoat(state.boat) : { devices: DEVICES, cameras: CAMERAS }
+}
 
 // 每船数字孪生左侧 = twinConfig.systems 勾选的物理系统(排除发动机) + 智能大类
 function twinLeftGroups() {
@@ -49,14 +58,14 @@ function smartCategories() {
 
 // 只把「勾选的物理系统」的设备/摄像头传给 3D（点位自动定位）
 function twinDevicesData() {
-  const cfg = state.boat.twinConfig || {}
+  const cfg = (state.boat && state.boat.twinConfig) || {}
   const enabled = Array.isArray(cfg.systems) ? cfg.systems : ['fire', 'elec', 'nav', 'cam']
-  return DEVICES.filter(d => enabled.includes(d.system))
+  return currentDeviceGroups().devices.filter(d => enabled.includes(d.system))
 }
 function twinCamerasData() {
-  const cfg = state.boat.twinConfig || {}
+  const cfg = (state.boat && state.boat.twinConfig) || {}
   const enabled = Array.isArray(cfg.systems) ? cfg.systems : ['fire', 'elec', 'nav', 'cam']
-  return enabled.includes('cam') ? CAMERAS : []
+  return enabled.includes('cam') ? currentDeviceGroups().cameras : []
 }
 
 async function ensureAuth() {
@@ -138,13 +147,14 @@ function switchView(view) {
 function renderHeader() {
   const b = state.boat
   $('boatTitle').textContent = b.name || 'JS-1300X 铝合金智能消防艇'
-  $('boatMeta').textContent = `${b.categoryName || '智能消防艇'} · 全长 ${b.length || 13} 米 · ${b.manufacturer || '京穗船舶'}`
+  $('boatMeta').textContent = `${b.typeName || b.categoryName || ''}${b.length ? ' · 全长 ' + b.length : ''}${b.manufacturer ? ' · ' + b.manufacturer : ''}${b.description ? ' · ' + b.description : ''}`
 }
 
 function kpiData() {
-  const total = allDevices.length
-  const online = allDevices.filter(d => d.status === 'online').length
-  const alarm = allDevices.filter(d => d.status === 'alarm').length
+  const devs = currentDevices()
+  const total = devs.length
+  const online = devs.filter(d => d.status === 'online').length
+  const alarm = devs.filter(d => d.status === 'alarm').length
   const eng5 = DEVICES.find(d => d.id === 'eng-5')
   const eng6 = DEVICES.find(d => d.id === 'eng-6')
   return { total, online, alarm, fuel: eng5 ? eng5.value : 68, oil: eng6 ? eng6.value : 72, fuelRate: 42, range: 320, route: '外滩—横沙水道 巡航' }
@@ -176,7 +186,7 @@ function renderSystemTree() {
     groups.map(g => {
       const open = state.systemFocus === g.id
       if (g.kind === 'system') {
-        const devs = DEVICES.filter(d => d.system === g.id)
+        const devs = currentDeviceGroups().devices.filter(d => d.system === g.id)
         const alarm = devs.filter(d => d.status === 'alarm').length
         return `<div class="sys-group"><button class="sys-row ${open ? 'active' : ''}" data-key="sys:${g.id}"><i class="sys-dot" style="background:${g.color}"></i><span>${esc(g.name)}</span><span class="sys-count">${devs.length}</span>${alarm ? `<span class="sys-alarm">${alarm}</span>` : ''}</button>${open ? `<div class="sys-devices">${devs.map(deviceRow).join('')}</div>` : ''}</div>`
       }
@@ -231,7 +241,7 @@ function renderLayerFilters() {
 }
 
 function onMarkerSelect(deviceId) {
-  const device = allDevices.find(d => d.id === deviceId)
+  const device = currentDevices().find(d => d.id === deviceId)
   if (!device) return
   state.selected = device; state.systemFocus = device.system
   state.scene.setSystemFocus(device.system); state.scene.highlight(deviceId)
@@ -243,7 +253,7 @@ function onMarkerSelect(deviceId) {
 function onMarkerHover(deviceId, e) {
   const tip = $('markerTooltip')
   if (!deviceId) { tip.hidden = true; return }
-  const device = allDevices.find(d => d.id === deviceId)
+  const device = currentDevices().find(d => d.id === deviceId)
   if (!device) { tip.hidden = true; return }
   const sys = SYSTEMS.find(s => s.id === device.system)
   tip.innerHTML = `<b>${esc(device.name)}</b><span>${esc(sys ? sys.name : '')} · ${STATUS_TEXT[device.status] || ''}</span>`
@@ -426,7 +436,7 @@ function renderReportPanel() {
 function exportReport(kind) {
   let rows = [], name = ''
   if (kind === 'alarm') { name = '报警事件报表'; rows = [['事件编号', '时间', '级别', '设备', '来源', '描述', '状态']].concat(ALARMS.map(a => [a.id, a.time, a.level, a.device, a.source, a.message, a.status])) }
-  else if (kind === 'device') { name = '设备台账'; rows = [['设备编号', '名称', '专业', '层级', '状态', '实时值', '单位']].concat(allDevices.map(d => { const sys = SYSTEMS.find(s => s.id === d.system); return [d.id, d.name, sys ? sys.name : '', d.layer, STATUS_TEXT[d.status], d.value, d.unit] })) }
+  else if (kind === 'device') { name = '设备台账'; rows = [['设备编号', '名称', '专业', '层级', '状态', '实时值', '单位']].concat(currentDevices().map(d => { const sys = SYSTEMS.find(s => s.id === d.system); return [d.id, d.name, sys ? sys.name : '', d.layer, STATUS_TEXT[d.status], d.value, d.unit] })) }
   else if (kind === 'energy') { name = '能耗报表'; const k = kpiData(); rows = [['项目', '数值'], ['燃油量%', k.fuel], ['机油量%', k.oil], ['瞬时油耗L/h', k.fuelRate], ['续航航程nm', k.range], ['航线', k.route]] }
   else { name = '监控点位'; rows = [['点位编号', '名称', '位置', '层级']].concat(CAMERAS.map(c => [c.id, c.name, c.location, c.layer])) }
   const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n')
