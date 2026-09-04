@@ -373,7 +373,10 @@ function normalizeTwinConfig(value) {
     ? raw.systems.filter(Boolean).map(String)
     : DEFAULT_TWIN_SYSTEMS.slice();
   const smart = (raw.smart && typeof raw.smart === 'object') ? raw.smart : {};
-  return { systems, smart };
+  const power = (raw.power && typeof raw.power === 'object')
+    ? { id: String(raw.power.id || ''), name: String(raw.power.name || ''), description: String(raw.power.description || '') }
+    : {};
+  return { systems, smart, power };
 }
 
 class PlatformStore {
@@ -686,7 +689,7 @@ class PlatformStore {
     const result = await this.pool.query(
       `INSERT INTO v12_shipyards(name,plan_code,status,contact_name,contact_phone,address,business_scope,description,membership_expires_at)
        VALUES('京穗船舶','diamond','active','','','中国广东','新能源游览船、公务执法艇、应急救援艇、无人船及水上装备的研发制造','平台现有船型与服务器模型统一归属京穗船舶',$1)
-       ON CONFLICT(name) DO UPDATE SET business_scope=EXCLUDED.business_scope,description=EXCLUDED.description
+       ON CONFLICT(name) DO UPDATE SET membership_expires_at=COALESCE(v12_shipyards.membership_expires_at, EXCLUDED.membership_expires_at)
        RETURNING *`, [new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000)]
     );
     return result.rows[0];
@@ -740,6 +743,8 @@ class PlatformStore {
   }
 
   async seedModels() {
+    const seedKey = 'seed_models_v1212';
+    if ((await this.pool.query('SELECT 1 FROM v12_settings WHERE key=$1', [seedKey])).rowCount) return;
     const metadata = JSON.parse(fs.readFileSync(path.join(this.rootDir, 'config', 'ship-catalog.json'), 'utf8'));
     const rawPath = path.join(this.rootDir, 'vr-content', 'android', 'catalog.json');
     const rawEntries = fs.existsSync(rawPath)
@@ -759,16 +764,19 @@ class PlatformStore {
           category=EXCLUDED.category, description=EXCLUDED.description, length_m=EXCLUDED.length_m,
           bundle_version=EXCLUDED.bundle_version, bundle_file=EXCLUDED.bundle_file,
           bundle_size=EXCLUDED.bundle_size, bundle_sha256=EXCLUDED.bundle_sha256,
-          thumbnail_url=EXCLUDED.thumbnail_url, owner_shipyard_id=EXCLUDED.owner_shipyard_id,
+          thumbnail_url=EXCLUDED.thumbnail_url,
           updated_at=CURRENT_TIMESTAMP`,
         [model.variantId, model.shipId, model.shipName, model.variantName, model.category,
           model.description, model.length, bundle.version || '', bundle.file || '', bundle.size || 0,
           bundle.sha256 || '', `/assets/vr-thumbnails/${model.variantId}.png`, owner ? owner.id : null]
       );
     }
+    await this.pool.query('INSERT INTO v12_settings(key,value) VALUES($1,$2)', [seedKey, new Date().toISOString()]);
   }
 
   async seedBoats(ownerShipyardId) {
+    const seedKey = 'seed_boats_v1212';
+    if ((await this.pool.query('SELECT 1 FROM v12_settings WHERE key=$1', [seedKey])).rowCount) return;
     const catalog = JSON.parse(fs.readFileSync(path.join(this.rootDir, 'config', 'ship-catalog.json'), 'utf8'));
     const profiles = JSON.parse(fs.readFileSync(path.join(this.rootDir, 'config', 'boat-profiles.json'), 'utf8'));
     const assets = JSON.parse(fs.readFileSync(path.join(this.rootDir, 'config', 'model-assets.json'), 'utf8'));
@@ -808,6 +816,7 @@ class PlatformStore {
           profile.image || primary.thumbnailUrl || '', profile.sceneImage || '', JSON.stringify(variants), JSON.stringify(configTabs)]
       );
     }
+    await this.pool.query('INSERT INTO v12_settings(key,value) VALUES($1,$2)', [seedKey, new Date().toISOString()]);
   }
 
   async seedPricingOnce() {

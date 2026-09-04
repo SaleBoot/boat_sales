@@ -293,6 +293,7 @@ async function selectOption(tabId, optionId) {
   selections[tabId] = optionId;
   // 价格与选中态应立即反馈，不能等待大型模型下载完成后才更新。
   renderTab(); updatePrice();
+  if (tab.id === 'power' || /动力/.test(tab.label || '')) autoSyncTwinConfig({ power: { id: option.id, name: option.name, description: option.description || '' } });
   if (tab.kind === 'model' && option.modelVariantId && option.modelVariantId !== currentVariantId) { currentVariantId = option.modelVariantId; await loadCurrentModel(tab.cameraMode, option.entryView); }
   else {
     if (tab.kind === 'color' && scene3d && option.color) scene3d.setHullColor(option.color, selectedVariant() && selectedVariant().hullMaterial);
@@ -303,14 +304,15 @@ async function selectOption(tabId, optionId) {
 }
 
 // 把“智能”板块的多选（每类一个）自动同步到该船 twin_config（无需点击保存）
-function autoSyncTwinConfig() {
+function autoSyncTwinConfig(extra) {
   if (!isAdminMode || !boatData || !boatData.id) return;
   const m = (selections['smart'] && typeof selections['smart'] === 'object') ? selections['smart'] : {};
   const smart = {};
   Object.keys(m).forEach(cat => { if (m[cat]) smart[cat] = m[cat]; });
   const sys = (boatData.twinConfig && Array.isArray(boatData.twinConfig.systems)) ? boatData.twinConfig.systems : ['fire', 'elec', 'nav', 'cam'];
+  const power = (extra && extra.power) || (boatData.twinConfig && boatData.twinConfig.power) || {};
   fetch(`/api/boats/${boatData.id}/twin-config`, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ systems: sys, smart }), credentials: 'same-origin'
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ systems: sys, smart, power }), credentials: 'same-origin'
   }).then(r => r.json()).then(j => { if (j && j.success && j.data) boatData.twinConfig = j.data.twinConfig; }).catch(() => {});
 }
 

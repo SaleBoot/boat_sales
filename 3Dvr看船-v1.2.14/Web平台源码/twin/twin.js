@@ -317,6 +317,8 @@ function engineModelName() {
   return '标准动力'
 }
 function enginePowerOption() {
+  const pk = state.boat.twinConfig && state.boat.twinConfig.power
+  if (pk && pk.name) return pk
   const tabs = Array.isArray(state.boat.configTabs) ? state.boat.configTabs : []
   const power = tabs.find(t => t.id === 'power' || /动力/.test(t.label || ''))
   const opts = (power && Array.isArray(power.options)) ? power.options : []
