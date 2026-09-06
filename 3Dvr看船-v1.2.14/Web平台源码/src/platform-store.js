@@ -389,9 +389,14 @@ class PlatformStore {
       const adapter = db.adapters.createPg();
       this.pool = new adapter.Pool();
     } else {
+      const poolConfig = {
+        max: Number(process.env.PGPOOL_MAX) || 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000
+      };
       this.pool = process.env.DATABASE_URL
-        ? new Pool({ connectionString: process.env.DATABASE_URL })
-        : new Pool();
+        ? new Pool({ connectionString: process.env.DATABASE_URL, ...poolConfig })
+        : new Pool(poolConfig);
     }
   }
 
@@ -597,6 +602,7 @@ class PlatformStore {
       );
     `);
     await this.ensureSchemaUpgrades();
+    await this.ensureIndexes();
     await this.seedPlans();
     await this.seedBoatCategories();
     const jingsui = await this.seedJingsuiShipyard();
@@ -645,6 +651,25 @@ class PlatformStore {
       "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS source_file TEXT NOT NULL DEFAULT ''",
       "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS processing_status TEXT NOT NULL DEFAULT 'pending'",
       "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS processing_error TEXT NOT NULL DEFAULT ''"
+    ];
+    for (const sql of statements) await this.pool.query(sql);
+  }
+
+  async ensureIndexes() {
+    const statements = [
+      'CREATE INDEX IF NOT EXISTS idx_v12_sessions_user_id ON v12_sessions(user_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_vr_models_ship_id ON v12_vr_models(ship_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_audit_logs_actor ON v12_audit_logs(actor_user_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_bindings_variant ON v12_shipyard_model_bindings(variant_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_binding_requests_shipyard ON v12_binding_requests(shipyard_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_binding_requests_variant ON v12_binding_requests(variant_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_binding_requests_status ON v12_binding_requests(status)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_boats_owner ON v12_boats(owner_shipyard_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_customizations_boat ON v12_customizations(boat_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_users_shipyard ON v12_users(shipyard_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_account_sync_variant ON v12_vr_account_sync(variant_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_submissions_shipyard ON v12_submissions(assigned_shipyard_id)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_upgrade_requests_shipyard ON v12_membership_upgrade_requests(shipyard_id)'
     ];
     for (const sql of statements) await this.pool.query(sql);
   }
@@ -950,8 +975,10 @@ class PlatformStore {
     if (user.shipyard_id) {
       const count = await this.pool.query(
         `SELECT COUNT(DISTINCT m.ship_id) AS count
-         FROM v12_shipyard_model_bindings b JOIN v12_vr_models m ON m.variant_id=b.variant_id
-         WHERE b.shipyard_id=$1 AND b.active=TRUE`,
+         FROM v12_shipyard_model_bindings b
+         JOIN v12_vr_models m ON m.variant_id=b.variant_id
+         JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
+         WHERE b.shipyard_id=$1 AND b.active=TRUE AND m.is_published=TRUE`,
         [user.shipyard_id]
       );
       user.bound_count = Number(count.rows[0].count);
@@ -961,7 +988,7 @@ class PlatformStore {
 
   async authenticate(username, password) {
     const user = await this.findUserByName(username);
-    if (!user || user.status !== 'active' || !verifyPassword(password, user.salt, user.password_hash)) return null;
+    if (!user || user.status !== 'active' || !(await verifyPassword(password, user.salt, user.password_hash))) return null;
     return user;
   }
 
@@ -980,6 +1007,10 @@ class PlatformStore {
 
   async deleteSession(token) {
     if (token) await this.pool.query('DELETE FROM v12_sessions WHERE token_hash=$1', [hashToken(token)]);
+  }
+
+  async cleanupExpiredSessions() {
+    await this.pool.query('DELETE FROM v12_sessions WHERE expires_at < CURRENT_TIMESTAMP');
   }
 
   async userFromToken(token) {
@@ -1660,7 +1691,7 @@ class PlatformStore {
       categoryName: row.category_name, subtype: row.subtype, type: row.subtype, typeName: row.type_name,
       length: row.length_text, capacity: row.capacity, maxSpeed: row.max_speed,
       price: basePriceYuan ? formatReferencePrice(basePriceYuan) : row.price,
-      basePriceYuan, pricingNote: '模拟参考价，仅供演示，最终以厂家正式报价为准',
+      basePriceYuan, pricingNote: '含税参考价，可按需定制配置',
       description: row.description, features: parseJson(row.features_json, []), image: row.image_url,
       sceneImage: row.scene_image_url, manufacturer: row.manufacturer || '京穗船舶',
       ownerShipyardId: row.owner_shipyard_id ? Number(row.owner_shipyard_id) : null,
@@ -2001,7 +2032,7 @@ class PlatformStore {
 
   async changeOwnPassword(user, currentPassword, newPassword) {
     const current = (await this.pool.query('SELECT * FROM v12_users WHERE id=$1', [user.id])).rows[0];
-    if (!current || !verifyPassword(currentPassword, current.salt, current.password_hash)) {
+    if (!current || !(await verifyPassword(currentPassword, current.salt, current.password_hash))) {
       throw Object.assign(new Error('当前密码不正确'), { status: 400 });
     }
     const credentials = makePassword(newPassword);

@@ -1,6 +1,6 @@
 {
   "name": "yacht-customization-system",
-  "version": "1.2.12",
+  "version": "3.0.1",
   "description": "船舶定制与展示系统 - Apple风格前端设计",
   "main": "server.js",
   "scripts": {

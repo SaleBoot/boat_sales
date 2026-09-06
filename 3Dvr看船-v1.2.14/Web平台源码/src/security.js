@@ -1,14 +1,19 @@
 const crypto = require('crypto');
+const { promisify } = require('util');
+
+const scrypt = promisify(crypto.scrypt);
 
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString('hex');
 }
 
-function verifyPassword(password, salt, expectedHash) {
+// 登录/改密热路径使用异步 scrypt，避免同步 scryptSync 阻塞事件循环。
+async function verifyPassword(password, salt, expectedHash) {
   if (!salt || !expectedHash) return false;
-  const actual = hashPassword(password, salt);
-  if (actual.length !== expectedHash.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(actual, 'hex'), Buffer.from(expectedHash, 'hex'));
+  const actual = await scrypt(password, salt, 64);
+  const actualHex = Buffer.from(actual).toString('hex');
+  if (actualHex.length !== expectedHash.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(actualHex, 'hex'), Buffer.from(expectedHash, 'hex'));
 }
 
 function validatePassword(password) {

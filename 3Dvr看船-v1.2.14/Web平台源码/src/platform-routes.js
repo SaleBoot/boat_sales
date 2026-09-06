@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { validatePassword } = require('./security');
 const { generateOrderPdf } = require('./order-pdf');
+const { rateLimit } = require('./rate-limit');
 
 const SECURITY_QUESTIONS = [
   '您的出生城市是？',
@@ -102,7 +103,11 @@ function installPlatformRoutes(app, store, options = {}) {
     res.status(403).json({ success: false, message: '普通访客无需注册，可直接提交图纸；厂商账号由平台管理员开通' });
   });
 
-  app.post('/api/auth/login', asyncRoute(async (req, res) => {
+  const loginLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: '登录尝试过于频繁，请稍后再试' });
+  const authLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, message: '操作过于频繁，请稍后再试' });
+  const submitLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: '提交过于频繁，请稍后再试' });
+
+  app.post('/api/auth/login', loginLimiter, asyncRoute(async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ success: false, message: '请输入用户名和密码' });
     const user = await store.authenticate(username, password);
@@ -155,14 +160,14 @@ function installPlatformRoutes(app, store, options = {}) {
     res.json({ success: true, data: { available: !user } });
   }));
 
-  app.post('/api/auth/security-question', asyncRoute(async (req, res) => {
+  app.post('/api/auth/security-question', authLimiter, asyncRoute(async (req, res) => {
     if (!req.body.username) return res.status(400).json({ success: false, message: '请输入用户名' });
     const securityQuestion = await store.securityQuestion(req.body.username);
     if (!securityQuestion) return res.status(404).json({ success: false, message: '未找到该用户' });
     res.json({ success: true, data: { securityQuestion } });
   }));
 
-  app.post('/api/auth/reset-password', asyncRoute(async (req, res) => {
+  app.post('/api/auth/reset-password', authLimiter, asyncRoute(async (req, res) => {
     const { username, securityAnswer, newPassword } = req.body;
     if (!username || !securityAnswer || !newPassword) return res.status(400).json({ success: false, message: '请填写所有必填项' });
     if (!validatePassword(newPassword)) return res.status(400).json({ success: false, message: '密码格式应为6-18位数字、字母、符号的任意两种组合' });
@@ -170,7 +175,7 @@ function installPlatformRoutes(app, store, options = {}) {
     res.json({ success: true, message: '密码重置成功，请使用新密码登录' });
   }));
 
-  app.post('/api/vr/login', asyncRoute(async (req, res) => {
+  app.post('/api/vr/login', loginLimiter, asyncRoute(async (req, res) => {
     const user = await store.authenticate(req.body.username, req.body.password);
     if (!user || !['shipyard_owner', 'sales'].includes(user.role) || !user.shipyard_id) {
       return res.status(401).json({ success: false, message: '船厂账号或密码错误' });
@@ -205,7 +210,7 @@ function installPlatformRoutes(app, store, options = {}) {
     res.json({ success: true, count: data.length, data });
   }));
 
-  app.post('/api/customize', asyncRoute(async (req, res) => {
+  app.post('/api/customize', submitLimiter, asyncRoute(async (req, res) => {
     if (!req.body.boatId) return res.status(400).json({ success: false, message: '请选择船型' });
     if (!String(req.body.customerName || '').trim() || !String(req.body.customerPhone || '').trim()) {
       return res.status(400).json({ success: false, message: '请填写客户姓名和联系方式' });
