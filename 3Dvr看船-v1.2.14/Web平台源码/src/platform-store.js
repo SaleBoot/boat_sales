@@ -1151,7 +1151,7 @@ class PlatformStore {
   async publicModels(user) {
     const shipyardId = user && user.shipyard_id;
     const result = await this.pool.query(
-      `SELECT m.*,boat.id AS boat_id,
+      `SELECT m.*,boat.id AS boat_id,boat.scene_image_url,boat.image_url,
         CASE WHEN b.active=TRUE THEN TRUE ELSE FALSE END AS is_bound,
         CASE WHEN ship_bound.ship_count IS NOT NULL THEN TRUE ELSE FALSE END AS is_ship_bound
        FROM v12_vr_models m
@@ -1186,7 +1186,7 @@ class PlatformStore {
       variantId: row.variant_id, shipId: row.ship_id, shipName: row.ship_name,
       boatId: row.boat_id == null ? null : Number(row.boat_id),
       variantName: row.variant_name, category: row.category, description: row.description,
-      length: Number(row.length_m), thumbnailUrl: row.thumbnail_url,
+      length: Number(row.length_m), thumbnailUrl: row.thumbnail_url || row.scene_image_url || row.image_url || '',
       published: row.is_published, bound: row.is_bound || false,
       shipBound: row.is_ship_bound || false,
       requestStatus: row.request_status || null,
