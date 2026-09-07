@@ -623,6 +623,7 @@ class PlatformStore {
     await this.seedBoats(jingsui.id);
     await this.seedJingsuiCatalogOnce(jingsui.id);
     await this.seedPricingOnce();
+    await this.seedDefaultAdmin();
     await this.importLegacyUsers();
     console.log(`V1.2 平台数据层已就绪（${this.usingMemory ? '本地内存数据库' : 'PostgreSQL'}）`);
   }
@@ -917,6 +918,22 @@ class PlatformStore {
     } finally {
       client.release();
     }
+  }
+
+  async seedDefaultAdmin() {
+    const seedKey = 'default_admin_v1';
+    if ((await this.pool.query('SELECT 1 FROM v12_settings WHERE key=$1', [seedKey])).rowCount) return;
+    const usernameKey = 'admin';
+    const exists = (await this.pool.query('SELECT 1 FROM v12_users WHERE username_key=$1', [usernameKey])).rowCount;
+    if (!exists) {
+      const credentials = makePassword('admin123');
+      await this.pool.query(
+        `INSERT INTO v12_users(username,username_key,salt,password_hash,security_question,security_answer_hash,role,status,display_name,source)
+         VALUES($1,$2,$3,$4,$5,$6,'platform_admin','active','平台管理员','系统初始化')`,
+        ['admin', usernameKey, credentials.salt, credentials.passwordHash, '您的小学名称是？', hashAnswer('海洋小学')]
+      );
+    }
+    await this.pool.query('INSERT INTO v12_settings(key,value) VALUES($1,$2)', [seedKey, new Date().toISOString()]);
   }
 
   async importLegacyUsers() {
