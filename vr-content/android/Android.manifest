@@ -1,0 +1,79 @@
+ManifestFileVersion: 0
+CRC: 1114608280
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: js108_standard.bundle
+      Dependencies: {}
+    Info_1:
+      Name: js119b_default.bundle
+      Dependencies: {}
+    Info_2:
+      Name: js11_standard.bundle
+      Dependencies: {}
+    Info_3:
+      Name: js1300x_exterior.bundle
+      Dependencies: {}
+    Info_4:
+      Name: js1300x_interior.bundle
+      Dependencies: {}
+    Info_5:
+      Name: barge40_standard.bundle
+      Dependencies: {}
+    Info_6:
+      Name: js57_standard.bundle
+      Dependencies: {}
+    Info_7:
+      Name: js580w_standard.bundle
+      Dependencies: {}
+    Info_8:
+      Name: js655_standard.bundle
+      Dependencies: {}
+    Info_9:
+      Name: js78_standard.bundle
+      Dependencies: {}
+    Info_10:
+      Name: js828b_default.bundle
+      Dependencies: {}
+    Info_11:
+      Name: js950_retro.bundle
+      Dependencies: {}
+    Info_12:
+      Name: js950_modern_a.bundle
+      Dependencies: {}
+    Info_13:
+      Name: js950_modern_b.bundle
+      Dependencies: {}
+    Info_14:
+      Name: js1198_standard.bundle
+      Dependencies: {}
+    Info_15:
+      Name: js1398_exterior.bundle
+      Dependencies: {}
+    Info_16:
+      Name: js1398_interior.bundle
+      Dependencies: {}
+    Info_17:
+      Name: js1588_standard.bundle
+      Dependencies: {}
+    Info_18:
+      Name: js4028_base.bundle
+      Dependencies: {}
+    Info_19:
+      Name: js4028_interior_a.bundle
+      Dependencies: {}
+    Info_20:
+      Name: js4028_interior_b.bundle
+      Dependencies: {}
+    Info_21:
+      Name: js4028_interior_c.bundle
+      Dependencies: {}
+    Info_22:
+      Name: pwc_standard.bundle
+      Dependencies: {}
+    Info_23:
+      Name: usv1_standard.bundle
+      Dependencies: {}
+    Info_24:
+      Name: usv2_standard.bundle
+      Dependencies: {}

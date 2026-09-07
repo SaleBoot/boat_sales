@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>模型预览</title>
+  <style>
+    html,body,#previewCanvas{width:100%;height:100%;margin:0;overflow:hidden;background:#fff}
+    #previewCanvas{position:relative}
+    .hint{position:absolute;left:16px;bottom:14px;z-index:2;padding:8px 11px;border-radius:9px;background:rgba(17,24,39,.82);color:#fff;font:12px/1.4 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;pointer-events:none}
+  </style>
+  <script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <div id="previewCanvas"><div class="hint">左键旋转 · 滚轮缩放 · 右键平移</div></div>
+  <script type="module" src="js/admin-model-preview.js"></script>
+</body>
+</html>

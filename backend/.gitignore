@@ -1,0 +1,13 @@
+tmp*.md
+
+boatsales-backend
+tmp/
+.env
+.env-dev
+*.db
+doc01/tx_cos_cmd.md
+
+configs/
+
+salesboat-deploy/
+focus-targets/

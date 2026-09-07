@@ -1,0 +1,33 @@
+node_modules/
+frontend/node_modules/
+
+backend/tmp*
+backend/focus-targets
+backend/boatsales-backend
+backend/test.db
+backend/doc02/
+
+frontend/doc01/
+# frontend/public/gltf01
+
+backups/
+data/
+.marscode/
+doc0*/
+gltf/
+static/
+scripts/
+service/
+temp/
+test/
+SalesBoat-code-only-20260514-013133.zip
+salesboat-deploy.zip
+admin-session*
+admin-cookies.txt
+
+# 3Dvr看船交付源码快照
+3Dvr看船-v*/**/node_modules/
+3Dvr看船-v*/**/.DS_Store
+3Dvr看船-v*/**/*.apk
+3Dvr看船-v*/**/uploads/model-staging/
+3Dvr看船-v*/**/tmp/
