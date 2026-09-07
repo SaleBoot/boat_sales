@@ -73,7 +73,7 @@ async function ensureAuth() {
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' })
     if (res.ok) { const json = await res.json(); if (json.success && json.data) return json.data }
   } catch {}
-  location.href = 'login.html'
+  location.href = '/login.html'
   throw new Error('未登录')
 }
 
@@ -496,7 +496,10 @@ function bindViewSwitch() {
 }
 
 function bindLogout() {
-  $('logoutBtn').addEventListener('click', async () => { try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }) } catch {}; location.href = 'login.html' })
+  $('logoutBtn').addEventListener('click', () => {
+    // 退出数字孪生界面，返回来源页面（详情页）
+    if (window.history.length > 1) { window.history.back(); } else { location.href = '/'; }
+  })
 }
 
 function startLiveTicker() {
