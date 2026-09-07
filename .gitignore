@@ -31,3 +31,8 @@ admin-cookies.txt
 3Dvr看船-v*/**/*.apk
 3Dvr看船-v*/**/uploads/model-staging/
 3Dvr看船-v*/**/tmp/
+
+# 运行时上传目录：忽略用户上传产物，但保留船只静态展示图片
+uploads/*
+!uploads/boats/
+!uploads/boats/**

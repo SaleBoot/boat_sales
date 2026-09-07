@@ -82,43 +82,52 @@ function tabs() {
   if (powerTab) {
     const currentIds = new Set((powerTab.options || []).map(o => String(o.id || '')));
     // 判定：只有老选项（例如含 power-standard/power-enhanced/power-custom 这三个id之一）才替换为严谨方案
-    const hasOldOptions = ['power-standard', 'power-enhanced', 'power-custom'].some(id => currentIds.has(id));
+    const hasOldOptions = ['power-standard', 'power-enhanced', 'power-custom', 'pow-elec-std', 'pow-elec-plus', 'pow-elec-range-ext', 'pow-elec-solar', 'pow-diesel-std', 'pow-man-v8', 'pow-waterjet', 'pow-passenger-std', 'pow-passenger-4eng', 'pow-passenger-hybrid', 'pow-passenger-shaft', 'pow-volvo-ips', 'pow-man-twin', 'pow-mtu', 'pow-pods', 'pow-custom'].some(id => currentIds.has(id));
     if (hasOldOptions) {
       let powerOptions = [];
       if (isElectric) {
         powerOptions = [
-          { id: 'pow-elec-std', name: '纯电推进 · 标准续航（标配）', description: '磷酸铁锂 CATL 电池组（总容量 200kWh）+ 双吊舱电机，6 节续航 8 小时，CCS2 直流快充 2h', priceDelta: 0, sortOrder: 0 },
-          { id: 'pow-elec-plus', name: '纯电推进 · 长续航（选配）', description: '磷酸铁锂电池扩容至 400kWh + 双 100kW 电机 + 船载 DC 充电口，8 节 12 小时；兼容岸电与光伏充电', priceDelta: 0, sortOrder: 1 },
-          { id: 'pow-elec-range-ext', name: '纯电 · 增程版（柴油发电机）', description: '在纯电基础上加装 80kW 静音柴油增程器（欧 V 排放），远洋作业续航可达 300 海里', priceDelta: 0, sortOrder: 2 },
-          { id: 'pow-elec-solar', name: '纯电 · 光伏补能版', description: '顶篷铺设 2.5kW 柔性单晶光伏 + MPPT 控制器，日间平均补能 8-12kWh，零碳巡航 +15%', priceDelta: 0, sortOrder: 3 }
+          { id: 'pow-elec-std', name: '纯电推进系统 · 标准续航（标配）', description: 'CATL 磷酸铁锂电池组 200kWh + 双吊舱推进电机，6kn 续航 8h，CCS2 直流快充 2h 充满，含 BMS 电池管理与船载充电机', priceDelta: 0, sortOrder: 0 },
+          { id: 'pow-elec-battery-up', name: '电池扩容 · 长续航版', description: '电池容量由 200kWh 扩容至 400kWh，8kn 续航延长至 12h，兼容岸电与光伏补能', priceDelta: 18, sortOrder: 1 },
+          { id: 'pow-elec-range-ext', name: '柴油增程器（80kW）', description: '加装 80kW 静音柴油增程机组（欧 V 排放），纯电 + 增程混合模式续航可达 300 海里', priceDelta: 12, sortOrder: 2 },
+          { id: 'pow-elec-solar', name: '顶篷光伏补能系统', description: '顶篷铺设 2.5kW 柔性单晶光伏板 + MPPT 控制器，日间平均补能 8-12kWh，零碳巡航续航 +15%', priceDelta: 6, sortOrder: 3 },
+          { id: 'pow-elec-charger', name: '岸电快充升级（CCS2 双枪）', description: '升级为双 CCS2 直流快充接口，最大充电功率 2×60kW，1h 充至 80%，含岸电箱与国际通岸接头', priceDelta: 5, sortOrder: 4 }
         ];
       } else if (isPatrol) {
         powerOptions = [
-          { id: 'pow-diesel-std', name: '双机双桨 · 标准柴油（标配）', description: '两台国产高速柴油机（WD10 系列），总功率 2×280kW，艉机传动，最高航速 28 节', priceDelta: 0, sortOrder: 0 },
-          { id: 'pow-man-v8', name: 'MAN V8 高功率执法版', description: '两台 MAN V8-1200 船用柴油发动机（2×882kW/1200HP）+ ZF 船用齿轮箱，极速 42 节', priceDelta: 0, sortOrder: 1 },
-          { id: 'pow-waterjet', name: '喷水推进 · 执法高速版', description: '双 MJP 喷水推进器 + MAN 12V 发动机组合，浅水域可过，零到 30 节加速时间 < 40s', priceDelta: 0, sortOrder: 2 },
-          { id: 'pow-hybrid', name: '柴电混动 · 巡逻静音版', description: '低速执法/靠近用纯电静音模式（航速 ≤6kn，续航 ≥ 4h）；高速接回柴油机驱动，节省油耗 25%', priceDelta: 0, sortOrder: 3 }
+          { id: 'pow-diesel-std', name: '双机双桨 · 潍柴WD10主推进（标配）', description: '两台潍柴 WD10 系列高速柴油机（2×280kW）+ 杭州前进齿轮箱 + 定距螺旋桨，艉机型布置，最高航速 28 节', priceDelta: 0, sortOrder: 0 },
+          { id: 'pow-man-v8', name: 'MAN V8 高功率主机升级', description: '升级为两台 MAN V8-1200 船用柴油机（2×882kW/1200HP）+ ZF 船用齿轮箱，极速提升至 42 节', priceDelta: 45, sortOrder: 1 },
+          { id: 'pow-waterjet', name: '喷水推进系统（双 MJP）', description: '换装双 MJP 喷水推进器 + MAN 12V 主机，浅水区可过，零至 30 节加速 < 40s，适合执法高速拦截', priceDelta: 38, sortOrder: 2 },
+          { id: 'pow-hybrid', name: '柴电混动 · 巡逻静音版', description: '低速执法/靠近用纯电静音模式（≤6kn，续航 ≥4h），高速切回柴油机驱动，综合节油 25%', priceDelta: 32, sortOrder: 3 },
+          { id: 'pow-gen-set', name: '船用发电机组（50kW）', description: '加装 50kW 船用柴油发电机组（AC400V/50Hz 三相），满足执法设备、雷达通导全船用电', priceDelta: 8, sortOrder: 4 },
+          { id: 'pow-bow-thruster', name: '电动艏侧推系统（100kgf）', description: '加装 100kgf 电动艏侧推，含独立蓄电池组，提升靠泊与狭水道操纵灵活性', priceDelta: 6, sortOrder: 5 }
         ];
       } else if (isPassenger) {
         powerOptions = [
-          { id: 'pow-passenger-std', name: '双机双桨 · 标准柴油推进（标配）', description: '两台潍柴 WP12 系列船机，单台功率 330kW ×2，定距桨推进，经济航速 12kn 载客 108', priceDelta: 0, sortOrder: 0 },
-          { id: 'pow-passenger-4eng', name: '四机四桨 · 大运量高速版', description: '4 台高速柴油机 + 四桨双舵，额定载客 150 人，满载极速 18 节，满足观光高峰', priceDelta: 0, sortOrder: 1 },
-          { id: 'pow-passenger-hybrid', name: '柴电混动 · 环保景区版', description: '近岸/码头 0 排放纯电模式（≥ 2kn/5h），开阔水域柴电混合，满足 A 级景区排放要求', priceDelta: 0, sortOrder: 2 },
-          { id: 'pow-passenger-shaft', name: '对转桨 · 高效节能版（选配）', description: '前桨后置舵叶 + 对转螺旋桨组合，综合续航提升 15%，同等载荷油耗降低约 12%', priceDelta: 0, sortOrder: 3 }
+          { id: 'pow-passenger-std', name: '双机双桨 · 潍柴WP12主推进（标配）', description: '两台潍柴 WP12C400-18 船用柴油机（2×295kW/400HP @1800rpm）+ 前进 120C 齿轮箱 + 定距螺旋桨，经济航速 12kn，载客 108 人', priceDelta: 0, sortOrder: 0 },
+          { id: 'pow-passenger-4eng', name: '四机四桨 · 大运量高速版', description: '4 台高速柴油机 + 四桨双舵，额定载客 150 人，满载极速 18 节，满足观光高峰运力需求', priceDelta: 28, sortOrder: 1 },
+          { id: 'pow-passenger-hybrid', name: '柴电混动 · 环保景区版', description: '近岸/码头纯电零排放模式（≥2kn/5h），开阔水域柴电混合，满足 A 级景区排放与降噪要求', priceDelta: 35, sortOrder: 2 },
+          { id: 'pow-passenger-shaft', name: '对转桨 · 高效节能系统', description: '前桨后置舵叶 + 对转螺旋桨组合，综合续航提升 15%，同等载荷油耗降低约 12%', priceDelta: 10, sortOrder: 3 },
+          { id: 'pow-gen-set', name: '船用发电机组扩容（30kW→50kW）', description: '发电机组由 30kW 扩容至 50kW（AC400V/50Hz 三相），满足客舱空调、照明、影音全船用电', priceDelta: 6, sortOrder: 4 },
+          { id: 'pow-bow-thruster', name: '电动艏侧推（100kgf）', description: '加装 100kgf 电动艏侧推系统，含独立蓄电池与控制箱，提升靠泊与狭水道操纵性', priceDelta: 5, sortOrder: 5 },
+          { id: 'pow-hvac', name: '中央空调系统（客舱+驾驶室）', description: '船用中央空调机组，客舱与驾驶室分区独立控温，含新风换气与温度自动调节', priceDelta: 8, sortOrder: 6 },
+          { id: 'pow-fire-upgrade', name: '消防系统升级（固定式灭火）', description: '机舱固定式 CO₂ 灭火系统 + 火警烟雾探测 + 应急消防泵组，满足 CCS 检验要求', priceDelta: 7, sortOrder: 7 }
         ];
       } else {
         powerOptions = [
-          { id: 'pow-volvo-ips', name: 'Volvo Penta IPS 操纵系统（标配）', description: 'Volvo Penta IPS 系列（D6/D8/D11/D13）集成式吊舱推进，操控平顺、停靠一键 Joystick（参考 Pardo E72 官方）', priceDelta: 0, sortOrder: 0 },
-          { id: 'pow-man-twin', name: 'MAN V8/V12 高性能双机（选配）', description: '两台 MAN V12 系列柴油机（总功率 2×1550HP）+ V 型驱动，极速突破 33 节（参考 Princess F65）', priceDelta: 0, sortOrder: 1 },
-          { id: 'pow-mtu', name: 'MTU 12V/16V 超级游艇版', description: 'MTU 16V 2000 M96L / Rolls-Royce 动力组合，总功率可达 4000 马力，适用于 28m 以上豪华飞桥（参考丽娃 96 Argo Super）', priceDelta: 0, sortOrder: 2 },
-          { id: 'pow-hybrid', name: '柴油电动混动 · 零排放模式', description: '巡航用柴油机驱动并为电池充电；近岸/码头/锚地切换纯电电动机（0 排放 0 噪音），航程+30%（参考 Benetti B.Now 混动选项）', priceDelta: 0, sortOrder: 3 },
-          { id: 'pow-pods', name: 'Zeus / 水面吊舱高速推进版', description: 'Cummins Zeus 或 Aquadrive 水面吊舱推进器，响应比传统轴系快 40%，高速转弯船体无明显倾斜', priceDelta: 0, sortOrder: 4 },
+          { id: 'pow-volvo-ips', name: 'Volvo Penta IPS 推进系统（标配）', description: 'Volvo Penta IPS 系列（D6/D8/D11/D13）集成式吊舱推进，对转串桨，Joystick 一键靠泊，油耗降低 30%（参考 Pardo E72 / Princess 官方）', priceDelta: 0, sortOrder: 0 },
+          { id: 'pow-man-twin', name: 'MAN V12 高性能双机升级', description: '两台 MAN V12 系列柴油机（2×1550HP）+ V 型驱动轴系，极速突破 33 节（参考 Princess F65）', priceDelta: 60, sortOrder: 1 },
+          { id: 'pow-mtu', name: 'MTU 16V 超级游艇动力', description: 'MTU 16V 2000 M96L / Rolls-Royce 动力组合，总功率可达 4000 马力，适用于 28m 以上豪华飞桥（参考丽娃 96 Argo Super）', priceDelta: 120, sortOrder: 2 },
+          { id: 'pow-hybrid', name: '柴油电动混动 · 零排放模式', description: '巡航柴油机驱动并充电；近岸/码头/锚地切换纯电驱动（0 排放 0 噪音），航程 +30%（参考 Benetti B.Now）', priceDelta: 45, sortOrder: 3 },
+          { id: 'pow-pods', name: 'Zeus 水面吊舱高速推进', description: 'Cummins Zeus 或 Aquadrive 水面吊舱推进器，响应比传统轴系快 40%，高速转弯船体无明显倾斜', priceDelta: 35, sortOrder: 4 },
+          { id: 'pow-gen-set', name: '船用发电机组（75kW）', description: '加装 75kW 船用柴油发电机组（AC400V/50Hz），满足全船空调、影音、厨房用电', priceDelta: 12, sortOrder: 5 },
+          { id: 'pow-bow-thruster', name: '电动艏侧推（100kgf）', description: '加装 100kgf 变速电动艏侧推，配合 IPS Joystick 实现精准靠泊', priceDelta: 8, sortOrder: 6 },
           { id: 'pow-custom', name: '定制动力 · 厂家技术部核定', description: '按实际用途（商业/远洋/近海/作业）一对一工程师量身匹配动力方案，含机舱布局计算与 CCS 认证', priceDelta: 0, sortOrder: 9 }
         ];
       }
       powerTab.options = powerOptions;
     }
-    powerTab.description = '推进系统严谨方案（按船型自动匹配：纯电/公务/客运/通用游艇系列。参考 Princess / Pardo / MTU / Volvo 官方）';
+    powerTab.description = '动力系统（第一项为标配主推进，不可取消；其余为可选功能，可多选叠加。参考潍柴 / MAN / MTU / Volvo Penta / Cummins 官方配置）';
   }
 
   // 3) 智能板块（普通船型）：若无则新增，若只有3个旧选项则扩展为14项完整配置
@@ -161,7 +170,10 @@ function tabs() {
 }
 function initializeSelections() {
   tabs().forEach(tab => {
-    if (tab.kind === 'accessory') {
+    if (isPowerTab(tab)) {
+      const first = powerFirstOption(tab);
+      selections[tab.id] = first ? [first.id] : [];
+    } else if (tab.kind === 'accessory') {
       const sm = (boatData.twinConfig && boatData.twinConfig.smart) || {};
       selections[tab.id] = Object.assign({}, sm);
     } else if (tab.options && tab.options[0]) {
@@ -259,10 +271,26 @@ function overviewHtml(tab) {
   return `<div class="config-section"><h3 class="config-section-title">${escapeHtml(boatData.name)}</h3>${sceneImageHtml}<p class="config-section-desc">${escapeHtml(boatData.description || '')}</p><div class="config-specs-grid"><div class="config-spec-item"><span class="config-spec-label">船长</span><span class="config-spec-value">${escapeHtml(boatData.length || '—')}</span></div><div class="config-spec-item"><span class="config-spec-label">载客/载荷</span><span class="config-spec-value">${escapeHtml(boatData.capacity || '—')}</span></div><div class="config-spec-item"><span class="config-spec-label">极速</span><span class="config-spec-value">${escapeHtml(boatData.maxSpeed || '—')}</span></div><div class="config-spec-item"><span class="config-spec-label">模拟基础价</span><span class="config-spec-value">${escapeHtml(formatYuan(boatData.basePriceYuan))}</span><small>${escapeHtml(boatData.pricingNote || '')}</small></div></div><div class="config-features">${(boatData.features || []).map(item => `<span class="config-feature-tag">${escapeHtml(item)}</span>`).join('')}</div>${editBtn}</div>`;
 }
 
+function isPowerTab(tab) {
+  return tab && (tab.id === 'power' || /动力/.test(tab.label || ''));
+}
+function powerFirstOption(tab) {
+  const opts = (tab && tab.options) || [];
+  if (!opts.length) return null;
+  return opts.slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))[0];
+}
+function powerSelectedIds(tab) {
+  const sel = selections[tab.id];
+  return Array.isArray(sel) ? sel : [];
+}
 function optionHtml(tab, option) {
   const isAcc = tab.kind === 'accessory';
+  const isPower = isPowerTab(tab);
   const m = (isAcc && selections[tab.id] && typeof selections[tab.id] === 'object') ? selections[tab.id] : {};
-  const selected = isAcc ? (m[smartCategoryOf(option)] === option.id) : (selections[tab.id] === option.id);
+  let selected;
+  if (isPower) selected = powerSelectedIds(tab).includes(option.id);
+  else if (isAcc) selected = m[smartCategoryOf(option)] === option.id;
+  else selected = selections[tab.id] === option.id;
   const priceDeltaYuan = optionPrice(option);
   // 仅「内饰」板块(kind === 'model')选项图显示为16:9卡片，并支持双击查看全图
   const imageHtml = (tab.kind === 'model' && option.imageUrl)
@@ -270,7 +298,14 @@ function optionHtml(tab, option) {
          <img class="config-option-image-169 is-zoomable" src="${escapeAttr(option.imageUrl)}" alt="">
        </div>`
     : '';
-  return `<button class="config-option-card ${selected ? 'selected' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${selected && isAcc ? '<span class="accessory-check">✓</span>' : ''}${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
+  let checkBadge = '';
+  if (isPower) {
+    const first = powerFirstOption(tab);
+    const isFirst = first && first.id === option.id;
+    if (isFirst) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
+    else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
+  } else if (selected && isAcc) checkBadge = '<span class="accessory-check">✓</span>';
+  return `<button class="config-option-card ${selected ? 'selected' : ''} ${isPower ? 'power-option' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${checkBadge}${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
 }
 
 function smartCategoryOf(option) {
@@ -279,6 +314,18 @@ function smartCategoryOf(option) {
 
 async function selectOption(tabId, optionId) {
   const tab = tabs().find(item => item.id === tabId); if (!tab) return; const option = (tab.options || []).find(item => item.id === optionId); if (!option) return;
+  if (isPowerTab(tab)) {
+    const first = powerFirstOption(tab);
+    if (first && first.id === option.id) { renderTab(); updatePrice(); autoSyncTwinConfig(); return; }
+    const ids = powerSelectedIds(tab).slice();
+    const idx = ids.indexOf(option.id);
+    if (idx >= 0) ids.splice(idx, 1); else ids.push(option.id);
+    if (first && !ids.includes(first.id)) ids.unshift(first.id);
+    selections[tabId] = ids;
+    renderTab(); updatePrice();
+    autoSyncTwinConfig();
+    return;
+  }
   if (tab.kind === 'accessory') {
     const cat = smartCategoryOf(option);
     const m = (selections[tabId] && typeof selections[tabId] === 'object') ? selections[tabId] : {};
@@ -291,7 +338,6 @@ async function selectOption(tabId, optionId) {
   selections[tabId] = optionId;
   // 价格与选中态应立即反馈，不能等待大型模型下载完成后才更新。
   renderTab(); updatePrice();
-  if (tab.id === 'power' || /动力/.test(tab.label || '')) autoSyncTwinConfig({ power: { id: option.id, name: option.name, description: option.description || '' } });
   if (tab.kind === 'model' && option.modelVariantId && option.modelVariantId !== currentVariantId) { currentVariantId = option.modelVariantId; await loadCurrentModel(tab.cameraMode, option.entryView); }
   else {
     if (tab.kind === 'color' && scene3d && option.color) scene3d.setHullColor(option.color, selectedVariant() && selectedVariant().hullMaterial);
@@ -308,7 +354,13 @@ function autoSyncTwinConfig(extra) {
   const smart = {};
   Object.keys(m).forEach(cat => { if (m[cat]) smart[cat] = m[cat]; });
   const sys = (boatData.twinConfig && Array.isArray(boatData.twinConfig.systems)) ? boatData.twinConfig.systems : ['fire', 'elec', 'nav', 'cam'];
-  const power = (extra && extra.power) || (boatData.twinConfig && boatData.twinConfig.power) || {};
+  let power = (extra && extra.power) || (boatData.twinConfig && boatData.twinConfig.power) || {};
+  const powerTab = tabs().find(t => isPowerTab(t));
+  if (powerTab) {
+    const sel = powerSelectedIds(powerTab);
+    const opts = (powerTab.options || []).filter(o => sel.includes(o.id));
+    power = opts.map(o => ({ id: o.id, name: o.name, description: o.description || '' }));
+  }
   fetch(`/api/boats/${boatData.id}/twin-config`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ systems: sys, smart, power }), credentials: 'same-origin'
   }).then(r => r.json()).then(j => { if (j && j.success && j.data) boatData.twinConfig = j.data.twinConfig; }).catch(() => {});
@@ -316,12 +368,19 @@ function autoSyncTwinConfig(extra) {
 
 function selectedOption(tab) {
   const sel = selections[tab.id];
+  if (isPowerTab(tab) && Array.isArray(sel)) {
+    return (tab.options || []).find(o => sel.includes(o.id)) || powerFirstOption(tab) || (tab.options || [])[0] || null;
+  }
   if (tab.kind === 'accessory' && sel && typeof sel === 'object') {
     return (tab.options || []).find(o => Object.values(sel).includes(o.id)) || (tab.options || [])[0] || null;
   }
   return (tab.options || []).find(item => item.id === sel) || (tab.options || [])[0] || null;
 }
 function selectedAccessoryOptions(tab) {
+  if (isPowerTab(tab)) {
+    const ids = powerSelectedIds(tab);
+    return (tab.options || []).filter(o => ids.includes(o.id));
+  }
   if (tab.kind !== 'accessory') return selectedOption(tab) ? [selectedOption(tab)] : [];
   const sel = selections[tab.id]; if (!sel || typeof sel !== 'object') return [];
   const options = (tab.options || []).filter(o => Object.values(sel).includes(o.id));
@@ -356,7 +415,7 @@ async function applyConfiguredAccessories() { const assets = tabs().filter(item 
 
 function optionPrice(option) { return Math.max(0, Math.round(Number(option && option.priceDeltaYuan) || (Number(option && option.priceDelta) || 0) * 10000)); }
 function formatYuan(value, zeroText = '¥0') { const yuan = Math.max(0, Math.round(Number(value) || 0)); if (!yuan) return zeroText; if (yuan >= 10000) { const wan = yuan / 10000; return `¥${wan.toLocaleString('zh-CN', { maximumFractionDigits: 1 })}万`; } return `¥${yuan.toLocaleString('zh-CN')}`; }
-function pricingTotals() { const basePriceYuan = Math.max(0, Math.round(Number(boatData.basePriceYuan) || 0)); const optionPriceYuan = tabs().reduce((sum, tab) => { const opts = tab.kind === 'accessory' ? selectedAccessoryOptions(tab) : (selectedOption(tab) ? [selectedOption(tab)] : []); return sum + opts.reduce((s, o) => s + optionPrice(o), 0); }, 0); return { basePriceYuan, optionPriceYuan, totalPriceYuan: basePriceYuan + optionPriceYuan }; }
+function pricingTotals() { const basePriceYuan = Math.max(0, Math.round(Number(boatData.basePriceYuan) || 0)); const optionPriceYuan = tabs().reduce((sum, tab) => { const opts = (tab.kind === 'accessory' || isPowerTab(tab)) ? selectedAccessoryOptions(tab) : (selectedOption(tab) ? [selectedOption(tab)] : []); return sum + opts.reduce((s, o) => s + optionPrice(o), 0); }, 0); return { basePriceYuan, optionPriceYuan, totalPriceYuan: basePriceYuan + optionPriceYuan }; }
 function updatePrice() { const totals = pricingTotals(); const base = document.getElementById('basePrice'); const extra = document.getElementById('extraPrice'); const total = document.getElementById('totalPrice'); if (base) base.textContent = formatYuan(totals.basePriceYuan, '待厂家确认'); if (extra) extra.textContent = formatYuan(totals.optionPriceYuan); if (total) total.textContent = totals.basePriceYuan ? formatYuan(totals.totalPriceYuan) : '待厂家确认'; }
 
 function submitConfig() {
@@ -393,7 +452,7 @@ function bindCustomerOrderDialog() {
 
 async function submitCustomerOrder(event, closeDialog) {
   event.preventDefault();
-  const selectedValues = {}; tabs().forEach(tab => { if (tab.kind === 'accessory') { const sm = selections[tab.id]; if (sm && typeof sm === 'object') selectedValues[tab.id] = Object.keys(sm).map(cat => ({ category: cat, optionId: sm[cat] })); } else { const option = selectedOption(tab); if (option) selectedValues[tab.id] = { optionId: option.id }; } });
+  const selectedValues = {}; tabs().forEach(tab => { if (isPowerTab(tab)) { const ids = powerSelectedIds(tab); selectedValues[tab.id] = ids.map(id => ({ optionId: id })); } else if (tab.kind === 'accessory') { const sm = selections[tab.id]; if (sm && typeof sm === 'object') selectedValues[tab.id] = Object.keys(sm).map(cat => ({ category: cat, optionId: sm[cat] })); } else { const option = selectedOption(tab); if (option) selectedValues[tab.id] = { optionId: option.id }; } });
   const form = event.currentTarget; const button = document.getElementById('confirmCustomerOrder'); const formData = new FormData(form);
   button.disabled = true; button.textContent = '提交中…';
   try {
