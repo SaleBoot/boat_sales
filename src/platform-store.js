@@ -173,37 +173,37 @@ function defaultConfigTabs(profile, variants) {
       // 参考 Princess F65 官方 4 档木饰面：Rovere 橡木 / Ash 白蜡木 / Silver 银橡木 / Walnut 胡桃木
       { id: 'wood-rovere', name: '木饰面 · Rovere 缎面橡木（标配）', description: '意大利暖色调橡木缎面哑光清漆，标配家具地板饰面', priceDelta: 0, sortOrder: 10 },
       { id: 'wood-ash', name: '木饰面 · Ash 缎面白蜡木（选配）', description: '浅色顺纹白蜡木，通透清爽，适合现代北欧风格舱室', priceDelta: 0, sortOrder: 11 },
-      { id: 'wood-silver', name: '木饰面 · Silver Oak 银橡（选配）', description: '浅银灰水洗橡木，淡化木纹对比，与米白皮革完美搭', priceDelta: 0, sortOrder: 12 },
-      { id: 'wood-walnut-matte', name: '木饰面 · Walnut 哑光胡桃木（选配）', description: '深褐条纹胡桃木，搭配铜金金属嵌条与真皮沙发（参考 Pardo E72）', priceDelta: 0, sortOrder: 13 },
-      { id: 'wood-walnut-gloss', name: '木饰面 · Walnut 高光胡桃木（豪华）', description: '钢琴漆高光胡桃木 + 镜面不锈钢镶嵌（参考丽娃 Riva 96\' Argo Super 官方）', priceDelta: 0, sortOrder: 14 }
+      { id: 'wood-silver', name: '木饰面 · Silver Oak 银橡（选配）', description: '浅银灰水洗橡木，淡化木纹对比，与米白皮革完美搭配', priceDelta: 12, sortOrder: 12 },
+      { id: 'wood-walnut-matte', name: '木饰面 · Walnut 哑光胡桃木（选配）', description: '深褐条纹胡桃木，搭配铜金金属嵌条与真皮沙发（参考 Pardo E72）', priceDelta: 18, sortOrder: 13 },
+      { id: 'wood-walnut-gloss', name: '木饰面 · Walnut 高光胡桃木（豪华）', description: '钢琴漆高光胡桃木 + 镜面不锈钢镶嵌（参考丽娃 Riva 96\' Argo Super 官方）', priceDelta: 35, sortOrder: 14 }
     ];
     const softLeathers = [
       // 参考 BRABUS × Sunreef 皮革等级
       { id: 'soft-std', name: '软装 · 标准布艺（标配）', description: '防污阻燃航海级布艺（米白/沙色/深蓝 三色可选），含全车窗帘与床品', priceDelta: 0, sortOrder: 20 },
-      { id: 'soft-leather', name: '软装 · 半皮升级（选配）', description: '头枕/扶手/沙发接触面采用意大利真皮（头层牛皮、抗 UV 涂层），其余保持航海级布艺', priceDelta: 0, sortOrder: 21 },
-      { id: 'soft-nappa', name: '软装 · Masterpiece 全 Nappa 真皮（豪华）', description: '全舱家具接触面替换 Masterpiece 级 Nappa 皮革，含专属三角绗缝工艺（参考 Brabus × Sunreef 官方）', priceDelta: 0, sortOrder: 22 }
+      { id: 'soft-leather', name: '软装 · 半皮升级（选配）', description: '头枕/扶手/沙发接触面采用意大利真皮（头层牛皮、抗 UV 涂层），其余保持航海级布艺', priceDelta: 15, sortOrder: 21 },
+      { id: 'soft-nappa', name: '软装 · Masterpiece 全 Nappa 真皮（豪华）', description: '全舱家具接触面替换 Masterpiece 级 Nappa 皮革，含专属三角绗缝工艺（参考 Brabus × Sunreef 官方）', priceDelta: 45, sortOrder: 22 }
     ];
     const galleyBath = [
       { id: 'galley-std', name: '厨卫 · 标准配置（标配）', description: '标准冰箱 + 电磁炉 2 灶头 + 电热水器 40L；每间卫浴配备淋浴、独立台盆', priceDelta: 0, sortOrder: 30 },
-      { id: 'galley-up', name: '厨卫 · 高端升级（选配）', description: 'Sub-Zero 抽屉冰箱 + Miele 电磁灶/烤箱/洗碗机 + Krion 人造石台面 + Grohe 恒温花洒套件', priceDelta: 0, sortOrder: 31 },
-      { id: 'galley-wine', name: '厨卫 · 酒柜冰吧豪华版', description: '主沙龙加配 48 瓶嵌入式恒温酒柜、船尾独立户外冰箱、吧台区制冰机', priceDelta: 0, sortOrder: 32 }
+      { id: 'galley-up', name: '厨卫 · 高端升级（选配）', description: 'Sub-Zero 抽屉冰箱 + Miele 电磁灶/烤箱/洗碗机 + Krion 人造石台面 + Grohe 恒温花洒套件', priceDelta: 25, sortOrder: 31 },
+      { id: 'galley-wine', name: '厨卫 · 酒柜冰吧豪华版', description: '主沙龙加配 48 瓶嵌入式恒温酒柜、船尾独立户外冰箱、吧台区制冰机', priceDelta: 38, sortOrder: 32 }
     ];
     const entertainment = [
       { id: 'av-std', name: '娱乐 · 标准影音（标配）', description: '主沙龙 55" 4K 电视 + 5.1 声道音响系统、客厅区域支持蓝牙/HDMI', priceDelta: 0, sortOrder: 40 },
-      { id: 'av-bw', name: '娱乐 · Bowers & Wilkins Marine 高端音响', description: '全舱 B&W Marine 系列防水高保真音响（12 声道+低音炮），支持 Dolby Atmos（参考 Brabus 官方）', priceDelta: 0, sortOrder: 41 },
-      { id: 'av-ktv', name: '娱乐 · 独立家庭影院/KTV 房', description: '下层甲板独立空间改家庭影院 + KTV 双模式：120"幕、专业卡包箱、点歌系统、氛围灯', priceDelta: 0, sortOrder: 42 },
-      { id: 'av-spa', name: '娱乐 · 阳光甲板 SPA/按摩浴缸', description: '飞桥或阳光甲板加装冲浪按摩浴缸 + 蒸汽淋浴桑拿组合舱（参考 Benetti Oasis 系列）', priceDelta: 0, sortOrder: 43 }
+      { id: 'av-bw', name: '娱乐 · Bowers & Wilkins Marine 高端音响', description: '全舱 B&W Marine 系列防水高保真音响（12 声道+低音炮），支持 Dolby Atmos（参考 Brabus 官方）', priceDelta: 28, sortOrder: 41 },
+      { id: 'av-ktv', name: '娱乐 · 独立家庭影院/KTV 房', description: '下层甲板独立空间改家庭影院 + KTV 双模式：120"幕、专业卡包箱、点歌系统、氛围灯', priceDelta: 35, sortOrder: 42 },
+      { id: 'av-spa', name: '娱乐 · 阳光甲板 SPA/按摩浴缸', description: '飞桥或阳光甲板加装冲浪按摩浴缸 + 蒸汽淋浴桑拿组合舱（参考 Benetti Oasis 系列）', priceDelta: 45, sortOrder: 43 }
     ];
     const layoutOptions = [
       // 参考 Pardo E72 四舱布局 / 丽娃 96 三间+双床 两种方案
-      { id: 'layout-std', name: '客舱布局 · 标准（标配）', description: '3 间客舱 + 1 间船员舱（主人套房+VIP+双床），可容纳 6-8 位客人', priceDelta: 0, sortOrder: 1 },
-      { id: 'layout-4cabin', name: '客舱布局 · 四舱尊享（选配）', description: '4 间独立客舱（主人+VIP+两间双床）+ 1 间船员舱，共容纳 10 人（参考 Pardo E72）', priceDelta: 0, sortOrder: 2 },
-      { id: 'layout-5cabin', name: '客舱布局 · 全宽五舱（长艇专用）', description: '5 间客舱（全船宽主人套房+独立VIP+3间双床），均配独立卫浴（参考 Benetti Oasis 34m）', priceDelta: 0, sortOrder: 3 },
-      { id: 'layout-superyacht', name: '客舱布局 · 超级游艇主人甲板', description: '主人套房迁移主甲板，配私人露台和户外淋浴；下层另设 4 间客舱（参考丽娃 Riva 96 Argo Super）', priceDelta: 0, sortOrder: 4 }
+      { id: 'layout-std', name: '客舱布局 · 标准（标配）', description: '3 间客舱 + 1 间船员舱（主人套房+VIP+双床），可容纳 6-8 位客人', priceDelta: 0, sortOrder: 0 },
+      { id: 'layout-4cabin', name: '客舱布局 · 四舱尊享（选配）', description: '4 间独立客舱（主人+VIP+两间双床）+ 1 间船员舱，共容纳 10 人（参考 Pardo E72）', priceDelta: 38, sortOrder: 2 },
+      { id: 'layout-5cabin', name: '客舱布局 · 全宽五舱（长艇专用）', description: '5 间客舱（全船宽主人套房+独立VIP+3间双床），均配独立卫浴（参考 Benetti Oasis 34m）', priceDelta: 80, sortOrder: 3 },
+      { id: 'layout-superyacht', name: '客舱布局 · 超级游艇主人甲板', description: '主人套房迁移主甲板，配私人露台和户外淋浴；下层另设 4 间客舱（参考丽娃 Riva 96 Argo Super）', priceDelta: 150, sortOrder: 4 }
     ];
     tabs.push({
       id: 'interior', label: '内饰', kind: 'model', cameraMode: 'interior', sortOrder: 2,
-      description: '客舱布局 × 木饰面 × 软装皮革 × 厨卫升级 × 娱乐设施（参考 Princess / Pardo / Ferretti 官方选配）',
+      description: '第一项为标配客舱布局，不可取消；其余为可选升级，可多选叠加。参考 Princess / Pardo / Ferretti / Benetti / Riva 官方选配',
       options: [].concat(layoutOptions, interiorBase, woodVeneers, softLeathers, galleyBath, entertainment)
     });
   }
@@ -216,7 +216,7 @@ function defaultConfigTabs(profile, variants) {
   if (isElectric) {
     // 新能源电动游船（参考：长江新能源 / JS-11米电动观光船）
     powerOptions.push(
-      { id: 'pow-elec-std', name: '纯电推进 · 标准续航（标配）', description: '磷酸铁锂 CATL 电池组（总容量 200kWh）+ 双吊舱电机，6 节续航 8 小时，CCS2 直流快充 2h', priceDelta: 0, sortOrder: 0 },
+      { id: 'pow-elec-std', name: '纯电推进 · 标准续航（标配）', description: '电动舷外挂机推进，参考 PDF 实际主机功率参数', priceDelta: 0, sortOrder: 0 },
       { id: 'pow-elec-plus', name: '纯电推进 · 长续航（选配）', description: '磷酸铁锂电池扩容至 400kWh + 双 100kW 电机 + 船载 DC 充电口，8 节 12 小时；兼容岸电与光伏充电', priceDelta: 0, sortOrder: 1 },
       { id: 'pow-elec-range-ext', name: '纯电 · 增程版（柴油发电机）', description: '在纯电基础上加装 80kW 静音柴油增程器（欧 V 排放），远洋作业续航可达 300 海里', priceDelta: 0, sortOrder: 2 },
       { id: 'pow-elec-solar', name: '纯电 · 光伏补能版', description: '顶篷铺设 2.5kW 柔性单晶光伏 + MPPT 控制器，日间平均补能 8-12kWh，零碳巡航 +15%', priceDelta: 0, sortOrder: 3 }
@@ -224,7 +224,7 @@ function defaultConfigTabs(profile, variants) {
   } else if (isPatrol) {
     // 公务/执法艇（参考 JS-119B / JS-828B）
     powerOptions.push(
-      { id: 'pow-diesel-std', name: '双机双桨 · 标准柴油（标配）', description: '两台国产高速柴油机（WD10 系列），总功率 2×280kW，艉机传动，最高航速 28 节', priceDelta: 0, sortOrder: 0 },
+      { id: 'pow-diesel-std', name: '双机双桨 · 标准柴油（标配）', description: '舷外挂机推进，参考 PDF 实际主机功率与航区参数', priceDelta: 0, sortOrder: 0 },
       { id: 'pow-man-v8', name: 'MAN V8 高功率执法版', description: '两台 MAN V8-1200 船用柴油发动机（2×882kW/1200HP）+ ZF 船用齿轮箱，极速 42 节', priceDelta: 0, sortOrder: 1 },
       { id: 'pow-waterjet', name: '喷水推进 · 执法高速版', description: '双 MJP 喷水推进器 + MAN 12V 发动机组合，浅水域可过，零到 30 节加速时间 < 40s', priceDelta: 0, sortOrder: 2 },
       { id: 'pow-hybrid', name: '柴电混动 · 巡逻静音版', description: '低速执法/靠近用纯电静音模式（航速 ≤6kn，续航 ≥ 4h）；高速接回柴油机驱动，节省油耗 25%', priceDelta: 0, sortOrder: 3 }
@@ -232,7 +232,7 @@ function defaultConfigTabs(profile, variants) {
   } else if (isPassenger) {
     // 游览/观光客船（参考 JS-108 108客位）
     powerOptions.push(
-      { id: 'pow-passenger-std', name: '双机双桨 · 标准柴油推进（标配）', description: '两台潍柴 WP12 系列船机，单台功率 330kW ×2，定距桨推进，经济航速 12kn 载客 108', priceDelta: 0, sortOrder: 0 },
+      { id: 'pow-passenger-std', name: '双机双桨 · 标准柴油推进（标配）', description: '电动舷外挂机推进，参考 PDF 实际主机功率与乘员定额参数', priceDelta: 0, sortOrder: 0 },
       { id: 'pow-passenger-4eng', name: '四机四桨 · 大运量高速版', description: '4 台高速柴油机 + 四桨双舵，额定载客 150 人，满载极速 18 节，满足观光高峰', priceDelta: 0, sortOrder: 1 },
       { id: 'pow-passenger-hybrid', name: '柴电混动 · 环保景区版', description: '近岸/码头 0 排放纯电模式（≥ 2kn/5h），开阔水域柴电混合，满足 A 级景区排放要求', priceDelta: 0, sortOrder: 2 },
       { id: 'pow-passenger-shaft', name: '对转桨 · 高效节能版（选配）', description: '前桨后置舵叶 + 对转螺旋桨组合，综合续航提升 15%，同等载荷油耗降低约 12%', priceDelta: 0, sortOrder: 3 }

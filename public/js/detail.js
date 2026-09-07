@@ -42,38 +42,38 @@ function tabs() {
       // 如果内饰还是旧的"3个基础方案"（数量<6），则注入严谨配置大类（保留已有基础方案）
       const existingIds = new Set((interiorTab.options || []).map(o => String(o.id || '')));
       const layoutOptions = [
-        { id: 'layout-std', name: '客舱布局 · 标准（标配）', description: '3 间客舱 + 1 间船员舱（主人套房+VIP+双床），可容纳 6-8 位客人', priceDelta: 0, sortOrder: 1 },
-        { id: 'layout-4cabin', name: '客舱布局 · 四舱尊享（选配）', description: '4 间独立客舱（主人+VIP+两间双床）+ 1 间船员舱，共容纳 10 人（参考 Pardo E72）', priceDelta: 0, sortOrder: 2 },
-        { id: 'layout-5cabin', name: '客舱布局 · 全宽五舱（长艇专用）', description: '5 间客舱（全船宽主人套房+独立VIP+3间双床），均配独立卫浴（参考 Benetti Oasis 34m）', priceDelta: 0, sortOrder: 3 },
-        { id: 'layout-superyacht', name: '客舱布局 · 超级游艇主人甲板', description: '主人套房迁移主甲板，配私人露台和户外淋浴；下层另设 4 间客舱（参考丽娃 Riva 96 Argo Super）', priceDelta: 0, sortOrder: 4 }
+        { id: 'layout-std', name: '客舱布局 · 标准（标配）', description: '3 间客舱 + 1 间船员舱（主人套房+VIP+双床），可容纳 6-8 位客人', priceDelta: 0, sortOrder: 0 },
+        { id: 'layout-4cabin', name: '客舱布局 · 四舱尊享（选配）', description: '4 间独立客舱（主人+VIP+两间双床）+ 1 间船员舱，共容纳 10 人（参考 Pardo E72）', priceDelta: 38, sortOrder: 2 },
+        { id: 'layout-5cabin', name: '客舱布局 · 全宽五舱（长艇专用）', description: '5 间客舱（全船宽主人套房+独立VIP+3间双床），均配独立卫浴（参考 Benetti Oasis 34m）', priceDelta: 80, sortOrder: 3 },
+        { id: 'layout-superyacht', name: '客舱布局 · 超级游艇主人甲板', description: '主人套房迁移主甲板，配私人露台和户外淋浴；下层另设 4 间客舱（参考丽娃 Riva 96 Argo Super）', priceDelta: 150, sortOrder: 4 }
       ];
       const woodVeneers = [
         { id: 'wood-rovere', name: '木饰面 · Rovere 缎面橡木（标配）', description: '意大利暖色调橡木缎面哑光清漆，标配家具地板饰面（参考 Princess F65 官方）', priceDelta: 0, sortOrder: 10 },
-        { id: 'wood-ash', name: '木饰面 · Ash 缎面白蜡木（选配）', description: '浅色顺纹白蜡木，通透清爽，适合现代北欧风格舱室', priceDelta: 0, sortOrder: 11 },
-        { id: 'wood-silver', name: '木饰面 · Silver Oak 银橡（选配）', description: '浅银灰水洗橡木，淡化木纹对比，与米白皮革完美搭', priceDelta: 0, sortOrder: 12 },
-        { id: 'wood-walnut-matte', name: '木饰面 · Walnut 哑光胡桃木（选配）', description: '深褐条纹胡桃木，搭配铜金金属嵌条与真皮沙发（参考 Pardo E72）', priceDelta: 0, sortOrder: 13 },
-        { id: 'wood-walnut-gloss', name: '木饰面 · Walnut 高光胡桃木（豪华）', description: '钢琴漆高光胡桃木 + 镜面不锈钢镶嵌（参考丽娃 Riva 96\' Argo Super 官方）', priceDelta: 0, sortOrder: 14 }
+        { id: 'wood-ash', name: '木饰面 · Ash 缎面白蜡木（选配）', description: '浅色顺纹白蜡木，通透清爽，适合现代北欧风格舱室（参考 Princess F65）', priceDelta: 8, sortOrder: 11 },
+        { id: 'wood-silver', name: '木饰面 · Silver Oak 银橡（选配）', description: '浅银灰水洗橡木，淡化木纹对比，与米白皮革完美搭配', priceDelta: 12, sortOrder: 12 },
+        { id: 'wood-walnut-matte', name: '木饰面 · Walnut 哑光胡桃木（选配）', description: '深褐条纹胡桃木，搭配铜金金属嵌条与真皮沙发（参考 Pardo E72）', priceDelta: 18, sortOrder: 13 },
+        { id: 'wood-walnut-gloss', name: '木饰面 · Walnut 高光胡桃木（豪华）', description: '钢琴漆高光胡桃木 + 镜面不锈钢镶嵌（参考丽娃 Riva 96\' Argo Super 官方）', priceDelta: 35, sortOrder: 14 }
       ];
       const softLeathers = [
         { id: 'soft-std', name: '软装 · 标准布艺（标配）', description: '防污阻燃航海级布艺（米白/沙色/深蓝 三色可选），含全车窗帘与床品', priceDelta: 0, sortOrder: 20 },
-        { id: 'soft-leather', name: '软装 · 半皮升级（选配）', description: '头枕/扶手/沙发接触面采用意大利真皮（头层牛皮、抗 UV 涂层），其余保持航海级布艺', priceDelta: 0, sortOrder: 21 },
-        { id: 'soft-nappa', name: '软装 · Masterpiece 全 Nappa 真皮（豪华）', description: '全舱家具接触面替换 Masterpiece 级 Nappa 皮革，含专属三角绗缝工艺（参考 Brabus × Sunreef 官方）', priceDelta: 0, sortOrder: 22 }
+        { id: 'soft-leather', name: '软装 · 半皮升级（选配）', description: '头枕/扶手/沙发接触面采用意大利真皮（头层牛皮、抗 UV 涂层），其余保持航海级布艺', priceDelta: 15, sortOrder: 21 },
+        { id: 'soft-nappa', name: '软装 · Masterpiece 全 Nappa 真皮（豪华）', description: '全舱家具接触面替换 Masterpiece 级 Nappa 皮革，含专属三角绗缝工艺（参考 Brabus × Sunreef 官方）', priceDelta: 45, sortOrder: 22 }
       ];
       const galleyBath = [
         { id: 'galley-std', name: '厨卫 · 标准配置（标配）', description: '标准冰箱 + 电磁炉 2 灶头 + 电热水器 40L；每间卫浴配备淋浴、独立台盆', priceDelta: 0, sortOrder: 30 },
-        { id: 'galley-up', name: '厨卫 · 高端升级（选配）', description: 'Sub-Zero 抽屉冰箱 + Miele 电磁灶/烤箱/洗碗机 + Krion 人造石台面 + Grohe 恒温花洒套件', priceDelta: 0, sortOrder: 31 },
-        { id: 'galley-wine', name: '厨卫 · 酒柜冰吧豪华版', description: '主沙龙加配 48 瓶嵌入式恒温酒柜、船尾独立户外冰箱、吧台区制冰机', priceDelta: 0, sortOrder: 32 }
+        { id: 'galley-up', name: '厨卫 · 高端升级（选配）', description: 'Sub-Zero 抽屉冰箱 + Miele 电磁灶/烤箱/洗碗机 + Krion 人造石台面 + Grohe 恒温花洒套件', priceDelta: 25, sortOrder: 31 },
+        { id: 'galley-wine', name: '厨卫 · 酒柜冰吧豪华版', description: '主沙龙加配 48 瓶嵌入式恒温酒柜、船尾独立户外冰箱、吧台区制冰机', priceDelta: 38, sortOrder: 32 }
       ];
       const entertainment = [
         { id: 'av-std', name: '娱乐 · 标准影音（标配）', description: '主沙龙 55" 4K 电视 + 5.1 声道音响系统、客厅区域支持蓝牙/HDMI', priceDelta: 0, sortOrder: 40 },
-        { id: 'av-bw', name: '娱乐 · Bowers & Wilkins Marine 高端音响', description: '全舱 B&W Marine 系列防水高保真音响（12 声道+低音炮），支持 Dolby Atmos（参考 Brabus 官方）', priceDelta: 0, sortOrder: 41 },
-        { id: 'av-ktv', name: '娱乐 · 独立家庭影院/KTV 房', description: '下层甲板独立空间改家庭影院 + KTV 双模式：120"幕、专业卡包箱、点歌系统、氛围灯', priceDelta: 0, sortOrder: 42 },
-        { id: 'av-spa', name: '娱乐 · 阳光甲板 SPA/按摩浴缸', description: '飞桥或阳光甲板加装冲浪按摩浴缸 + 蒸汽淋浴桑拿组合舱（参考 Benetti Oasis 系列）', priceDelta: 0, sortOrder: 43 }
+        { id: 'av-bw', name: '娱乐 · Bowers & Wilkins Marine 高端音响', description: '全舱 B&W Marine 系列防水高保真音响（12 声道+低音炮），支持 Dolby Atmos（参考 Brabus 官方）', priceDelta: 28, sortOrder: 41 },
+        { id: 'av-ktv', name: '娱乐 · 独立家庭影院/KTV 房', description: '下层甲板独立空间改家庭影院 + KTV 双模式：120"幕、专业卡包箱、点歌系统、氛围灯', priceDelta: 35, sortOrder: 42 },
+        { id: 'av-spa', name: '娱乐 · 阳光甲板 SPA/按摩浴缸', description: '飞桥或阳光甲板加装冲浪按摩浴缸 + 蒸汽淋浴桑拿组合舱（参考 Benetti Oasis 系列）', priceDelta: 45, sortOrder: 43 }
       ];
       const toAdd = [];
       [].concat(layoutOptions, woodVeneers, softLeathers, galleyBath, entertainment).forEach(o => { if (!existingIds.has(String(o.id))) toAdd.push(o); });
       if (toAdd.length) interiorTab.options = [].concat(interiorTab.options || [], toAdd).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-      interiorTab.description = '客舱布局 × 木饰面 × 软装皮革 × 厨卫升级 × 娱乐设施（参考 Princess / Pardo / Ferretti 官方选配）';
+      interiorTab.description = '第一项为标配客舱布局，不可取消；其余为可选升级，可多选叠加。参考 Princess / Pardo / Ferretti / Benetti / Riva 官方选配'
     }
   }
 
@@ -87,7 +87,7 @@ function tabs() {
       let powerOptions = [];
       if (isElectric) {
         powerOptions = [
-          { id: 'pow-elec-std', name: '纯电推进系统 · 标准续航（标配）', description: 'CATL 磷酸铁锂电池组 200kWh + 双吊舱推进电机，6kn 续航 8h，CCS2 直流快充 2h 充满，含 BMS 电池管理与船载充电机', priceDelta: 0, sortOrder: 0 },
+          { id: 'pow-elec-std', name: '纯电推进系统 · 标准续航（标配）', description: '电动舷外挂机推进，参考 PDF 实际主机功率参数', priceDelta: 0, sortOrder: 0 },
           { id: 'pow-elec-battery-up', name: '电池扩容 · 长续航版', description: '电池容量由 200kWh 扩容至 400kWh，8kn 续航延长至 12h，兼容岸电与光伏补能', priceDelta: 18, sortOrder: 1 },
           { id: 'pow-elec-range-ext', name: '柴油增程器（80kW）', description: '加装 80kW 静音柴油增程机组（欧 V 排放），纯电 + 增程混合模式续航可达 300 海里', priceDelta: 12, sortOrder: 2 },
           { id: 'pow-elec-solar', name: '顶篷光伏补能系统', description: '顶篷铺设 2.5kW 柔性单晶光伏板 + MPPT 控制器，日间平均补能 8-12kWh，零碳巡航续航 +15%', priceDelta: 6, sortOrder: 3 },
@@ -95,7 +95,7 @@ function tabs() {
         ];
       } else if (isPatrol) {
         powerOptions = [
-          { id: 'pow-diesel-std', name: '双机双桨 · 潍柴WD10主推进（标配）', description: '两台潍柴 WD10 系列高速柴油机（2×280kW）+ 杭州前进齿轮箱 + 定距螺旋桨，艉机型布置，最高航速 28 节', priceDelta: 0, sortOrder: 0 },
+          { id: 'pow-diesel-std', name: '双机双桨 · 潍柴WD10主推进（标配）', description: '舷外挂机推进，参考 PDF 实际主机功率与航区参数', priceDelta: 0, sortOrder: 0 },
           { id: 'pow-man-v8', name: 'MAN V8 高功率主机升级', description: '升级为两台 MAN V8-1200 船用柴油机（2×882kW/1200HP）+ ZF 船用齿轮箱，极速提升至 42 节', priceDelta: 45, sortOrder: 1 },
           { id: 'pow-waterjet', name: '喷水推进系统（双 MJP）', description: '换装双 MJP 喷水推进器 + MAN 12V 主机，浅水区可过，零至 30 节加速 < 40s，适合执法高速拦截', priceDelta: 38, sortOrder: 2 },
           { id: 'pow-hybrid', name: '柴电混动 · 巡逻静音版', description: '低速执法/靠近用纯电静音模式（≤6kn，续航 ≥4h），高速切回柴油机驱动，综合节油 25%', priceDelta: 32, sortOrder: 3 },
@@ -104,7 +104,7 @@ function tabs() {
         ];
       } else if (isPassenger) {
         powerOptions = [
-          { id: 'pow-passenger-std', name: '双机双桨 · 潍柴WP12主推进（标配）', description: '两台潍柴 WP12C400-18 船用柴油机（2×295kW/400HP @1800rpm）+ 前进 120C 齿轮箱 + 定距螺旋桨，经济航速 12kn，载客 108 人', priceDelta: 0, sortOrder: 0 },
+          { id: 'pow-passenger-std', name: '双机双桨 · 潍柴WP12主推进（标配）', description: '电动舷外挂机推进，参考 PDF 实际主机功率与乘员定额参数', priceDelta: 0, sortOrder: 0 },
           { id: 'pow-passenger-4eng', name: '四机四桨 · 大运量高速版', description: '4 台高速柴油机 + 四桨双舵，额定载客 150 人，满载极速 18 节，满足观光高峰运力需求', priceDelta: 28, sortOrder: 1 },
           { id: 'pow-passenger-hybrid', name: '柴电混动 · 环保景区版', description: '近岸/码头纯电零排放模式（≥2kn/5h），开阔水域柴电混合，满足 A 级景区排放与降噪要求', priceDelta: 35, sortOrder: 2 },
           { id: 'pow-passenger-shaft', name: '对转桨 · 高效节能系统', description: '前桨后置舵叶 + 对转螺旋桨组合，综合续航提升 15%，同等载荷油耗降低约 12%', priceDelta: 10, sortOrder: 3 },
@@ -174,6 +174,9 @@ function initializeSelections() {
   tabs().forEach(tab => {
     if (isPowerTab(tab)) {
       const first = powerFirstOption(tab);
+      selections[tab.id] = first ? [first.id] : [];
+    } else if (isInteriorTab(tab)) {
+      const first = interiorFirstOption(tab);
       selections[tab.id] = first ? [first.id] : [];
     } else if (isSmartTab(tab)) {
       selections[tab.id] = smartDefaultIds(tab).slice();
@@ -266,13 +269,34 @@ async function saveTwinConfig() {
 }
 
 function overviewHtml(tab) {
-  const editBtn = isAdminMode ? `<button class="section-edit-btn" onclick="openSectionEditor('${escapeJs(tab.id)}')">编辑</button>` : '';
+  const editBtn = isAdminMode ? `<button class="section-edit-btn" onclick="openSectionEditor(\'${escapeJs(tab.id)}\')">编辑</button>` : '';
   const sceneImageHtml = boatData.sceneImage
-    ? `<div class="config-scene-image-wrap" title="双击查看全图" ondblclick="event.stopPropagation(); previewImage('${escapeJs(boatData.sceneImage)}')">
-         <img class="config-scene-image" src="${escapeAttr(boatData.sceneImage)}" alt="">
-       </div>`
+    ? `<div class="config-scene-image-wrap" title="双击查看全图" ondblclick="event.stopPropagation(); previewImage(\'${escapeJs(boatData.sceneImage)}\')"><img class="config-scene-image" src="${escapeAttr(boatData.sceneImage)}" alt=""></div>`
     : '';
-  return `<div class="config-section"><h3 class="config-section-title">${escapeHtml(boatData.name)}</h3>${sceneImageHtml}<p class="config-section-desc">${escapeHtml(boatData.description || '')}</p><div class="config-specs-grid"><div class="config-spec-item"><span class="config-spec-label">船长</span><span class="config-spec-value">${escapeHtml(boatData.length || '—')}</span></div><div class="config-spec-item"><span class="config-spec-label">载客/载荷</span><span class="config-spec-value">${escapeHtml(boatData.capacity || '—')}</span></div><div class="config-spec-item"><span class="config-spec-label">极速</span><span class="config-spec-value">${escapeHtml(boatData.maxSpeed || '—')}</span></div><div class="config-spec-item"><span class="config-spec-label">模拟基础价</span><span class="config-spec-value">${escapeHtml(formatYuan(boatData.basePriceYuan))}</span><small>${escapeHtml(boatData.pricingNote || '')}</small></div></div><div class="config-features">${(boatData.features || []).map(item => `<span class="config-feature-tag">${escapeHtml(item)}</span>`).join('')}</div>${editBtn}</div>`;
+  const features = boatData.features || [];
+  const specPairs = [];
+  const tagFeatures = [];
+  features.forEach(item => {
+    const m = String(item).match(/^(.+?):\s*(.+)$/);
+    if (m) specPairs.push({ label: m[1], value: m[2] }); else tagFeatures.push(item);
+  });
+  const specItemsHtml = specPairs.map(s => `<div class="config-spec-item"><span class="config-spec-label">${escapeHtml(s.label)}</span><span class="config-spec-value">${escapeHtml(s.value)}</span></div>`).join('');
+  const tagFeaturesHtml = tagFeatures.length ? `<div class="config-features">${tagFeatures.map(item => `<span class="config-feature-tag">${escapeHtml(item)}</span>`).join('')}</div>` : '';
+  return `<div class="config-section"><h3 class="config-section-title">${escapeHtml(boatData.name)}</h3>${sceneImageHtml}<p class="config-section-desc">${escapeHtml(boatData.description || '')}</p><div class="config-specs-grid">${specItemsHtml}<div class="config-spec-item"><span class="config-spec-label">模拟基础价</span><span class="config-spec-value">${escapeHtml(formatYuan(boatData.basePriceYuan))}</span><small>${escapeHtml(boatData.pricingNote || '')}</small></div></div>${tagFeaturesHtml}${editBtn}</div>`;
+}
+
+
+function isInteriorTab(tab) {
+  return tab && (tab.id === 'interior' || /内饰/.test(tab.label || ''));
+}
+function interiorFirstOption(tab) {
+  const opts = (tab && tab.options) || [];
+  if (!opts.length) return null;
+  return opts.slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))[0];
+}
+function interiorSelectedIds(tab) {
+  const sel = selections[tab.id];
+  return Array.isArray(sel) ? sel : [];
 }
 
 function isPowerTab(tab) {
@@ -303,10 +327,12 @@ function optionHtml(tab, option) {
   const isAcc = tab.kind === 'accessory';
   const isPower = isPowerTab(tab);
   const isSmart = isSmartTab(tab);
+  const isInterior = isInteriorTab(tab);
   const m = (isAcc && !isSmart && selections[tab.id] && typeof selections[tab.id] === 'object') ? selections[tab.id] : {};
   let selected;
   if (isPower) selected = powerSelectedIds(tab).includes(option.id);
   else if (isSmart) selected = smartSelectedIds(tab).includes(option.id);
+  else if (isInterior) selected = interiorSelectedIds(tab).includes(option.id);
   else if (isAcc) selected = m[smartCategoryOf(option)] === option.id;
   else selected = selections[tab.id] === option.id;
   const priceDeltaYuan = optionPrice(option);
@@ -322,13 +348,18 @@ function optionHtml(tab, option) {
     const isFirst = first && first.id === option.id;
     if (isFirst) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
     else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
+  } else if (isInterior) {
+    const first = interiorFirstOption(tab);
+    const isFirst = first && first.id === option.id;
+    if (isFirst) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
+    else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
   } else if (isSmart) {
     const defIds = smartDefaultIds(tab);
     const isDefault = defIds.includes(option.id);
     if (isDefault) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
     else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
   } else if (selected && isAcc) checkBadge = '<span class="accessory-check">✓</span>';
-  return `<button class="config-option-card ${selected ? 'selected' : ''} ${isPower ? 'power-option' : ''} ${isSmart ? 'smart-option' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${checkBadge}${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
+  return `<button class="config-option-card ${selected ? 'selected' : ''} ${isPower ? 'power-option' : ''} ${isInterior ? 'interior-option' : ''} ${isSmart ? 'smart-option' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${checkBadge}${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
 }
 
 function smartCategoryOf(option) {
@@ -347,6 +378,22 @@ async function selectOption(tabId, optionId) {
     selections[tabId] = ids;
     renderTab(); updatePrice();
     autoSyncTwinConfig();
+    return;
+  }
+  if (isInteriorTab(tab)) {
+    const first = interiorFirstOption(tab);
+    if (first && first.id === option.id) { renderTab(); updatePrice(); return; }
+    const ids = interiorSelectedIds(tab).slice();
+    const idx = ids.indexOf(option.id);
+    if (idx >= 0) ids.splice(idx, 1); else ids.push(option.id);
+    if (first && !ids.includes(first.id)) ids.unshift(first.id);
+    selections[tabId] = ids;
+    renderTab(); updatePrice();
+    // 如果选中的选项有 modelVariantId，切换 3D 场景
+    if (option.modelVariantId && option.modelVariantId !== currentVariantId) {
+      currentVariantId = option.modelVariantId;
+      loadCurrentModel(tab.cameraMode, option.entryView);
+    }
     return;
   }
   if (isSmartTab(tab)) {
@@ -415,6 +462,9 @@ function selectedOption(tab) {
   if (isSmartTab(tab) && Array.isArray(sel)) {
     return (tab.options || []).find(o => sel.includes(o.id)) || (tab.options || [])[0] || null;
   }
+  if (isInteriorTab(tab) && Array.isArray(sel)) {
+    return (tab.options || []).find(o => sel.includes(o.id)) || interiorFirstOption(tab) || (tab.options || [])[0] || null;
+  }
   if (isPowerTab(tab) && Array.isArray(sel)) {
     return (tab.options || []).find(o => sel.includes(o.id)) || powerFirstOption(tab) || (tab.options || [])[0] || null;
   }
@@ -424,6 +474,10 @@ function selectedOption(tab) {
   return (tab.options || []).find(item => item.id === sel) || (tab.options || [])[0] || null;
 }
 function selectedAccessoryOptions(tab) {
+  if (isInteriorTab(tab)) {
+    const ids = interiorSelectedIds(tab);
+    return (tab.options || []).filter(o => ids.includes(o.id));
+  }
   if (isPowerTab(tab)) {
     const ids = powerSelectedIds(tab);
     return (tab.options || []).filter(o => ids.includes(o.id));
@@ -466,7 +520,7 @@ async function applyConfiguredAccessories() { const assets = tabs().filter(item 
 
 function optionPrice(option) { return Math.max(0, Math.round(Number(option && option.priceDeltaYuan) || (Number(option && option.priceDelta) || 0) * 10000)); }
 function formatYuan(value, zeroText = '¥0') { const yuan = Math.max(0, Math.round(Number(value) || 0)); if (!yuan) return zeroText; if (yuan >= 10000) { const wan = yuan / 10000; return `¥${wan.toLocaleString('zh-CN', { maximumFractionDigits: 1 })}万`; } return `¥${yuan.toLocaleString('zh-CN')}`; }
-function pricingTotals() { const basePriceYuan = Math.max(0, Math.round(Number(boatData.basePriceYuan) || 0)); const optionPriceYuan = tabs().reduce((sum, tab) => { const opts = (tab.kind === 'accessory' || isPowerTab(tab)) ? selectedAccessoryOptions(tab) : (selectedOption(tab) ? [selectedOption(tab)] : []); return sum + opts.reduce((s, o) => s + optionPrice(o), 0); }, 0); return { basePriceYuan, optionPriceYuan, totalPriceYuan: basePriceYuan + optionPriceYuan }; }
+function pricingTotals() { const basePriceYuan = Math.max(0, Math.round(Number(boatData.basePriceYuan) || 0)); const optionPriceYuan = tabs().reduce((sum, tab) => { const opts = (tab.kind === 'accessory' || isPowerTab(tab) || isInteriorTab(tab)) ? selectedAccessoryOptions(tab) : (selectedOption(tab) ? [selectedOption(tab)] : []); return sum + opts.reduce((s, o) => s + optionPrice(o), 0); }, 0); return { basePriceYuan, optionPriceYuan, totalPriceYuan: basePriceYuan + optionPriceYuan }; }
 function updatePrice() { const totals = pricingTotals(); const base = document.getElementById('basePrice'); const extra = document.getElementById('extraPrice'); const total = document.getElementById('totalPrice'); if (base) base.textContent = formatYuan(totals.basePriceYuan, '待厂家确认'); if (extra) extra.textContent = formatYuan(totals.optionPriceYuan); if (total) total.textContent = totals.basePriceYuan ? formatYuan(totals.totalPriceYuan) : '待厂家确认'; }
 
 function submitConfig() {
