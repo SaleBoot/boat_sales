@@ -134,34 +134,36 @@ function tabs() {
   if (!isUnmanned) {
     let smartTab = list.find(t => t.id === 'smart' || (t.label && /^智能/.test(t.label) && t.id !== 'smart-system'));
     const smartExpanded = [
+      // —— 前4项为默认标配（不可取消）——
       { id: 'sm-nav-std', name: '导航安全 · 标配（Garmin 基础版）', description: 'Garmin GPSMAP 8410 10寸海图机 + AIS 收发器 + 磁罗经 + 电子罗盘 + 船位监控', priceDelta: 0, sortOrder: 0 },
-      { id: 'sm-nav-raymarine', name: '导航安全 · Raymarine 专业版', description: 'Raymarine Axiom+ XL 22寸大屏 + Quantum 多普勒雷达 + FLIR M364C 热像仪夜视（参考 Pardo E72 22寸驾驶台大屏）', priceDelta: 0, sortOrder: 1 },
-      { id: 'sm-nav-master', name: '导航安全 · 旗舰主控版', description: '双 24寸 Garmin 8624 海图 + Furuno 固态雷达 + 北斗 GPS 双定位冗余 + 自动舵 AP400 + NAVTEX 航行警告接收机', priceDelta: 0, sortOrder: 2 },
-      { id: 'sm-safety-std', name: '安全设备 · 标配 SOLAS 标准', description: '救生筏/救生圈/灭火器/烟雾报警器 + 标准 EPIRB 应急示位标（符合 CCS 检验要求）', priceDelta: 0, sortOrder: 3 },
-      { id: 'sm-safety-plus', name: '安全设备 · 远洋豪华增强', description: '加配：4 台外置环绕摄像头船坞视频、AIS-SART 搜救应答器、船载卫星电话 Iridium GO! exec、自动灭火器系统', priceDelta: 0, sortOrder: 4 },
-      { id: 'sm-safety-maneuver', name: '安全设备 · 智能靠泊辅助', description: 'Dockmate 遥控靠泊系统 + 船首/船尾/侧推三向遥控 + 6 路 360° AI 距离雷达，距离预警 30cm 精度', priceDelta: 0, sortOrder: 5 },
-      { id: 'sm-net-std', name: '通讯联网 · 船载 WiFi 标配', description: '双频段 4G LTE 船载路由器（海陆自动切换）+ 全舱 Wi-Fi 覆盖，支持船员手机 App', priceDelta: 0, sortOrder: 6 },
-      { id: 'sm-net-vsat', name: '通讯联网 · VSAT 卫星宽带（远海）', description: 'KVH mini-VSAT 24cm 卫星宽带系统，全球海域高带宽联网，满足视频会议/直播/远程监控', priceDelta: 0, sortOrder: 7 },
-      { id: 'sm-av-bw', name: '影音娱乐 · B&W Marine 定制音响', description: 'Bowers & Wilkins Marine 系列防水 16 音箱 + 4 炮 + 22" 折叠电视（参考 Brabus/Sunreef 联名款）', priceDelta: 0, sortOrder: 8 },
-      { id: 'sm-av-synergy', name: '影音娱乐 · 全屋中控 C-Zone + 定制 KTV', description: 'C-Zone 数字船电中控统一控灯/窗帘/空调；独立 KTV 区含专业卡包箱、6T 点歌库、氛围灯联动', priceDelta: 0, sortOrder: 9 },
-      { id: 'sm-ai-std', name: '智能航行 · 标准智能包', description: 'C-Zone 船况监测网关（油/电/水/舱底水位传感器 20 点 + 手机告警）、电子海图 + 航线自动规划', priceDelta: 0, sortOrder: 10 },
-      { id: 'sm-ai-plus', name: '智能航行 · 增强智能包', description: '加配：AI 视觉感知 + 雷达 3D 目标识别（自动避障 3nmile 距离）、夜航识别、远程监控 App（实时视频/定位/告警）', priceDelta: 0, sortOrder: 11 },
-      { id: 'sm-ai-pro', name: '智能航行 · 旗舰运维包', description: '船联网远程运维平台 + AI 故障诊断（MTU/Volvo/潍柴原厂接入）、油耗曲线预测、AI 航线规划、自动靠泊辅助系统', priceDelta: 0, sortOrder: 12 },
-      { id: 'sm-ai-autopilot', name: '智能航行 · 全自动近海无人值守版', description: '高级 AI 自动舵 + 近岸水域环境建模 + 锚泊自动警戒，近海航线可做到船长远程监督下的全自动航行', priceDelta: 0, sortOrder: 13 }
+      { id: 'sm-safety-std', name: '安全设备 · 标配 SOLAS 标准', description: '救生筏/救生圈/灭火器/烟雾报警器 + 标准 EPIRB 应急示位标（符合 CCS 检验要求）', priceDelta: 0, sortOrder: 1 },
+      { id: 'sm-net-std', name: '通讯联网 · 船载 WiFi 标配', description: '双频段 4G LTE 船载路由器（海陆自动切换）+ 全舱 Wi-Fi 覆盖，支持船员手机 App', priceDelta: 0, sortOrder: 2 },
+      { id: 'sm-ai-std', name: '智能航行 · 标准智能包', description: 'C-Zone 船况监测网关（油/电/水/舱底水位传感器 20 点 + 手机告警）、电子海图 + 航线自动规划', priceDelta: 0, sortOrder: 3 },
+      // —— 以下为可选升级/增配（可多选叠加，价格参考市场实际报价）——
+      { id: 'sm-nav-raymarine', name: '导航安全 · Raymarine 专业版', description: 'Raymarine Axiom+ XL 22寸大屏 + Quantum 多普勒雷达 + FLIR M364C 热像仪夜视（参考 Pardo E72 22寸驾驶台大屏）', priceDelta: 8, sortOrder: 4 },
+      { id: 'sm-nav-master', name: '导航安全 · 旗舰主控版', description: '双 24寸 Garmin 8624 海图 + Furuno 固态雷达 + 北斗 GPS 双定位冗余 + 自动舵 AP400 + NAVTEX 航行警告接收机', priceDelta: 18, sortOrder: 5 },
+      { id: 'sm-safety-plus', name: '安全设备 · 远洋豪华增强', description: '加配：4 台外置环绕摄像头船坞视频、AIS-SART 搜救应答器、船载卫星电话 Iridium GO! exec、自动灭火器系统', priceDelta: 6, sortOrder: 6 },
+      { id: 'sm-safety-maneuver', name: '安全设备 · 智能靠泊辅助', description: 'Dockmate 遥控靠泊系统 + 船首/船尾/侧推三向遥控 + 6 路 360° AI 距离雷达，距离预警 30cm 精度', priceDelta: 12, sortOrder: 7 },
+      { id: 'sm-net-vsat', name: '通讯联网 · VSAT 卫星宽带（远海）', description: 'KVH mini-VSAT 24cm 卫星宽带系统，全球海域高带宽联网，满足视频会议/直播/远程监控', priceDelta: 25, sortOrder: 8 },
+      { id: 'sm-av-bw', name: '影音娱乐 · B&W Marine 定制音响', description: 'Bowers & Wilkins Marine 系列防水 16 音箱 + 4 炮 + 22寸折叠电视（参考 Brabus/Sunreef 联名款）', priceDelta: 15, sortOrder: 9 },
+      { id: 'sm-av-synergy', name: '影音娱乐 · 全屋中控 C-Zone + 定制 KTV', description: 'C-Zone 数字船电中控统一控灯/窗帘/空调；独立 KTV 区含专业卡包箱、6T 点歌库、氛围灯联动', priceDelta: 18, sortOrder: 10 },
+      { id: 'sm-ai-plus', name: '智能航行 · 增强智能包', description: '加配：AI 视觉感知 + 雷达 3D 目标识别（自动避障 3nmile 距离）、夜航识别、远程监控 App（实时视频/定位/告警）', priceDelta: 12, sortOrder: 11 },
+      { id: 'sm-ai-pro', name: '智能航行 · 旗舰运维包', description: '船联网远程运维平台 + AI 故障诊断（MTU/Volvo/潍柴原厂接入）、油耗曲线预测、AI 航线规划、自动靠泊辅助系统', priceDelta: 28, sortOrder: 12 },
+      { id: 'sm-ai-autopilot', name: '智能航行 · 全自动近海无人值守版', description: '高级 AI 自动舵 + 近岸水域环境建模 + 锚泊自动警戒，近海航线可做到船长远程监督下的全自动航行', priceDelta: 45, sortOrder: 13 }
     ];
     if (smartTab) {
-      const oldIds = ['smart-std', 'smart-plus', 'smart-pro'];
+      const oldIds = ['smart-std', 'smart-plus', 'smart-pro', 'sm-nav-std', 'sm-nav-raymarine', 'sm-nav-master', 'sm-safety-std', 'sm-safety-plus', 'sm-safety-maneuver', 'sm-net-std', 'sm-net-vsat', 'sm-av-bw', 'sm-av-synergy', 'sm-ai-std', 'sm-ai-plus', 'sm-ai-pro', 'sm-ai-autopilot'];
       const hasOld = (smartTab.options || []).some(o => oldIds.includes(String(o.id)));
       if (hasOld || (smartTab.options || []).length <= 4) {
         smartTab.options = smartExpanded;
       }
-      smartTab.description = '三大类：导航安全 × 通讯娱乐 × 智能航行运维（Garmin/Raymarine/B&W/C-Zone 官方品牌）';
+      smartTab.description = '前4项为默认标配（导航/安全/通讯/智能航行基础包，不可取消）；其余为可选升级与增配，可多选叠加，价格参考 Garmin / Raymarine / Furuno / KVH / B&W / C-Zone 官方市场报价。';
     } else {
       const powerTabForSort = list.find(t => t.id === 'power' || /动力/.test(t.label || ''));
       list.push({
         id: 'smart', label: '智能', kind: 'accessory', cameraMode: 'exterior',
         sortOrder: powerTabForSort ? (powerTabForSort.sortOrder || 0) + 1 : 4,
-        description: '三大类：导航安全 × 通讯娱乐 × 智能航行运维（Garmin/Raymarine/B&W/C-Zone 官方品牌）',
+        description: '前4项为默认标配（导航/安全/通讯/智能航行基础包，不可取消）；其余为可选升级与增配，可多选叠加，价格参考 Garmin / Raymarine / Furuno / KVH / B&W / C-Zone 官方市场报价。',
         options: smartExpanded
       });
     }
@@ -173,6 +175,8 @@ function initializeSelections() {
     if (isPowerTab(tab)) {
       const first = powerFirstOption(tab);
       selections[tab.id] = first ? [first.id] : [];
+    } else if (isSmartTab(tab)) {
+      selections[tab.id] = smartDefaultIds(tab).slice();
     } else if (tab.kind === 'accessory') {
       const sm = (boatData.twinConfig && boatData.twinConfig.smart) || {};
       selections[tab.id] = Object.assign({}, sm);
@@ -283,12 +287,26 @@ function powerSelectedIds(tab) {
   const sel = selections[tab.id];
   return Array.isArray(sel) ? sel : [];
 }
+function isSmartTab(tab) {
+  return tab && (tab.id === 'smart' || /^智能/.test(tab.label || ''));
+}
+function smartDefaultIds(tab) {
+  // 前4个（按 sortOrder 升序）为默认标配，不可取消
+  const opts = ((tab && tab.options) || []).slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  return opts.slice(0, 4).map(o => o.id);
+}
+function smartSelectedIds(tab) {
+  const sel = selections[tab.id];
+  return Array.isArray(sel) ? sel : [];
+}
 function optionHtml(tab, option) {
   const isAcc = tab.kind === 'accessory';
   const isPower = isPowerTab(tab);
-  const m = (isAcc && selections[tab.id] && typeof selections[tab.id] === 'object') ? selections[tab.id] : {};
+  const isSmart = isSmartTab(tab);
+  const m = (isAcc && !isSmart && selections[tab.id] && typeof selections[tab.id] === 'object') ? selections[tab.id] : {};
   let selected;
   if (isPower) selected = powerSelectedIds(tab).includes(option.id);
+  else if (isSmart) selected = smartSelectedIds(tab).includes(option.id);
   else if (isAcc) selected = m[smartCategoryOf(option)] === option.id;
   else selected = selections[tab.id] === option.id;
   const priceDeltaYuan = optionPrice(option);
@@ -304,8 +322,13 @@ function optionHtml(tab, option) {
     const isFirst = first && first.id === option.id;
     if (isFirst) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
     else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
+  } else if (isSmart) {
+    const defIds = smartDefaultIds(tab);
+    const isDefault = defIds.includes(option.id);
+    if (isDefault) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
+    else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
   } else if (selected && isAcc) checkBadge = '<span class="accessory-check">✓</span>';
-  return `<button class="config-option-card ${selected ? 'selected' : ''} ${isPower ? 'power-option' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${checkBadge}${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
+  return `<button class="config-option-card ${selected ? 'selected' : ''} ${isPower ? 'power-option' : ''} ${isSmart ? 'smart-option' : ''}" onclick="selectOption('${escapeJs(tab.id)}','${escapeJs(option.id)}')">${checkBadge}${imageHtml}${tab.kind === 'color' && option.color ? `<span class="color-swatch" style="background:${escapeAttr(option.color)}"></span>` : ''}<span class="config-option-name">${escapeHtml(option.name)}</span><span class="config-option-detail">${escapeHtml(option.description || '')}</span>${priceDeltaYuan > 0 ? `<span class="config-option-tag tag-price">+${escapeHtml(formatYuan(priceDeltaYuan))}</span>` : ''}</button>`;
 }
 
 function smartCategoryOf(option) {
@@ -323,6 +346,20 @@ async function selectOption(tabId, optionId) {
     if (first && !ids.includes(first.id)) ids.unshift(first.id);
     selections[tabId] = ids;
     renderTab(); updatePrice();
+    autoSyncTwinConfig();
+    return;
+  }
+  if (isSmartTab(tab)) {
+    const defIds = smartDefaultIds(tab);
+    if (defIds.includes(optionId)) { renderTab(); updatePrice(); autoSyncTwinConfig(); return; }
+    const ids = smartSelectedIds(tab).slice();
+    const idx = ids.indexOf(optionId);
+    if (idx >= 0) ids.splice(idx, 1); else ids.push(optionId);
+    // 确保默认4项始终在选中列表中
+    defIds.forEach(did => { if (!ids.includes(did)) ids.unshift(did); });
+    selections[tabId] = ids;
+    renderTab(); updatePrice();
+    if (scene3d) await applyConfiguredAccessories();
     autoSyncTwinConfig();
     return;
   }
@@ -350,9 +387,16 @@ async function selectOption(tabId, optionId) {
 // 把“智能”板块的多选（每类一个）自动同步到该船 twin_config（无需点击保存）
 function autoSyncTwinConfig(extra) {
   if (!isAdminMode || !boatData || !boatData.id) return;
-  const m = (selections['smart'] && typeof selections['smart'] === 'object') ? selections['smart'] : {};
-  const smart = {};
-  Object.keys(m).forEach(cat => { if (m[cat]) smart[cat] = m[cat]; });
+  const smartTab = tabs().find(t => isSmartTab(t));
+  let smart = {};
+  if (smartTab) {
+    const ids = smartSelectedIds(smartTab);
+    const opts = (smartTab.options || []).filter(o => ids.includes(o.id));
+    smart = opts.map(o => ({ id: o.id, name: o.name, description: o.description || '' }));
+  } else {
+    const m = (selections['smart'] && typeof selections['smart'] === 'object') ? selections['smart'] : {};
+    Object.keys(m).forEach(cat => { if (m[cat]) smart[cat] = m[cat]; });
+  }
   const sys = (boatData.twinConfig && Array.isArray(boatData.twinConfig.systems)) ? boatData.twinConfig.systems : ['fire', 'elec', 'nav', 'cam'];
   let power = (extra && extra.power) || (boatData.twinConfig && boatData.twinConfig.power) || {};
   const powerTab = tabs().find(t => isPowerTab(t));
@@ -368,6 +412,9 @@ function autoSyncTwinConfig(extra) {
 
 function selectedOption(tab) {
   const sel = selections[tab.id];
+  if (isSmartTab(tab) && Array.isArray(sel)) {
+    return (tab.options || []).find(o => sel.includes(o.id)) || (tab.options || [])[0] || null;
+  }
   if (isPowerTab(tab) && Array.isArray(sel)) {
     return (tab.options || []).find(o => sel.includes(o.id)) || powerFirstOption(tab) || (tab.options || [])[0] || null;
   }
@@ -379,6 +426,10 @@ function selectedOption(tab) {
 function selectedAccessoryOptions(tab) {
   if (isPowerTab(tab)) {
     const ids = powerSelectedIds(tab);
+    return (tab.options || []).filter(o => ids.includes(o.id));
+  }
+  if (isSmartTab(tab)) {
+    const ids = smartSelectedIds(tab);
     return (tab.options || []).filter(o => ids.includes(o.id));
   }
   if (tab.kind !== 'accessory') return selectedOption(tab) ? [selectedOption(tab)] : [];
@@ -452,7 +503,7 @@ function bindCustomerOrderDialog() {
 
 async function submitCustomerOrder(event, closeDialog) {
   event.preventDefault();
-  const selectedValues = {}; tabs().forEach(tab => { if (isPowerTab(tab)) { const ids = powerSelectedIds(tab); selectedValues[tab.id] = ids.map(id => ({ optionId: id })); } else if (tab.kind === 'accessory') { const sm = selections[tab.id]; if (sm && typeof sm === 'object') selectedValues[tab.id] = Object.keys(sm).map(cat => ({ category: cat, optionId: sm[cat] })); } else { const option = selectedOption(tab); if (option) selectedValues[tab.id] = { optionId: option.id }; } });
+  const selectedValues = {}; tabs().forEach(tab => { if (isPowerTab(tab)) { const ids = powerSelectedIds(tab); selectedValues[tab.id] = ids.map(id => ({ optionId: id })); } else if (isSmartTab(tab)) { const ids = smartSelectedIds(tab); selectedValues[tab.id] = ids.map(id => ({ optionId: id })); } else if (tab.kind === 'accessory') { const sm = selections[tab.id]; if (sm && typeof sm === 'object') selectedValues[tab.id] = Object.keys(sm).map(cat => ({ category: cat, optionId: sm[cat] })); } else { const option = selectedOption(tab); if (option) selectedValues[tab.id] = { optionId: option.id }; } });
   const form = event.currentTarget; const button = document.getElementById('confirmCustomerOrder'); const formData = new FormData(form);
   button.disabled = true; button.textContent = '提交中…';
   try {

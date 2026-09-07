@@ -372,7 +372,14 @@ function normalizeTwinConfig(value) {
   const systems = Array.isArray(raw.systems)
     ? raw.systems.filter(Boolean).map(String)
     : DEFAULT_TWIN_SYSTEMS.slice();
-  const smart = (raw.smart && typeof raw.smart === 'object') ? raw.smart : {};
+  let smart = {};
+  if (Array.isArray(raw.smart)) {
+    smart = raw.smart.filter(s => s && typeof s === 'object').map(s => ({
+      id: String(s.id || ''), name: String(s.name || ''), description: String(s.description || '')
+    }));
+  } else if (raw.smart && typeof raw.smart === 'object') {
+    smart = raw.smart;
+  }
   let power = {};
   if (Array.isArray(raw.power)) {
     power = raw.power.filter(p => p && typeof p === 'object').map(p => ({

@@ -2998,12 +2998,15 @@ body.compare-active .top-nav { z-index: 1100; }
 }
 
 /* ===== 动力板块多选样式 ===== */
-.config-option-card.power-option {
+.config-option-card.power-option,
+.config-option-card.smart-option {
   text-align: left;
   align-items: stretch;
 }
 .config-option-card.power-option .config-option-name,
-.config-option-card.power-option .config-option-detail {
+.config-option-card.smart-option .config-option-name,
+.config-option-card.power-option .config-option-detail,
+.config-option-card.smart-option .config-option-detail {
   text-align: left;
   width: 100%;
 }
@@ -3023,13 +3026,16 @@ body.compare-active .top-nav { z-index: 1100; }
   font-size: 15px; font-weight: 700; z-index: 2;
   background: var(--bg-card); opacity: 0.7;
 }
-.config-option-card.power-option:not(.selected) {
+.config-option-card.power-option:not(.selected),
+.config-option-card.smart-option:not(.selected) {
   opacity: 0.88;
 }
-.config-option-card.power-option.selected {
+.config-option-card.power-option.selected,
+.config-option-card.smart-option.selected {
   box-shadow: 0 0 0 2px var(--accent), 0 8px 24px rgba(0, 0, 0, 0.1);
 }
-.config-option-card.power-option:hover {
+.config-option-card.power-option:hover,
+.config-option-card.smart-option:hover {
   opacity: 1;
 }
 
