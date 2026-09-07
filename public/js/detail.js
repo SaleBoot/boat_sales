@@ -176,8 +176,9 @@ function initializeSelections() {
       const first = powerFirstOption(tab);
       selections[tab.id] = first ? [first.id] : [];
     } else if (isInteriorTab(tab)) {
-      const first = interiorFirstOption(tab);
-      selections[tab.id] = first ? [first.id] : [];
+      // 所有 priceDelta=0 的标配选项默认选中
+      const stdOpts = (tab.options || []).filter(o => (o.priceDelta || 0) === 0);
+      selections[tab.id] = stdOpts.length ? stdOpts.map(o => o.id) : (interiorFirstOption(tab) ? [interiorFirstOption(tab).id] : []);
     } else if (isSmartTab(tab)) {
       selections[tab.id] = smartDefaultIds(tab).slice();
     } else if (tab.kind === 'accessory') {
@@ -226,6 +227,18 @@ function renderTab() {
   if (tab.kind === 'overview') { container.innerHTML = overviewHtml(tab); return; }
   const options = Array.isArray(tab.options) ? tab.options : [];
   const editBtn = isAdminMode ? `<button class="section-edit-btn" onclick="openSectionEditor('${escapeJs(tab.id)}')">编辑</button>` : '';
+  // 内饰板块按类别分组渲染
+  if (isInteriorTab(tab) && options.length) {
+    const groups = {}; const order = [];
+    options.forEach(o => {
+      const cat = String(o.name || '').split('·')[0].trim() || '内饰';
+      if (!groups[cat]) { groups[cat] = []; order.push(cat); }
+      groups[cat].push(o);
+    });
+    const groupsHtml = order.map(cat => `<div class="interior-group"><div class="interior-group-title">${escapeHtml(cat)}</div><div class="config-option-grid">${groups[cat].map(option => optionHtml(tab, option)).join('')}</div></div>`).join('');
+    container.innerHTML = `<div class="config-section"><div class="config-section-header"><div><h3 class="config-section-title">${escapeHtml(tab.label)}</h3><p class="config-section-desc">${escapeHtml(tab.description || '')}</p></div></div>${groupsHtml}${editBtn}</div>`;
+    return;
+  }
   container.innerHTML = `<div class="config-section"><div class="config-section-header"><div><h3 class="config-section-title">${escapeHtml(tab.label)}</h3><p class="config-section-desc">${escapeHtml(tab.description || '')}</p></div></div>${options.length ? `<div class="config-option-grid">${options.map(option => optionHtml(tab, option)).join('')}</div>` : '<div class="detail-empty-option">该船型暂未配置此项，请联系厂家确认。</div>'}${editBtn}</div>`;
 }
 
@@ -349,9 +362,7 @@ function optionHtml(tab, option) {
     if (isFirst) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
     else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
   } else if (isInterior) {
-    const first = interiorFirstOption(tab);
-    const isFirst = first && first.id === option.id;
-    if (isFirst) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
+    if ((option.priceDelta || 0) === 0) checkBadge = '<span class="power-fixed-badge" title="标配，不可取消">★ 标配</span>';
     else checkBadge = selected ? '<span class="accessory-check">✓</span>' : '<span class="power-checkbox">☐</span>';
   } else if (isSmart) {
     const defIds = smartDefaultIds(tab);
@@ -381,12 +392,13 @@ async function selectOption(tabId, optionId) {
     return;
   }
   if (isInteriorTab(tab)) {
-    const first = interiorFirstOption(tab);
-    if (first && first.id === option.id) { renderTab(); updatePrice(); return; }
+    // 所有 priceDelta=0 的标配选项都不可取消
+    if ((option.priceDelta || 0) === 0) { renderTab(); updatePrice(); return; }
     const ids = interiorSelectedIds(tab).slice();
     const idx = ids.indexOf(option.id);
     if (idx >= 0) ids.splice(idx, 1); else ids.push(option.id);
-    if (first && !ids.includes(first.id)) ids.unshift(first.id);
+    // 确保所有标配项始终在选中列表中
+    (tab.options || []).forEach(o => { if ((o.priceDelta || 0) === 0 && !ids.includes(o.id)) ids.unshift(o.id); });
     selections[tabId] = ids;
     renderTab(); updatePrice();
     // 如果选中的选项有 modelVariantId，切换 3D 场景
@@ -694,8 +706,9 @@ function renderOptionRow(opt, index, tab) {
       <div class="opt-row-main">
         ${isColor ? `<input type="color" class="opt-color" value="${colorVal}" oninput="this.nextElementSibling.value=this.value">` : ''}
         ${isColor ? `<input type="text" class="opt-color-text" value="${colorVal}" maxlength="7" oninput="this.previousElementSibling.value=this.value">` : ''}
-        <input type="text" class="opt-name" placeholder="名称" value="${escapeAttr(opt.name || '')}">
-        <div class="opt-price-wrap"><input type="number" class="opt-price" placeholder="0" value="${escapeAttr(priceWan)}" step="0.1"><span class="opt-price-unit">万</span></div>
+        <input type="text" class="opt-category" placeholder="类型" value="${escapeAttr((opt.name || '').split('·')[0].trim())}" style="width:90px"><span class="opt-sep">·</span><input type="text" class="opt-name" placeholder="名称" value="${escapeAttr((opt.name || '').split('·').slice(1).join('·').trim() || opt.name || '')}">
+        <label class="opt-std-label" title="勾选则设为标配，价格自动设为0且不可取消"><input type="checkbox" class="opt-std" ${(opt.priceDelta || 0) === 0 ? 'checked' : ''} onchange="var p=this.closest('.editor-option-row').querySelector('.opt-price');if(this.checked){p.value=0;p.disabled=true}else{p.disabled=false}"> 标配</label>
+        <div class="opt-price-wrap"><input type="number" class="opt-price" placeholder="0" value="${escapeAttr(priceWan)}" step="0.1" ${(opt.priceDelta || 0) === 0 ? 'disabled' : ''}><span class="opt-price-unit">万</span></div>
         <button type="button" class="opt-remove" onclick="this.closest('.editor-option-row').remove()">×</button>
       </div>
       <div class="opt-row-desc"><input type="text" class="opt-desc" placeholder="说明文字" value="${desc}"></div>
@@ -728,7 +741,8 @@ function addEditOption() {
     <div class="opt-row-main">
       ${isColor ? `<input type="color" class="opt-color" value="#000000" oninput="this.nextElementSibling.value=this.value">` : ''}
       ${isColor ? `<input type="text" class="opt-color-text" value="#000000" maxlength="7" oninput="this.previousElementSibling.value=this.value">` : ''}
-      <input type="text" class="opt-name" placeholder="名称" value="">
+      <input type="text" class="opt-category" placeholder="类型" value="" style="width:90px"><span class="opt-sep">·</span><input type="text" class="opt-name" placeholder="名称" value="">
+      <label class="opt-std-label" title="勾选则设为标配，价格自动设为0且不可取消"><input type="checkbox" class="opt-std" onchange="var p=this.closest('.editor-option-row').querySelector('.opt-price');if(this.checked){p.value=0;p.disabled=true}else{p.disabled=false}"> 标配</label>
       <div class="opt-price-wrap"><input type="number" class="opt-price" placeholder="0" value="0" step="0.1"><span class="opt-price-unit">万</span></div>
       <button type="button" class="opt-remove" onclick="this.closest('.editor-option-row').remove()">×</button>
     </div>
@@ -865,10 +879,10 @@ async function saveSection(event, tabId, isOverview) {
         return {
           ...existing,
           id: existing.id || `opt_${Date.now()}_${i}`,
-          name: row.querySelector('.opt-name').value,
+          name: ((row.querySelector('.opt-category') || {}).value || '').trim() + ' · ' + row.querySelector('.opt-name').value,
           description: (row.querySelector('.opt-desc') || {}).value || '',
           imageUrl: (row.querySelector('.opt-image-url') || {}).value || existing.imageUrl || '',
-          priceDelta: parseFloat(row.querySelector('.opt-price').value) || 0,
+          priceDelta: (row.querySelector('.opt-std') && row.querySelector('.opt-std').checked) ? 0 : (parseFloat(row.querySelector('.opt-price').value) || 0),
           priceDeltaYuan: Math.round((parseFloat(row.querySelector('.opt-price').value) || 0) * 10000),
           ...(tab.kind === 'color' ? { color: (row.querySelector('.opt-color-text') || row.querySelector('.opt-color')).value } : {})
         };

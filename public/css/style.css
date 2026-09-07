@@ -3641,3 +3641,46 @@ body.compare-active .top-nav { z-index: 1100; }
 .config-option-card.interior-option:hover {
   border-color: #60a5fa;
 }
+
+/* ====== 内饰分组样式 ====== */
+.interior-group {
+  margin-bottom: 20px;
+}
+.interior-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 10px;
+  padding-left: 4px;
+  border-left: 3px solid #2563eb;
+  padding-left: 8px;
+}
+
+/* ====== 管理员标配复选框样式 ====== */
+.opt-std-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+.opt-std-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+/* 管理员类型分隔符 */
+.opt-sep {
+  color: #94a3b8;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.opt-category {
+  width: 90px !important;
+  flex-shrink: 0;
+}

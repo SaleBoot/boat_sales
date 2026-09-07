@@ -46,11 +46,11 @@ export class TwinScene {
   // 只允许左侧按钮控制视角：关闭画布自由旋转/缩放/平移
   _disableFreeOrbit() {
     const c = this.inner.controls
-    c.enableRotate = false
-    c.enableZoom = false
-    c.enablePan = false
-    c.enableDamping = false
-    c.enableZoom = false
+    c.enableRotate = true
+    c.enableZoom = true
+    c.enablePan = true
+    c.enableDamping = true
+    c.dampingFactor = 0.08
   }
 
   _poseFromPoints(points, { distFactor = 2.5, pad = 0.25, dir = [0.7, 0.5, 1] } = {}) {
