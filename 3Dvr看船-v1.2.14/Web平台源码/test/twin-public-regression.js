@@ -23,7 +23,10 @@ async function main() {
     assert.equal(page.status, 200);
     assert.match(page.headers.get('content-type'), /text\/html/);
     assert.match(await page.text(), /数字孪生/);
-    assert.doesNotMatch(await (await fetch(`${baseUrl}/twin/twin.js`)).text(), /throw new Error\('未登录'\)/);
+    const script = await (await fetch(`${baseUrl}/twin/twin.js`)).text();
+    assert.doesNotMatch(script, /throw new Error\('未登录'\)/);
+    assert.doesNotMatch(script, /location\.href = 'login\.html'/);
+    assert.match(script, /\/detail\.html\?id=/);
 
     const save = await fetch(`${baseUrl}/api/boats/1/twin-config`, { method: 'PUT' });
     assert.equal(save.status, 401);

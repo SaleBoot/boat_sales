@@ -495,7 +495,7 @@ function bindViewSwitch() {
 }
 
 function bindLogout() {
-  $('logoutBtn').addEventListener('click', async () => { try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }) } catch {}; location.href = 'login.html' })
+  $('logoutBtn').addEventListener('click', () => { location.href = state.boat && state.boat.id ? `/detail.html?id=${encodeURIComponent(state.boat.id)}` : '/' })
 }
 
 function startLiveTicker() {
