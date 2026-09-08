@@ -236,9 +236,8 @@ function installPlatformRoutes(app, store, options = {}) {
     res.json({ success: true, data });
   }));
 
-  // 数字孪生（独立系统）：目录与页面须登录后才能访问，公众不可见。
-  // 目录位于项目根下 twin/（不在 public 静态目录），仅由该受保护路由对外。
-  app.use('/twin', requireLogin, express.static(path.join(__dirname, '..', 'twin'), {
+  // 数字孪生（独立系统）：页面可从公开船型详情进入；配置保存仍走需登录接口。
+  app.use('/twin', express.static(path.join(__dirname, '..', 'twin'), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
         res.setHeader('Cache-Control', 'no-cache');
