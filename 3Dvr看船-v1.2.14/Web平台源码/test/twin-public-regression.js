@@ -23,6 +23,7 @@ async function main() {
     assert.equal(page.status, 200);
     assert.match(page.headers.get('content-type'), /text\/html/);
     assert.match(await page.text(), /数字孪生/);
+    assert.doesNotMatch(await (await fetch(`${baseUrl}/twin/twin.js`)).text(), /throw new Error\('未登录'\)/);
 
     const save = await fetch(`${baseUrl}/api/boats/1/twin-config`, { method: 'PUT' });
     assert.equal(save.status, 401);

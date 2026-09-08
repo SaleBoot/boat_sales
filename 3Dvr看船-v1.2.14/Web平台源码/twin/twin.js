@@ -73,8 +73,7 @@ async function ensureAuth() {
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' })
     if (res.ok) { const json = await res.json(); if (json.success && json.data) return json.data }
   } catch {}
-  location.href = 'login.html'
-  throw new Error('未登录')
+  return null
 }
 
 async function fetchBoat() {
