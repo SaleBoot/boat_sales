@@ -119,6 +119,7 @@ async function loadBoats() {
 function renderHierarchy() {
   const keyword = document.getElementById('boatSearch').value.trim().toLowerCase();
   const container = document.getElementById('shipyardHierarchy');
+  const activeShipyard = container.querySelector('.detail-active')?.dataset.shipyardId;
   let visibleCount = 0;
   const groups = state.shipyards.map(shipyard => {
     const matches = boat => !keyword || `${shipyard.name} ${boat.name} ${boat.shipId} ${boat.typeName} ${boat.manufacturer}`.toLowerCase().includes(keyword);
@@ -146,6 +147,11 @@ function renderHierarchy() {
   }).filter(Boolean);
   document.getElementById('boatCount').textContent = `共 ${visibleCount} 艘船型`;
   container.innerHTML = groups.length ? groups.join('') : '<div class="admin-empty-v2">没有符合条件的厂家或船型</div>';
+  if (activeShipyard) {
+    const group = Array.from(container.querySelectorAll('.shipyard-group')).find(item => item.dataset.shipyardId === activeShipyard);
+    if (group) openShipyardDetail(group.querySelector('.shipyard-group-head'));
+    else closeShipyardDetail();
+  } else if (container.classList.contains('detail-mode')) closeShipyardDetail();
 }
 
 function boatDirectoryTable(title, boats, boundReference, shipyardId) {
