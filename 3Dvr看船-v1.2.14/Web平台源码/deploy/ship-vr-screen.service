@@ -1,0 +1,18 @@
+[Unit]
+Description=Ship VR screen signaling on Tencent Cloud
+After=network-online.target
+
+[Service]
+User=shipapp
+WorkingDirectory=/srv/ship-platform/current
+EnvironmentFile=/etc/ship-platform-rtc.env
+Environment=SHIP_API_ORIGIN=http://10.100.100.1:6060
+Environment=PORT=3001
+ExecStart=/usr/bin/node src/vr-screen-server.js
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

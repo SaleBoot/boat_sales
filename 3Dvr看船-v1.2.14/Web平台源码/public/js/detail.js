@@ -5,6 +5,7 @@ let scene3d = null;
 let currentTabId = '';
 let currentVariantId = '';
 let isAdminMode = false;
+let boatCategories = [];
 const selections = {};
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -21,7 +22,7 @@ async function loadDetail(id) {
   try {
     const response = await fetch(`/api/boats/${encodeURIComponent(id)}`); const json = await response.json();
     if (!response.ok || !json.success) throw new Error(json.message || '未找到该船型');
-    boatData = json.data; initializeSelections(); renderPage(); document.title = `${boatData.name} | 船舶定制系统`;
+    boatData = json.data; initializeSelections(); renderPage(); document.title = `${boatData.name} | 智能船舶设计与远程交付系统`;
     updateDigitalTwinEntry();
   } catch (error) { showPageError(error.message || '加载失败，请检查服务'); }
 }
@@ -185,6 +186,30 @@ function updateDigitalTwinEntry() {
 function openDigitalTwin() {
   if (!boatData || !boatData.shipId) return;
   location.href = '/twin?boat=' + encodeURIComponent(boatData.shipId);
+}
+
+async function ensureBoatCategories() {
+  if (boatCategories.length) return boatCategories;
+  const response = await fetch('/api/boat-categories');
+  const json = await response.json();
+  if (response.ok && json.success) boatCategories = json.data || [];
+  return boatCategories;
+}
+
+function renderCategoryOptions() {
+  return boatCategories.map(cat => `<option value="${escapeAttr(cat.id)}" ${cat.id === boatData.category ? 'selected' : ''}>${escapeHtml(cat.name)}</option>`).join('');
+}
+
+function renderSubtypeOptions(categoryId, subtypeId) {
+  const cat = boatCategories.find(item => item.id === categoryId) || boatCategories[0] || { children: [] };
+  return (cat.children || []).map(sub => `<option value="${escapeAttr(sub.id)}" ${sub.id === subtypeId ? 'selected' : ''}>${escapeHtml(sub.name)}</option>`).join('');
+}
+
+function syncSubtypeSelect() {
+  const category = document.getElementById('editCategory');
+  const subtype = document.getElementById('editSubtype');
+  if (!category || !subtype) return;
+  subtype.innerHTML = renderSubtypeOptions(category.value, subtype.value);
 }
 
 function renderPage() {
@@ -377,6 +402,7 @@ async function syncCurrentVariantToVr() {
     if (!response.ok || !json.success) throw new Error(json.message || '同步失败');
     button.textContent = '已同步到VR';
     toast('同步成功，PICO将在30秒内自动切换');
+    window.location.assign('/vr-screen.html');
     setTimeout(() => { button.textContent = original; }, 3000);
   } catch (error) { button.textContent = original; toast(error.message || '同步失败', true); }
   finally { button.disabled = false; }
@@ -427,7 +453,7 @@ function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 function escapeJs(value) { return String(value || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 // ===== 管理员编辑弹窗 =====
-function openSectionEditor(tabId) {
+async function openSectionEditor(tabId) {
   const tab = tabs().find(t => t.id === tabId);
   if (!tab) return;
   const isOverview = tab.kind === 'overview';
@@ -435,10 +461,15 @@ function openSectionEditor(tabId) {
 
   let formHtml = '';
   if (isOverview) {
+    await ensureBoatCategories();
     const sceneImg = escapeAttr(boatData.sceneImage || '');
     // 船型基本信息编辑
     formHtml = `
       <div class="editor-field"><label>船型名称</label><input type="text" id="editName" value="${escapeAttr(boatData.name || '')}"></div>
+      <div class="editor-field-row">
+        <div class="editor-field"><label>船型大类</label><select id="editCategory" onchange="syncSubtypeSelect()">${renderCategoryOptions()}</select></div>
+        <div class="editor-field"><label>船型小类</label><select id="editSubtype">${renderSubtypeOptions(boatData.category, boatData.subtype)}</select></div>
+      </div>
       <div class="editor-field editor-scene-image-field">
         <label>场景图片（16:9展示，双击看全图）</label>
         <div class="editor-scene-image-row">
@@ -673,8 +704,16 @@ async function saveSection(event, tabId, isOverview) {
       // 保存基本信息
       const features = document.getElementById('editFeatures').value.split('、').map(s => s.trim()).filter(Boolean);
       const sceneImage = document.getElementById('editSceneImage').value.trim();
+      const categorySelect = document.getElementById('editCategory');
+      const subtypeSelect = document.getElementById('editSubtype');
+      const category = boatCategories.find(item => item.id === categorySelect.value);
+      const subtype = category && (category.children || []).find(item => item.id === subtypeSelect.value);
       const body = {
         name: document.getElementById('editName').value,
+        category: category ? category.id : boatData.category,
+        categoryName: category ? category.name : boatData.categoryName,
+        subtype: subtype ? subtype.id : boatData.subtype,
+        typeName: subtype ? subtype.name : boatData.typeName,
         description: document.getElementById('editDesc').value,
         length: document.getElementById('editLength').value,
         capacity: document.getElementById('editCapacity').value,
@@ -683,15 +722,12 @@ async function saveSection(event, tabId, isOverview) {
         sceneImage,
         features
       };
-      // 更新本地数据
-      Object.assign(boatData, body);
-      boatData.basePriceYuan = body.price;
-      boatData.sceneImage = sceneImage;
       const res = await fetch(`/api/admin/boats/${boatId}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.message);
+      boatData = json.data;
     } else {
       // 保存配置板块
       const tab = tabs().find(t => t.id === tabId);
@@ -886,4 +922,4 @@ function exitCompareMode() {
   compareModeLock = false;
 }
 
-Object.assign(window, { switchTab, selectOption, submitConfig, syncCurrentVariantToVr, returnToCatalog, openSectionEditor, closeSectionEditor, addEditOption, uploadOptionImage, uploadSceneImage, previewImage, saveSection, toggleCompareMode, loadCompareBoat, loadCompareCurrentBoat, loadCompareHome, loadCompareCurrentHome, exitCompareMode });
+Object.assign(window, { switchTab, selectOption, submitConfig, syncCurrentVariantToVr, returnToCatalog, openSectionEditor, closeSectionEditor, addEditOption, uploadOptionImage, uploadSceneImage, previewImage, saveSection, syncSubtypeSelect, toggleCompareMode, loadCompareBoat, loadCompareCurrentBoat, loadCompareHome, loadCompareCurrentHome, exitCompareMode });

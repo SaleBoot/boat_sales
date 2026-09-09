@@ -63,10 +63,14 @@
   margin-bottom: 1.5rem;
 }
 .auth-brand-logo {
-  font-size: 1.3rem;
+  display: block;
+  max-width: 100%;
+  font-size: 1.18rem;
   font-weight: 700;
+  line-height: 1.35;
   color: #1a1a1a;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- Tab 切换 ---------- */
@@ -287,5 +291,8 @@
   .auth-center-inner {
     padding: 2rem 1.25rem 1.5rem;
     max-width: 100%;
+  }
+  .auth-brand-logo {
+    font-size: 1.05rem;
   }
 }

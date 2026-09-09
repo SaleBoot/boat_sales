@@ -100,15 +100,19 @@ const modelDraftUpload = multer({
   storage: modelDraftStorage,
   limits: { fileSize: 300 * 1024 * 1024, files: 80 },
   fileFilter: (req, file, cb) => {
-    const allowed = new Set(['.fbx', '.gltf', '.glb', '.obj', '.bin', '.mtl', '.png', '.jpg', '.jpeg', '.webp', '.tga', '.bmp']);
+    const allowed = new Set(['.fbx', '.gltf', '.glb', '.obj', '.bundle', '.manifest', '.bin', '.mtl', '.png', '.jpg', '.jpeg', '.webp', '.tga', '.bmp']);
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowed.has(ext)) cb(null, true);
-    else cb(new Error('模型支持 FBX / GLTF / GLB / OBJ；可同时选择 BIN、MTL 和常用贴图文件'));
+    else cb(new Error('模型支持 FBX / GLTF / GLB / OBJ；VR包支持 .bundle，可同时选择 BIN、MTL 和常用贴图文件'));
   }
 });
 
 app.use(cors());
 app.use(express.json());
+app.get('/vendor/three/three.module.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'node_modules', 'three', 'build', 'three.module.js'));
+});
+app.use('/vendor/three/jsm', express.static(path.join(__dirname, 'node_modules', 'three', 'examples', 'jsm')));
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
@@ -119,7 +123,10 @@ app.use(express.static(path.join(__dirname, 'public'), {
 if (modelUploadDir !== fbxDir) app.use('/FBX', express.static(modelUploadDir, { maxAge: '7d' }));
 app.use('/FBX', express.static(path.join(__dirname, 'FBX'), { maxAge: '7d' }));
 app.use('/uploads', express.static(uploadDir));
-app.use('/vr-content', express.static(path.join(__dirname, 'vr-content'), {
+const vrContentRoot = process.env.VR_CONTENT_ROOT || path.join(__dirname, 'vr-content');
+const vrContentAndroidDir = process.env.VR_CONTENT_DIR || path.join(vrContentRoot, 'android');
+fs.mkdirSync(vrContentAndroidDir, { recursive: true });
+app.use('/vr-content', express.static(vrContentRoot, {
   immutable: true,
   maxAge: '7d'
 }));
@@ -132,6 +139,9 @@ const { requireAdmin: requirePlatformAdmin } = installPlatformRoutes(app, platfo
   modelDraftUpload,
   modelStagingDir,
   modelUploadDir,
+  vrContentDir: vrContentAndroidDir,
+  unityPath: process.env.UNITY_PATH || '/Applications/Unity/Hub/Editor/2022.3.52f1c1/Unity.app/Contents/MacOS/Unity',
+  unityProjectDir: process.env.UNITY_PROJECT_DIR || path.resolve(__dirname, '../../../../'),
   imageUpload: upload,
   logoUpload
 });
@@ -255,11 +265,16 @@ app.get('/api/health', (req, res) => {
 
 async function startServer() {
   await platformStore.init();
+  await platformStore.purgeArchivedBoats({ olderThanDays: 7 }).catch(err => console.error('归档清理失败:', err.message));
   // 定期清理过期会话，避免 v12_sessions 无限增长。
   const sessionCleanup = setInterval(() => {
     platformStore.cleanupExpiredSessions().catch(err => console.error('会话清理失败:', err.message));
   }, 60 * 60 * 1000);
   sessionCleanup.unref();
+  const archiveCleanup = setInterval(() => {
+    platformStore.purgeArchivedBoats({ olderThanDays: 7 }).catch(err => console.error('归档清理失败:', err.message));
+  }, 24 * 60 * 60 * 1000);
+  archiveCleanup.unref();
 
   // 仅监听本地回环地址，对外统一由 nginx 反代，避免绕过限流与压缩。
   const HOST = process.env.HOST || '127.0.0.1';

@@ -379,6 +379,13 @@ function normalizeTwinConfig(value) {
   return { systems, smart, power };
 }
 
+function legacyOptionAlias(tab, requestedOptionId) {
+  if (tab.id !== 'power') return null;
+  if (requestedOptionId === 'power-enhanced') return 'pow-elec-plus';
+  if (requestedOptionId === 'power-custom') return 'pow-custom';
+  return null;
+}
+
 class PlatformStore {
   constructor(rootDir) {
     this.rootDir = rootDir;
@@ -502,6 +509,14 @@ class PlatformStore {
         bound_by BIGINT REFERENCES v12_users(id),
         bound_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (shipyard_id, variant_id)
+      );
+      CREATE TABLE IF NOT EXISTS v12_shipyard_model_unbind_logs (
+        shipyard_id BIGINT,
+        variant_id TEXT,
+        ship_id TEXT,
+        ship_name TEXT,
+        unbound_by BIGINT,
+        unbound_at TIMESTAMPTZ
       );
       CREATE TABLE IF NOT EXISTS v12_binding_requests (
         id BIGSERIAL PRIMARY KEY,
@@ -650,7 +665,15 @@ class PlatformStore {
       "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS detailed_interior BOOLEAN NOT NULL DEFAULT FALSE",
       "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS source_file TEXT NOT NULL DEFAULT ''",
       "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS processing_status TEXT NOT NULL DEFAULT 'pending'",
-      "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS processing_error TEXT NOT NULL DEFAULT ''"
+      "ALTER TABLE v12_vr_models ADD COLUMN IF NOT EXISTS processing_error TEXT NOT NULL DEFAULT ''",
+      `CREATE TABLE IF NOT EXISTS v12_shipyard_model_unbind_logs (
+        shipyard_id BIGINT,
+        variant_id TEXT,
+        ship_id TEXT,
+        ship_name TEXT,
+        unbound_by BIGINT,
+        unbound_at TIMESTAMPTZ
+      )`
     ];
     for (const sql of statements) await this.pool.query(sql);
   }
@@ -664,6 +687,7 @@ class PlatformStore {
       'CREATE INDEX IF NOT EXISTS idx_v12_binding_requests_shipyard ON v12_binding_requests(shipyard_id)',
       'CREATE INDEX IF NOT EXISTS idx_v12_binding_requests_variant ON v12_binding_requests(variant_id)',
       'CREATE INDEX IF NOT EXISTS idx_v12_binding_requests_status ON v12_binding_requests(status)',
+      'CREATE INDEX IF NOT EXISTS idx_v12_unbind_logs_shipyard ON v12_shipyard_model_unbind_logs(shipyard_id)',
       'CREATE INDEX IF NOT EXISTS idx_v12_boats_owner ON v12_boats(owner_shipyard_id)',
       'CREATE INDEX IF NOT EXISTS idx_v12_customizations_boat ON v12_customizations(boat_id)',
       'CREATE INDEX IF NOT EXISTS idx_v12_users_shipyard ON v12_users(shipyard_id)',
@@ -1182,15 +1206,21 @@ class PlatformStore {
   }
 
   modelDto(row) {
+    const vrReady = Boolean(row.bundle_file && row.bundle_sha256);
     return {
       variantId: row.variant_id, shipId: row.ship_id, shipName: row.ship_name,
       boatId: row.boat_id == null ? null : Number(row.boat_id),
+      ownerShipyardId: row.owner_shipyard_id == null ? null : Number(row.owner_shipyard_id),
       variantName: row.variant_name, category: row.category, description: row.description,
       length: Number(row.length_m), thumbnailUrl: row.thumbnail_url || row.scene_image_url || row.image_url || '',
       published: row.is_published, bound: row.is_bound || false,
       shipBound: row.is_ship_bound || false,
       requestStatus: row.request_status || null,
-      bundleReady: Boolean(row.bundle_file && row.bundle_sha256)
+      assetFormat: row.asset_format || 'assetbundle',
+      processingStatus: row.processing_status || (vrReady ? 'ready' : 'pending'),
+      processingError: row.processing_error || '',
+      bundleReady: vrReady,
+      vrReady
     };
   }
 
@@ -1206,7 +1236,7 @@ class PlatformStore {
       `SELECT m.variant_id,m.ship_id,m.ship_name,m.variant_name,m.category,m.description,m.length_m,
               m.bundle_version,m.bundle_file,m.bundle_size,m.bundle_sha256,m.thumbnail_url,
               m.asset_format,m.detailed_interior
-       FROM v12_vr_models m JOIN v12_shipyard_model_bindings b ON b.variant_id=m.variant_id
+      FROM v12_vr_models m JOIN v12_shipyard_model_bindings b ON b.variant_id=m.variant_id
        WHERE b.shipyard_id=$1 AND b.active=TRUE AND m.is_published=TRUE
          AND m.bundle_file<>'' AND m.bundle_sha256<>'' ORDER BY m.variant_id`, [user.shipyard_id]
     );
@@ -1253,17 +1283,23 @@ class PlatformStore {
     let accessJoin = '';
     if (!isAdmin) {
       params.push(user.shipyard_id);
-      accessJoin = `INNER JOIN v12_shipyard_model_bindings b
+      accessJoin = `LEFT JOIN v12_shipyard_model_bindings b
                       ON b.variant_id=m.variant_id AND b.shipyard_id=$2 AND b.active=TRUE`;
     }
     const model = await this.pool.query(
-      `SELECT m.variant_id FROM v12_vr_models m
-       INNER JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
+      `SELECT m.variant_id,m.is_published,m.bundle_file,m.bundle_sha256,m.asset_format,boat.id AS boat_id,
+              ${isAdmin ? 'TRUE' : 'CASE WHEN b.active=TRUE THEN TRUE ELSE FALSE END'} AS has_access
+       FROM v12_vr_models m
+       LEFT JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
        ${accessJoin}
-       WHERE m.variant_id=$1 AND m.is_published=TRUE
-         AND m.bundle_file<>'' AND m.bundle_sha256<>''`, params
+       WHERE m.variant_id=$1`, params
     );
-    if (!model.rowCount) throw Object.assign(new Error('该模型尚未就绪、未上架或当前账号无权使用'), { status: 403 });
+    const row = model.rows[0];
+    if (!row) throw Object.assign(new Error('未找到该模型版本'), { status: 404 });
+    if (!row.boat_id) throw Object.assign(new Error('该船型已下架或已归档，暂不能同步到VR'), { status: 403 });
+    if (!row.is_published) throw Object.assign(new Error('该模型尚未上架，暂不能同步到VR'), { status: 403 });
+    if (!row.has_access) throw Object.assign(new Error('当前账号还没有绑定该模型，暂不能同步到VR'), { status: 403 });
+    if (!row.bundle_file || !row.bundle_sha256) throw Object.assign(new Error('该模型暂未生成可供PICO直接加载的VR资源，请上传单文件GLB后再同步'), { status: 403 });
     await this.pool.query(
       `INSERT INTO v12_vr_account_sync(user_id,variant_id,updated_by,updated_at)
        VALUES($1,$2,$1,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE
@@ -1829,6 +1865,70 @@ class PlatformStore {
     return this.boat(id);
   }
 
+  async setBoatPublished(id, published, actorId) {
+    const result = await this.pool.query(
+      'UPDATE v12_boats SET is_published=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND archived_at IS NULL RETURNING id',
+      [id, Boolean(published)]
+    );
+    if (!result.rowCount) throw Object.assign(new Error('船型不存在或已归档'), { status: 404 });
+    await this.audit(actorId, published ? 'boat.publish' : 'boat.unpublish', 'boat', id, {});
+    return this.boat(id);
+  }
+
+  async unbindShipyardBoat(shipyardId, boatId, actorId) {
+    const boat = await this.boat(boatId);
+    if (!boat) throw Object.assign(new Error('船型不存在'), { status: 404 });
+    const bound = await this.pool.query(
+      `SELECT b.variant_id,m.ship_id,m.ship_name
+       FROM v12_shipyard_model_bindings b JOIN v12_vr_models m ON m.variant_id=b.variant_id
+       WHERE b.shipyard_id=$1 AND b.active=TRUE AND m.ship_id=$2`,
+      [Number(shipyardId), boat.shipId]
+    );
+    if (!bound.rowCount) throw Object.assign(new Error('该厂家未绑定此船型'), { status: 404 });
+    const result = await this.pool.query(
+      `UPDATE v12_shipyard_model_bindings SET active=FALSE
+       WHERE shipyard_id=$1 AND active=TRUE
+       AND variant_id IN (SELECT variant_id FROM v12_vr_models WHERE ship_id=$2)`,
+      [Number(shipyardId), boat.shipId]
+    );
+    for (const row of bound.rows) {
+      await this.pool.query(
+        `INSERT INTO v12_shipyard_model_unbind_logs(shipyard_id,variant_id,ship_id,ship_name,unbound_by,unbound_at)
+         VALUES($1,$2,$3,$4,$5,CURRENT_TIMESTAMP)`,
+        [Number(shipyardId), row.variant_id, row.ship_id, row.ship_name, actorId]
+      );
+    }
+    await this.audit(actorId, 'boat.unbind', 'shipyard', shipyardId, { boatId: Number(boatId), shipId: boat.shipId, count: result.rowCount });
+    return result.rowCount;
+  }
+
+  async purgeArchivedBoats(options = {}) {
+    let rows;
+    if (options.olderThanDays != null) {
+      const cutoff = new Date(Date.now() - (Number(options.olderThanDays) || 7) * 24 * 60 * 60 * 1000);
+      rows = (await this.pool.query('SELECT id,ship_id,archived_at FROM v12_boats WHERE archived_at IS NOT NULL')).rows
+        .filter(row => row.archived_at && new Date(row.archived_at).getTime() < cutoff.getTime());
+    } else {
+      rows = (await this.pool.query('SELECT id,ship_id FROM v12_boats WHERE archived_at IS NOT NULL')).rows;
+    }
+    if (!rows.length) return 0;
+    const ids = rows.map(row => Number(row.id));
+    const shipIds = rows.map(row => String(row.ship_id));
+    const idSql = ids.map((_, index) => `$${index + 1}`).join(',');
+    const shipIdSql = shipIds.map((_, index) => `$${index + 1}`).join(',');
+    await this.pool.query(`DELETE FROM v12_customizations WHERE boat_id IN (${idSql})`, ids);
+    await this.pool.query(
+      `DELETE FROM v12_binding_requests WHERE variant_id IN (
+        SELECT variant_id FROM v12_vr_models WHERE ship_id IN (${shipIdSql})
+      )`,
+      shipIds
+    );
+    await this.pool.query(`DELETE FROM v12_vr_models WHERE ship_id IN (${shipIdSql})`, shipIds);
+    const deleted = await this.pool.query(`DELETE FROM v12_boats WHERE id IN (${idSql})`, ids);
+    await this.audit(options.actorId || null, 'boat.archive_purge', 'boat', 'archived', { count: deleted.rowCount, olderThanDays: options.olderThanDays || null });
+    return deleted.rowCount;
+  }
+
   async updateBoatImage(id, image, actorId) {
     const result = await this.pool.query('UPDATE v12_boats SET image_url=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING id', [id, image]);
     if (!result.rowCount) throw Object.assign(new Error('船型不存在'), { status: 404 });
@@ -1840,6 +1940,8 @@ class PlatformStore {
     if (!current) throw Object.assign(new Error('船型不存在'), { status: 404 });
     const variants = Array.isArray(current.variants) ? current.variants.slice() : [];
     const normalizedVariant = normalizeVariant(variant);
+    const vrAsset = variant.vrBundle || null;
+    const assetFormat = vrAsset && vrAsset.assetFormat ? vrAsset.assetFormat : 'assetbundle';
     if (!normalizedVariant.variantId || !normalizedVariant.modelFiles.length) {
       throw Object.assign(new Error('模型版本缺少有效文件'), { status: 400 });
     }
@@ -1851,16 +1953,31 @@ class PlatformStore {
     await this.pool.query(
       `INSERT INTO v12_vr_models(
         variant_id,ship_id,ship_name,variant_name,category,description,length_m,
-        thumbnail_url,is_published,owner_shipyard_id
-       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,FALSE,$9)
+        bundle_version,bundle_file,bundle_size,bundle_sha256,thumbnail_url,is_published,owner_shipyard_id,
+        asset_format,source_file,processing_status,processing_error
+       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        ON CONFLICT(variant_id) DO UPDATE SET
         ship_id=EXCLUDED.ship_id,ship_name=EXCLUDED.ship_name,variant_name=EXCLUDED.variant_name,
         category=EXCLUDED.category,description=EXCLUDED.description,length_m=EXCLUDED.length_m,
-        thumbnail_url=EXCLUDED.thumbnail_url,owner_shipyard_id=EXCLUDED.owner_shipyard_id,
+        bundle_version=EXCLUDED.bundle_version,bundle_file=EXCLUDED.bundle_file,
+        bundle_size=EXCLUDED.bundle_size,bundle_sha256=EXCLUDED.bundle_sha256,
+        thumbnail_url=EXCLUDED.thumbnail_url,is_published=EXCLUDED.is_published,owner_shipyard_id=EXCLUDED.owner_shipyard_id,
+        asset_format=EXCLUDED.asset_format,source_file=EXCLUDED.source_file,
+        processing_status=EXCLUDED.processing_status,processing_error=EXCLUDED.processing_error,
         updated_at=CURRENT_TIMESTAMP`,
       [normalizedVariant.variantId, current.shipId, current.name, normalizedVariant.variantName || '平台上传模型',
         current.categoryName || current.category, current.description || '', Number.parseFloat(current.length) || 0,
-        normalizedVariant.thumbnailUrl || current.image || '', current.ownerShipyardId]
+        vrAsset ? vrAsset.version : '', vrAsset ? vrAsset.file : '',
+        vrAsset ? vrAsset.size : 0, vrAsset ? vrAsset.sha256 : '',
+        normalizedVariant.thumbnailUrl || current.image || '', Boolean(vrAsset), current.ownerShipyardId,
+        assetFormat, normalizedVariant.modelFiles[0] || '', vrAsset ? 'ready' : (variant.vrProcessingStatus || 'pending'),
+        vrAsset ? '' : (variant.vrProcessingError || '')]
+    );
+    if (vrAsset && current.ownerShipyardId) await this.pool.query(
+      `INSERT INTO v12_shipyard_model_bindings(shipyard_id,variant_id,bound_by,active)
+       VALUES($1,$2,$3,TRUE) ON CONFLICT(shipyard_id,variant_id)
+       DO UPDATE SET active=TRUE,bound_by=EXCLUDED.bound_by,bound_at=CURRENT_TIMESTAMP`,
+      [current.ownerShipyardId, normalizedVariant.variantId, actorId]
     );
     await this.audit(actorId, 'boat.model_upload', 'boat', id, { variantId: normalizedVariant.variantId, modelFiles: normalizedVariant.modelFiles });
     return { ...current, variants, primaryVariantId: normalizedVariant.variantId, modelFile: normalizedVariant.modelFiles[0] };
@@ -1897,11 +2014,12 @@ class PlatformStore {
       if (!Array.isArray(tab.options) || !tab.options.length) continue;
       const input = requestedSelections[tab.id];
       const requestedOptionId = typeof input === 'string' ? input : input && input.optionId;
+      const aliasId = requestedOptionId && legacyOptionAlias(tab, requestedOptionId);
       const option = requestedOptionId
-        ? tab.options.find(item => item.id === requestedOptionId)
+        ? tab.options.find(item => item.id === requestedOptionId) || tab.options.find(item => item.id === aliasId)
         : tab.options[0];
       if (!option) throw Object.assign(new Error(`“${tab.label}”包含无效选项，请刷新页面后重试`), { status: 400 });
-      const priceDeltaYuan = optionPriceYuan(option);
+      const priceDeltaYuan = requestedOptionId === 'power-enhanced' ? suggestedOptionPrice(boat.shipId, boat.basePriceYuan, tab, { id: 'power-enhanced' }) : optionPriceYuan(option);
       const snapshot = {
         tabId: tab.id, tabLabel: tab.label, kind: tab.kind,
         optionId: option.id, optionName: option.name, color: option.color || '', priceDeltaYuan

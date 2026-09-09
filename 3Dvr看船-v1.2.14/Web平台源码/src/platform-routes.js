@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { validatePassword } = require('./security');
 const { generateOrderPdf } = require('./order-pdf');
 const { rateLimit } = require('./rate-limit');
@@ -47,6 +48,23 @@ function asyncRoute(handler) {
 function installPlatformRoutes(app, store, options = {}) {
   const modelDrafts = new Map();
   const modelExtensions = new Set(['.fbx', '.gltf', '.glb', '.obj']);
+  const vrBundleExtensions = new Set(['.bundle']);
+  const copyVrAsset = (variantId, permanentDirectory, file, assetFormat) => {
+    if (!options.vrContentDir) return null;
+    const source = path.join(permanentDirectory, file);
+    const targetDir = path.join(options.vrContentDir, 'uploads', variantId);
+    fs.mkdirSync(targetDir, { recursive: true });
+    fs.copyFileSync(source, path.join(targetDir, file));
+    const buffer = fs.readFileSync(source);
+    const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+    return {
+      assetFormat,
+      file: `uploads/${variantId}/${file}`,
+      size: buffer.length,
+      sha256,
+      version: sha256.slice(0, 16)
+    };
+  };
   const removeDirectory = directory => {
     if (directory && fs.existsSync(directory)) fs.rmSync(directory, { recursive: true, force: true });
   };
@@ -236,7 +254,7 @@ function installPlatformRoutes(app, store, options = {}) {
     res.json({ success: true, data });
   }));
 
-  // 数字孪生（独立系统）：页面可从公开船型详情进入；配置保存仍走需登录接口。
+  // 数字孪生主入口保留单船设备点位系统，后续只升级它的 3D GIS 背景与航线层。
   app.use('/twin', express.static(path.join(__dirname, '..', 'twin'), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
@@ -244,6 +262,10 @@ function installPlatformRoutes(app, store, options = {}) {
       }
     }
   }));
+  app.get(['/geo-twin', '/geo-twin/'], (req, res) => {
+    const boat = typeof req.query.boat === 'string' ? req.query.boat : 'js1300x';
+    res.redirect(302, '/twin/?boat=' + encodeURIComponent(boat));
+  });
 
   app.get('/api/membership/plans', asyncRoute(async (req, res) => {
     res.json({ success: true, data: await store.plans() });
@@ -429,6 +451,10 @@ function installPlatformRoutes(app, store, options = {}) {
     const data = await store.adminBoats({ shipyardId: req.query.shipyardId, includeArchived: req.query.includeArchived === 'true' });
     res.json({ success: true, count: data.length, data });
   }));
+  admin.delete('/boats/archived', asyncRoute(async (req, res) => {
+    const deleted = await store.purgeArchivedBoats({ actorId: req.platformUser.id });
+    res.json({ success: true, message: '归档记录已清除', deleted });
+  }));
   admin.get('/orders', asyncRoute(async (req, res) => {
     res.json({ success: true, data: await store.customizations() });
   }));
@@ -452,6 +478,14 @@ function installPlatformRoutes(app, store, options = {}) {
   admin.put('/boats/:id', asyncRoute(async (req, res) => {
     const data = await store.updateBoat(req.params.id, req.body, req.platformUser.id);
     res.json({ success: true, message: '船型信息已保存到数据库', data });
+  }));
+  admin.put('/boats/:id/publish', asyncRoute(async (req, res) => {
+    const data = await store.setBoatPublished(req.params.id, req.body.published !== false, req.platformUser.id);
+    res.json({ success: true, message: data.published ? '船型已上架' : '船型已下架', data });
+  }));
+  admin.put('/shipyards/:shipyardId/boats/:boatId/unbind', asyncRoute(async (req, res) => {
+    const count = await store.unbindShipyardBoat(req.params.shipyardId, req.params.boatId, req.platformUser.id);
+    res.json({ success: true, message: '船型已解绑', count });
   }));
   admin.put('/boats/:id/config-tabs', asyncRoute(async (req, res) => {
     const { tabId, options, label } = req.body;
@@ -535,6 +569,7 @@ function installPlatformRoutes(app, store, options = {}) {
       const variantId = `admin_${String(boat.shipId).replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}`;
       const permanentRoot = path.join(options.modelUploadDir, 'uploads');
       const permanentDirectory = path.join(permanentRoot, variantId);
+      const bundleFile = draft.files.find(file => vrBundleExtensions.has(path.extname(file).toLowerCase()));
       fs.mkdirSync(permanentRoot, { recursive: true });
       try {
         fs.renameSync(draft.directory, permanentDirectory);
@@ -553,8 +588,22 @@ function installPlatformRoutes(app, store, options = {}) {
         detailedInterior: Boolean(req.body.detailedInterior),
         thumbnailUrl: boat.image || '',
         sourceFiles: draft.files,
-        viewSettings: req.body.viewSettings || { bowDirection: 'auto', exterior: null, interior: null }
+        viewSettings: req.body.viewSettings || { bowDirection: 'auto', exterior: null, interior: null },
+        vrBundle: null
       };
+      const entryExt = path.extname(draft.entryFile).toLowerCase();
+      if (bundleFile) {
+        variant.vrBundle = copyVrAsset(variantId, permanentDirectory, bundleFile, 'assetbundle');
+      } else if (entryExt === '.glb') {
+        variant.vrBundle = copyVrAsset(variantId, permanentDirectory, draft.entryFile, 'glb');
+      }
+      if (variant.vrBundle) {
+        variant.vrProcessingStatus = 'ready';
+        variant.vrProcessingError = '';
+      } else {
+        variant.vrProcessingStatus = 'pending';
+        variant.vrProcessingError = entryExt === '.glb' ? 'VR资源目录未配置' : '请上传单文件GLB，或后续由离线工具转换为GLB后再解锁VR';
+      }
       try {
         const data = await store.addBoatVariant(req.params.id, variant, req.platformUser.id);
         modelDrafts.delete(draft.id);

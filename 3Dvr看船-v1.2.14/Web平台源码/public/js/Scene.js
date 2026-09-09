@@ -711,6 +711,7 @@ export default class Scene {
 
   animate() {
     this._rafId = requestAnimationFrame(() => this.animate())
+    if (this.container.hidden) return
     try {
       const now = performance.now()
       const deltaSeconds = Math.max(0, (now - this._lastFrameTime) / 1000)

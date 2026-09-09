@@ -1,5 +1,6 @@
 let dashboard = null;
 let plans = [];
+let modelScope = 'all';
 
 document.addEventListener('DOMContentLoaded', async () => {
   bindUi();
@@ -8,7 +9,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function bindUi() {
   document.getElementById('modelSearch').addEventListener('input', renderModels);
-  document.querySelectorAll('.shipyard-tabs button').forEach(button => button.addEventListener('click', () => switchPanel(button.dataset.panel)));
+  document.querySelectorAll('.shipyard-tabs button').forEach(button => button.addEventListener('click', () => {
+    if (button.dataset.modelScope) modelScope = button.dataset.modelScope;
+    switchPanel(button.dataset.panel, button);
+    if (button.dataset.panel === 'models') renderModels();
+  }));
   document.getElementById('staffForm').addEventListener('submit', createStaff);
   document.getElementById('membershipForm').addEventListener('submit', submitMembershipRequest);
   document.getElementById('identityTrigger').addEventListener('click', event => { event.stopPropagation(); document.getElementById('accountPopover').classList.toggle('show'); });
@@ -69,7 +74,12 @@ function renderAvatar(element, imageUrl, fallback) {
 
 function renderModels() {
   if (!dashboard) return; const keyword = document.getElementById('modelSearch').value.trim().toLowerCase();
-  const models = dashboard.models.filter(item => `${item.shipName} ${item.variantName} ${item.category}`.toLowerCase().includes(keyword));
+  const ownShipyardId = Number(dashboard.account.shipyardId);
+  const title = document.getElementById('modelPanelTitle'); const intro = document.getElementById('modelPanelIntro');
+  if (title) title.textContent = modelScope === 'own' ? '本厂船舶模型' : '全部已上架船舶模型';
+  if (intro) intro.textContent = modelScope === 'own' ? '仅显示当前厂家自己发布或归属本厂的船型。' : '所有厂家均可浏览；已绑定模型将自动同步到本厂家的PICO账号。';
+  const source = modelScope === 'own' ? dashboard.models.filter(item => Number(item.ownerShipyardId) === ownShipyardId) : dashboard.models;
+  const models = source.filter(item => `${item.shipName} ${item.variantName} ${item.category}`.toLowerCase().includes(keyword));
   document.getElementById('shipyardModels').innerHTML = models.length ? models.map(modelCard).join('') : '<div class="shipyard-empty">没有符合条件的模型</div>';
 }
 
@@ -87,7 +97,7 @@ function modelCard(item) {
 
 async function requestBinding(variantId) { try { await api('/api/shipyard/binding-requests', jsonOptions('POST', { variantId })); toast('绑定申请已提交'); await loadDashboard(); } catch (error) { toast(error.message, true); } }
 
-function switchPanel(name) { document.querySelectorAll('.shipyard-tabs button').forEach(button => button.classList.toggle('active', button.dataset.panel === name)); document.querySelectorAll('.shipyard-panel').forEach(panel => panel.classList.toggle('active', panel.id === `panel-${name}`)); document.getElementById('accountPopover').classList.remove('show'); }
+function switchPanel(name, activeButton = null) { document.querySelectorAll('.shipyard-tabs button').forEach(button => button.classList.toggle('active', activeButton ? button === activeButton : button.dataset.panel === name && (!button.dataset.modelScope || button.dataset.modelScope === modelScope))); document.querySelectorAll('.shipyard-panel').forEach(panel => panel.classList.toggle('active', panel.id === `panel-${name}`)); document.getElementById('accountPopover').classList.remove('show'); }
 
 async function loadStaff() {
   try { const rows = (await api('/api/shipyard/sales')).data || []; document.getElementById('staffList').innerHTML = rows.length ? `<table><thead><tr><th>姓名</th><th>登录账号</th><th>电话</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead><tbody>${rows.map(item => `<tr><td><input id="staffName-${item.id}" value="${escapeAttr(item.display_name || '')}"></td><td>${escapeHtml(item.username)}</td><td><input id="staffPhone-${item.id}" value="${escapeAttr(item.phone || '')}"></td><td><span class="staff-status ${item.status === 'active' ? 'active' : ''}">${item.status === 'active' ? '正常' : '停用'}</span></td><td>${new Date(item.created_at).toLocaleString('zh-CN')}</td><td><button onclick="saveStaff(${item.id})">保存</button><button onclick="toggleStaff(${item.id},'${item.status === 'active' ? 'disabled' : 'active'}')">${item.status === 'active' ? '停用' : '启用'}</button><button onclick="resetStaffPassword(${item.id})">重置密码</button><button class="danger" onclick="prepareDeleteStaff(${item.id},this)">删除</button></td></tr>`).join('')}</tbody></table>` : '<div class="shipyard-empty">暂无销售人员</div>'; } catch (error) { toast(error.message, true); }

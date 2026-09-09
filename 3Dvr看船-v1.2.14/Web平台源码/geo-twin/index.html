@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地理数字孪生 | 智能船舶设计与远程交付系统</title>
+  <link rel="stylesheet" href="geo-twin.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/vendor/three/three.module.js",
+      "three/addons/": "/vendor/three/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <main class="geo-shell">
+    <div id="geoViewport" class="geo-viewport"></div>
+    <header class="geo-topbar">
+      <button class="back-btn" type="button" onclick="history.length > 1 ? history.back() : location.href='/index.html'">返回</button>
+      <div class="geo-title">
+        <b>地理数字孪生</b>
+        <span>全球船舶与港口交付态势</span>
+      </div>
+      <div class="geo-actions">
+        <button class="mode-btn active" type="button" data-mode="global">全球</button>
+        <button class="mode-btn" type="button" data-mode="coast">中国沿海</button>
+        <button class="mode-btn" type="button" data-mode="port">港口下钻</button>
+      </div>
+    </header>
+    <aside class="geo-panel">
+      <div class="panel-head">
+        <b>船舶列表</b>
+        <span id="fleetCount">加载中</span>
+      </div>
+      <input id="shipSearch" class="ship-search" placeholder="搜索船名、船号、厂家">
+      <div id="shipList" class="ship-list"></div>
+    </aside>
+    <section class="ship-card" id="shipCard" hidden></section>
+    <footer class="geo-status">
+      <span>离线海图底座</span>
+      <span>船位暂按船号稳定随机分布</span>
+      <span>后续可接入数据库经纬度与定期瓦片更新</span>
+    </footer>
+  </main>
+  <script type="module" src="geo-twin.js"></script>
+</body>
+</html>

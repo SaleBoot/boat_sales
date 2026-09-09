@@ -1,5 +1,5 @@
 const API_BASE = '';
-const state = { shipyards: [], boats: [], categories: [], membership: [], bindingRequests: [], orders: [], editing: null, preview: null, editorStep: 'basic', transferPending: false, archivePending: false };
+const state = { shipyards: [], boats: [], categories: [], membership: [], bindingRequests: [], orders: [], editing: null, preview: null, editorStep: 'basic', transferPending: false, archivePending: false, publishPending: false, purgePending: false };
 const COLOR_PRESETS = [
   ['极地白', '#F0F0F2'], ['远洋银', '#C7CCD4'], ['破浪青', '#2E8B8B'],
   ['深海蓝', '#1B3A5B'], ['炽焰红', '#E93442'], ['曜石黑', '#20242A']
@@ -30,6 +30,7 @@ function bindUi() {
   document.getElementById('newBoatBtn')?.addEventListener('click', () => openBoatEditor());
   document.getElementById('boatSearch').addEventListener('input', renderHierarchy);
   document.getElementById('showArchived').addEventListener('change', loadBoats);
+  document.getElementById('purgeArchivedBtn').addEventListener('click', purgeArchivedBoats);
   document.getElementById('refreshMembership').addEventListener('click', loadMembershipRequests);
   document.getElementById('refreshBindings').addEventListener('click', loadBindingRequests);
   document.getElementById('closeBoatEditor').addEventListener('click', closeBoatEditor);
@@ -74,6 +75,7 @@ function bindUi() {
   document.getElementById('confirmModelPreview').addEventListener('click', confirmModelPreview);
   window.addEventListener('message', handlePreviewMessage);
   document.getElementById('archiveBoatBtn').addEventListener('click', archiveBoat);
+  document.getElementById('publishBoatBtn').addEventListener('click', () => state.editing && toggleBoatPublished(state.editing.id, !state.editing.published));
   document.getElementById('logoutBtn').addEventListener('click', logout);
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
@@ -133,8 +135,8 @@ function renderHierarchy() {
       </header>
       <div class="shipyard-group-body">
         <div class="shipyard-body-summary"><span>${escapeHtml(shipyard.plan_name)} · ${shipyard.bound_count || 0}/${shipyard.model_quota} 艘已绑定 · 自有 ${ownedBoats.length} 艘 · 跨厂绑定 ${boundBoats.length} 艘</span><button class="ui-button ui-button--ghost" onclick="openBoatEditor(null,${Number(shipyard.id)})">＋ 添加该厂船型</button></div>
-        ${boatDirectoryTable('本厂自有船型', ownedBoats, false)}
-        ${boundBoats.length ? boatDirectoryTable('已绑定其他厂家船型', boundBoats, true) : ''}
+        ${boatDirectoryTable('本厂自有船型', ownedBoats, false, shipyard.id)}
+        ${boundBoats.length ? boatDirectoryTable('已绑定其他厂家船型', boundBoats, true, shipyard.id) : ''}
         ${!ownedBoats.length && !boundBoats.length ? '<div class="empty-small">该厂家暂无船型</div>' : ''}
       </div>
     </article>`;
@@ -143,19 +145,28 @@ function renderHierarchy() {
   container.innerHTML = groups.length ? groups.join('') : '<div class="admin-empty-v2">没有符合条件的厂家或船型</div>';
 }
 
-function boatDirectoryTable(title, boats, boundReference) {
+function boatDirectoryTable(title, boats, boundReference, shipyardId) {
   if (!boats.length) return '';
-  return `<div class="boat-directory-section"><h3>${escapeHtml(title)}</h3><div class="boat-table-wrap"><table class="admin-data-table"><thead><tr><th>图片</th><th>船型/型号</th><th>分类</th><th>船长</th><th>载客/载荷</th><th>极速</th><th>状态</th><th>操作</th></tr></thead><tbody>${boats.map(boat => boatRow(boat, boundReference)).join('')}</tbody></table></div></div>`;
+  return `<div class="boat-directory-section"><h3>${escapeHtml(title)}</h3><div class="boat-table-wrap"><table class="admin-data-table boat-directory-table"><thead><tr><th>图片</th><th>船型/型号</th><th>分类</th><th>船长</th><th>载客/载荷</th><th>极速</th><th>状态</th><th class="actions-col">操作</th></tr></thead><tbody>${boats.map(boat => boatRow(boat, boundReference, shipyardId)).join('')}</tbody></table></div></div>`;
 }
 
-function boatRow(boat, boundReference = false) {
+function boatThumb(boat) {
+  const src = boat.image || boat.sceneImage || '';
+  if (!src) return '<span class="boat-admin-thumb boat-admin-thumb--empty">暂无图片</span>';
+  return `<img class="boat-admin-thumb" src="${escapeAttr(src)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'boat-admin-thumb boat-admin-thumb--empty',textContent:'暂无图片'}))">`;
+}
+
+function boatRow(boat, boundReference = false, shipyardId = '') {
+  const actions = boundReference
+    ? `<button class="table-action" onclick="openBoatEditor(${boat.id})">查看</button><button class="table-action table-action--danger" onclick="unbindBoatFromShipyard(${Number(shipyardId)},${boat.id})">解绑</button>`
+    : `<button class="table-action" onclick="openBoatEditor(${boat.id})">编辑</button><button class="table-action" onclick="toggleBoatPublished(${boat.id},${!boat.published})">${boat.published ? '下架' : '上架'}</button><button class="table-action table-action--danger" onclick="archiveBoatFromList(${boat.id},${!boat.archived})">${boat.archived ? '恢复' : '归档'}</button>`;
   return `<tr class="${boat.archived ? 'is-archived' : ''}">
-    <td><img class="boat-admin-thumb" src="${escapeAttr(boat.image || '')}" alt=""></td>
-    <td><strong>${escapeHtml(boat.name)}</strong><small>${escapeHtml(boat.shipId)}${boundReference ? ` · 原所属：${escapeHtml(boat.manufacturer)}` : ''}</small></td>
+    <td>${boatThumb(boat)}</td>
+    <td><strong title="船号：${escapeAttr(boat.shipId || '')}">${escapeHtml(boat.name)}</strong>${boundReference ? `<small>原所属：${escapeHtml(boat.manufacturer)}</small>` : ''}</td>
     <td>${escapeHtml(boat.categoryName)}<small>${escapeHtml(boat.typeName)}</small></td>
     <td>${escapeHtml(boat.length || '—')}</td><td>${escapeHtml(boat.capacity || '—')}</td><td>${escapeHtml(boat.maxSpeed || '—')}</td>
     <td><span class="status-pill ${boat.archived || !boat.published ? 'off' : 'on'}">${boat.archived ? '已归档' : boat.published ? '已上架' : '未上架'}</span></td>
-    <td><button class="table-action" onclick="openBoatEditor(${boat.id})">${boundReference ? '查看原船型' : '完整编辑'}</button></td>
+    <td class="boat-actions">${actions}</td>
   </tr>`;
 }
 
@@ -192,12 +203,15 @@ function openBoatEditor(id = null, ownerId = null) {
   };
   state.transferPending = false;
   state.archivePending = false;
+  state.publishPending = false;
   state.editorStep = 'basic';
   document.getElementById('boatEditorTitle').textContent = '新增船型';
   document.getElementById('boatId').value = state.editing.id || '';
   renderOwnerOptions(); renderCategoryOptions(); fillBasicFields(); renderVariants(); renderConfigTabs();
   const archive = document.getElementById('archiveBoatBtn');
-  archive.hidden = !boat; archive.textContent = boat && boat.archived ? '恢复船型' : '归档船型';
+  archive.hidden = !boat; archive.textContent = boat && boat.archived ? '恢复船型' : '删除（归档）船型';
+  const publish = document.getElementById('publishBoatBtn');
+  publish.hidden = !boat; publish.textContent = boat && boat.published ? '下架船型' : '上架船型';
   document.getElementById('uploadImageBtn').disabled = false;
   document.getElementById('uploadModelBtn').classList.remove('is-disabled');
   document.getElementById('editorStatus').textContent = '填写带 * 的基本资料后，即可直接选择并预览模型';
@@ -417,6 +431,8 @@ async function ensureBoatSavedForUpload() {
     document.getElementById('boatId').value = state.editing.id;
     document.getElementById('editShipId').readOnly = true;
     document.getElementById('archiveBoatBtn').hidden = false;
+    document.getElementById('publishBoatBtn').hidden = false;
+    document.getElementById('publishBoatBtn').textContent = state.editing.published ? '下架船型' : '上架船型';
     document.getElementById('boatEditorTitle').textContent = `编辑船型 · ${state.editing.name}`;
     setEditorStatus('基本资料已自动保存，模型仍为暂存，预览确认后才会入库');
     toast('基本资料已保存，正在上传模型');
@@ -605,8 +621,10 @@ async function confirmModelPreview() {
     state.editing = json.data; state.editing.configTabs = pendingTabs;
     if (preview.kind === 'draft') preview.draftId = '';
     await closeModelPreview(false); renderVariants(); renderConfigTabs();
-    setEditorStatus(preview.kind === 'draft' ? '模型已确认入库，可继续配置或保存完成' : '模型展示视角已保存');
-    toast(preview.kind === 'draft' ? '模型已确认并存入数据库' : '模型展示视角已保存');
+    const vrReady = json.variant && json.variant.vrBundle;
+    const pendingReason = json.variant && json.variant.vrProcessingError ? `，${json.variant.vrProcessingError}` : '';
+    setEditorStatus(preview.kind === 'draft' ? (vrReady ? '模型已入库并解锁同步到VR' : `模型已确认入库${pendingReason}`) : '模型展示视角已保存');
+    toast(preview.kind === 'draft' ? (vrReady ? '模型已入库，已解锁同步到VR' : '模型已确认并存入数据库') : '模型展示视角已保存');
   } catch (error) {
     toast(error.message, true); button.disabled = false;
     button.textContent = preview.kind === 'draft' ? '确认并存入数据库' : '保存模型设置';
@@ -636,8 +654,35 @@ async function persistOptionEntryView(pose) {
 
 async function archiveBoat() {
   if (!state.editing || !state.editing.id) return;
-  if (!state.archivePending) { state.archivePending = true; document.getElementById('archiveBoatBtn').textContent = state.editing.archived ? '再次点击确认恢复' : '再次点击确认归档'; setEditorStatus(state.editing.archived ? '恢复后仍需确认是否重新上架。' : '归档不会删除模型、绑定和历史订单。'); return; }
+  if (!state.archivePending) { state.archivePending = true; document.getElementById('archiveBoatBtn').textContent = state.editing.archived ? '再次点击确认恢复' : '再次点击确认归档'; setEditorStatus(state.editing.archived ? '恢复后仍需确认是否重新上架。' : '删除会先归档，7天后可自动清除。'); return; }
   try { await api(`/api/admin/boats/${state.editing.id}/archive`, jsonOptions('PUT', { archived: !state.editing.archived })); toast(state.editing.archived ? '船型已恢复' : '船型已安全归档'); closeBoatEditor(); await loadBoats(); } catch (error) { toast(error.message, true); }
+}
+
+async function archiveBoatFromList(id, archived) {
+  try { await api(`/api/admin/boats/${id}/archive`, jsonOptions('PUT', { archived })); toast(archived ? '船型已归档' : '船型已恢复'); await loadBoats(); } catch (error) { toast(error.message, true); }
+}
+
+async function toggleBoatPublished(id, published) {
+  if (state.editing && state.editing.id === id && !state.publishPending) {
+    state.publishPending = true; document.getElementById('publishBoatBtn').textContent = published ? '再次点击确认上架' : '再次点击确认下架'; setEditorStatus(published ? '上架后前台可见。' : '下架后前台和VR同步不可见。'); return;
+  }
+  try { await api(`/api/admin/boats/${id}/publish`, jsonOptions('PUT', { published })); toast(published ? '船型已上架' : '船型已下架'); closeBoatEditor(); await loadBoats(); } catch (error) { toast(error.message, true); }
+}
+
+async function unbindBoatFromShipyard(shipyardId, boatId) {
+  if (!shipyardId || !boatId) return;
+  try {
+    await api(`/api/admin/shipyards/${shipyardId}/boats/${boatId}/unbind`, jsonOptions('PUT', {}));
+    toast('已解除该厂家与此船型的绑定');
+    await loadBoats();
+  } catch (error) { toast(error.message, true); }
+}
+
+async function purgeArchivedBoats() {
+  const button = document.getElementById('purgeArchivedBtn');
+  if (!state.purgePending) { state.purgePending = true; button.textContent = '再次点击确认清除'; toast('将永久清除已归档船型记录'); setTimeout(() => { state.purgePending = false; button.textContent = '清除归档记录'; }, 3500); return; }
+  try { const json = await api('/api/admin/boats/archived', { method: 'DELETE' }); toast(`已清除 ${json.deleted || 0} 条归档记录`); await loadBoats(); } catch (error) { toast(error.message, true); }
+  finally { state.purgePending = false; button.textContent = '清除归档记录'; }
 }
 
 async function loadMembershipRequests() {
@@ -723,4 +768,4 @@ function closeShipyardDetail(event) {
   if (backBtn) backBtn.style.display = 'none';
 }
 
-Object.assign(window, { openBoatEditor, decideMembership, decideBinding, exportOrderPdf, openShipyardDetail, closeShipyardDetail, adminBack });
+Object.assign(window, { openBoatEditor, decideMembership, decideBinding, exportOrderPdf, openShipyardDetail, closeShipyardDetail, archiveBoatFromList, toggleBoatPublished, unbindBoatFromShipyard, adminBack });

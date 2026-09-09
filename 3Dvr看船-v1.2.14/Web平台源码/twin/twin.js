@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { TwinScene } from './twin-scene.js'
+import { TwinGeography, shipLocation } from './twin-geography.js'
 import { STATUS_TEXT, SYSTEMS, LAYERS, DEVICES, CAMERAS, ALARMS, makeSeries, jitterScale, devicesForBoat } from './twin-data.js'
 
 const $ = id => document.getElementById(id)
@@ -81,7 +82,7 @@ async function fetchBoat() {
   const shipId = params.get('boat') || 'js1300x'
   const res = await fetch('/api/boats', { credentials: 'same-origin' })
   const json = await res.json()
-  const boat = (json.data || []).find(b => b.shipId === shipId) || (json.data || [])[0]
+  const boat = (json.data || []).find(b => b.shipId === shipId)
   if (!boat) throw new Error('未找到数孪船型')
   return boat
 }
@@ -101,11 +102,17 @@ async function init() {
     state.scene = new TwinScene($('twinViewport'), { onSelect: onMarkerSelect, onHover: onMarkerHover })
     state.scene.setDevices(twinDevicesData(), twinCamerasData())
     await loadModel()
+    const geography = new TwinGeography(state.scene, state.boat)
+    state.scene.geography = geography
+    geography.init().catch(error => {
+      $('geoStatus').textContent = '地图加载失败：' + error.message
+      console.error(error)
+    })
+    window.addEventListener('pagehide', () => { geography.destroy(); state.scene.destroy() }, { once:true })
     state.scene.start()
     setFilteredMarkers()
     renderRight()
     startLiveTicker()
-    setInterval(() => renderSystemTree(), 8000)
     window.__twinReady = true
   } catch (error) { showError(error.message || error) }
 }
@@ -130,11 +137,13 @@ async function loadModel() {
   } catch (error) {
     const s = loading && loading.querySelector('span')
     if (s) s.textContent = '模型加载失败：' + (error.message || error)
+    throw error
   }
 }
 
 // 船外/船内：同一完整模型，仅切换相机与材质（不重载模型）
 function switchView(view) {
+  state.scene.geography?.setMode('ship')
   if (view === state.view) return
   state.view = view
   state.scene.setCameraMode(view === 'interior' ? 'interior' : 'exterior')
@@ -145,8 +154,8 @@ function switchView(view) {
 
 function renderHeader() {
   const b = state.boat
-  $('boatTitle').textContent = b.name || 'JS-1300X 铝合金智能消防艇'
-  $('boatMeta').textContent = `${b.typeName || b.categoryName || ''}${b.length ? ' · 全长 ' + b.length : ''}${b.manufacturer ? ' · ' + b.manufacturer : ''}${b.description ? ' · ' + b.description : ''}`
+  $('boatTitle').textContent = b.shipId || b.name || 'JS-1300X'
+  $('boatMeta').textContent = '数字孪生监控中心'
 }
 
 function kpiData() {
@@ -156,7 +165,7 @@ function kpiData() {
   const alarm = devs.filter(d => d.status === 'alarm').length
   const eng5 = DEVICES.find(d => d.id === 'eng-5')
   const eng6 = DEVICES.find(d => d.id === 'eng-6')
-  return { total, online, alarm, fuel: eng5 ? eng5.value : 68, oil: eng6 ? eng6.value : 72, fuelRate: 42, range: 320, route: '外滩—横沙水道 巡航' }
+  return { total, online, alarm, fuel: eng5 ? eng5.value : 68, oil: eng6 ? eng6.value : 72, fuelRate: 42, range: 320, route: shipLocation(state.boat).routeName }
 }
 
 function renderKpis() {

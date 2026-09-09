@@ -1,0 +1,54 @@
+const assert = require('node:assert/strict');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+
+(async () => {
+  const browser = await chromium.launch({headless:true});
+  const page = await browser.newPage({viewport:{width:1600,height:1000}});
+  const errors=[];
+  if(process.env.TWIN_ASSET_ORIGIN) await page.route(/\/(FBX|assets)\/|\/api\/boats$/,async route=>{
+    const source=new URL(route.request().url());
+    const response=await route.fetch({url:process.env.TWIN_ASSET_ORIGIN+source.pathname+source.search});
+    await route.fulfill({response});
+  });
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.goto((process.env.TWIN_BASE || 'http://127.0.0.1:3000')+'/twin/?boat='+encodeURIComponent(process.env.TWIN_SHIP || 'js108'));
+  await page.waitForFunction(()=>window.__twinReady,{},{timeout:120000});
+  await page.waitForFunction(()=>document.querySelector('#geoPosition').textContent.includes('°E'),{},{timeout:120000});
+  await page.click('[data-geo=ship]');
+  await page.waitForTimeout(12000);
+  await page.screenshot({path:'/tmp/twin-ship-desktop.png'});
+  await page.click('[data-geo=port]');
+  await page.waitForTimeout(16000);
+  assert.equal(await page.locator('.cesium-widget-errorPanel').count(),0);
+  await page.screenshot({path:'/tmp/twin-port-desktop.png'});
+  const pixels=await page.evaluate(()=>{
+    const canvas=document.querySelector('#geoViewport canvas');
+    const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
+    const colors=new Set(),size=256,data=new Uint8Array(size*size*4);
+    gl.readPixels(Math.floor(canvas.width/2-size/2),Math.floor(canvas.height/2-size/2),size,size,gl.RGBA,gl.UNSIGNED_BYTE,data);
+    for(let i=0;i<data.length;i+=1024)colors.add([...data.slice(i,i+4)].join(','));
+    return colors.size;
+  });
+  assert.ok(pixels>15,'Map canvas is blank or lacks imagery');
+  assert.equal(await page.locator('#twinViewport').isVisible(),false);
+  await page.click('[data-geo=globe]');
+  await page.waitForTimeout(4000);
+  await page.screenshot({path:'/tmp/twin-globe-desktop.png'});
+  await page.click('[data-geo=ship]');
+  assert.equal(await page.locator('#twinViewport').isVisible(),true);
+  await page.click('[data-key="sys:fire"]');
+  await page.locator('[data-device]').first().click();
+  assert.ok((await page.locator('#rightContent').innerText()).length>50);
+  await page.click('#routePlay');
+  await page.waitForTimeout(1000);
+  assert.ok(Number(await page.inputValue('#routeTime'))>0);
+  await page.click('#routeReset');
+  assert.equal(await page.inputValue('#routeTime'),'0');
+  await page.setViewportSize({width:1280,height:800});
+  await page.waitForTimeout(1500);
+  await page.screenshot({path:'/tmp/twin-ship-laptop.png'});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  console.log(JSON.stringify({errors,pixelColors:pixels,status:await page.locator('#geoStatus').textContent()}));
+  await browser.close();
+  assert.deepEqual(errors,[]);
+})().catch(error=>{console.error(error);process.exit(1)});

@@ -93,9 +93,10 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  max-width: min(360px, 48vw);
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
   color: var(--text-primary);
   background: var(--bg-primary);
   padding: 8px 18px;
@@ -104,6 +105,13 @@ body {
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: var(--transition-fast);
+}
+
+.nav-logo span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-logo:hover {
@@ -262,6 +270,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 /* 返回控制台按钮：与 .nav-logo 样式完全统一 */
@@ -1750,6 +1759,14 @@ body {
   .nav-links {
     display: none;
   }
+  .nav-inner {
+    padding: 0 12px;
+  }
+  .nav-logo {
+    max-width: 52vw;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
   .catalog-view, .customize-view {
     padding: 1.5rem;
   }
@@ -2729,13 +2746,14 @@ body.compare-active .top-nav { z-index: 1100; }
   margin-bottom: 6px;
   font-weight: 500;
 }
-.editor-field input, .editor-field textarea {
+.editor-field input, .editor-field textarea, .editor-field select {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 0.875rem;
   box-sizing: border-box;
+  background: #fff;
 }
 .editor-field textarea { resize: vertical; }
 .editor-field-row {

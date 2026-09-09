@@ -1,0 +1,76 @@
+:root {
+  --bg: #061421;
+  --panel: rgba(8, 23, 39, .72);
+  --panel2: rgba(12, 38, 61, .58);
+  --line: rgba(125, 211, 252, .22);
+  --text: #e6f4ff;
+  --muted: #9fc1d6;
+  --accent: #38bdf8;
+  --cyan: #22d3ee;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+button, input { font: inherit; }
+.geo-shell { position: fixed; inset: 0; overflow: hidden; }
+.geo-viewport { position: absolute; inset: 0; background: radial-gradient(circle at 52% 42%, #0a5878 0%, #053156 46%, #020b18 100%); }
+.geo-viewport canvas { display: block; }
+.geo-topbar {
+  position: absolute; top: 14px; left: 16px; right: 16px; z-index: 10;
+  height: 54px; display: flex; align-items: center; gap: 14px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: rgba(3, 12, 24, .62);
+  backdrop-filter: blur(14px); box-shadow: 0 16px 42px rgba(0,0,0,.32);
+}
+.back-btn, .mode-btn, .card-actions a {
+  border: 1px solid var(--line); border-radius: 9px; background: rgba(15, 42, 68, .68);
+  color: var(--text); height: 32px; padding: 0 13px; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap;
+}
+.back-btn:hover, .mode-btn:hover, .card-actions a:hover { border-color: var(--accent); }
+.mode-btn.active { background: linear-gradient(90deg, #0891b2, #38bdf8); color: #04111f; border-color: transparent; font-weight: 700; }
+.geo-title { min-width: 0; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.geo-title b { font-size: 17px; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.geo-title span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.geo-actions { display: flex; gap: 8px; }
+.geo-panel {
+  position: absolute; z-index: 8; top: 86px; left: 16px; bottom: 58px; width: 310px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+  backdrop-filter: blur(16px); box-shadow: 0 18px 50px rgba(0,0,0,.35); padding: 14px;
+}
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+.panel-head b { font-size: 15px; }
+.panel-head span { color: var(--accent); font-size: 12px; }
+.ship-search {
+  width: 100%; height: 38px; border: 1px solid var(--line); border-radius: 10px; outline: 0;
+  background: rgba(4, 18, 31, .66); color: var(--text); padding: 0 12px; margin-bottom: 11px;
+}
+.ship-search::placeholder { color: rgba(159, 193, 214, .66); }
+.ship-list { height: calc(100% - 86px); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.ship-row {
+  width: 100%; border: 1px solid rgba(125,211,252,.16); border-radius: 11px; background: rgba(10, 32, 52, .62);
+  color: var(--text); text-align: left; padding: 10px 11px; cursor: pointer;
+}
+.ship-row:hover, .ship-row.active { border-color: var(--accent); background: rgba(14, 116, 144, .32); }
+.ship-row b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ship-row span { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ship-card {
+  position: absolute; right: 16px; bottom: 58px; z-index: 9; width: 360px; max-width: calc(100vw - 356px);
+  border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+  backdrop-filter: blur(16px); box-shadow: 0 18px 50px rgba(0,0,0,.4); overflow: hidden;
+}
+.ship-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #071827; }
+.card-body { padding: 13px; }
+.card-body h2 { margin: 0 0 6px; font-size: 18px; line-height: 1.25; }
+.card-meta { display: flex; flex-wrap: wrap; gap: 7px; margin: 8px 0 12px; }
+.card-meta span { font-size: 11px; color: var(--muted); padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.08); }
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.card-actions a.primary { background: linear-gradient(90deg, #0891b2, #38bdf8); color: #04111f; font-weight: 700; border-color: transparent; }
+.geo-status {
+  position: absolute; left: 16px; right: 16px; bottom: 14px; z-index: 7; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+}
+.geo-status span { font-size: 11px; color: var(--muted); background: rgba(3, 12, 24, .52); border: 1px solid rgba(125,211,252,.16); border-radius: 999px; padding: 5px 10px; }
+@media (max-width: 900px) {
+  .geo-topbar { height: auto; min-height: 54px; flex-wrap: wrap; padding: 10px; }
+  .geo-actions { width: 100%; overflow-x: auto; }
+  .geo-panel { top: 126px; width: 260px; }
+  .ship-card { left: 288px; right: 12px; width: auto; max-width: none; }
+}

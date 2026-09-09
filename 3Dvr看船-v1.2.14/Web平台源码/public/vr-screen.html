@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VR 实时画面 · 智能船舶设计与远程交付系统</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#0c1320;color:#edf3fc;font-family:system-ui,sans-serif}header{padding:20px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #293348}h1{font-size:20px;margin:0}button,a{font:inherit;color:inherit;background:#233148;border:1px solid #46536a;border-radius:10px;padding:10px 16px;cursor:pointer;text-decoration:none}button:focus-visible,a:focus-visible{outline:3px solid #38bdf8}main{max-width:1280px;margin:auto;padding:24px}.toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}.screen{min-height:55vh;background:#03060b;border-radius:16px;display:grid;place-items:center;overflow:hidden}.screen video{max-width:100%;max-height:75vh;object-fit:contain}.screen:fullscreen{border-radius:0}.screen:fullscreen img{max-height:100vh}p{color:#aebdd1;line-height:1.8}.screen p{padding:32px;text-align:center}#status{color:#7dd3fc}[hidden]{display:none!important}@media(max-width:600px){header{padding:16px}main{padding:16px}.toolbar{align-items:flex-start;flex-direction:column}h1{font-size:18px}}
+    /* PICO XR eye textures have the opposite vertical orientation to the web video surface. */
+    #frame{transform:scaleY(-1)}
+    .screen{aspect-ratio:16/9;min-height:0;position:relative}
+    .screen video{width:100%;height:100%;max-height:none;object-fit:cover}
+    .screen[data-fit="contain"] video{object-fit:contain}
+    .screen:fullscreen{width:100vw;height:100vh;aspect-ratio:auto}
+    .screen:fullscreen video{max-height:none}
+  </style>
+  <script src="/vendor/livekit-client.umd.js" defer></script>
+  <script src="/js/vr-screen.js?v=1.2.17.3" defer></script>
+</head>
+<body>
+  <header><h1>VR 实时画面</h1><button id="back">返回看船</button></header>
+  <main>
+    <div class="toolbar"><span id="status" role="status" aria-live="polite">正在连接头显…</span><div><button id="fit">完整画面</button> <button id="play" hidden>播放画面</button> <button id="fullscreen">全屏观看</button></div></div>
+    <div class="screen" id="screen"><video id="frame" aria-label="VR头显中的实时看船画面" autoplay muted playsinline hidden></video><p id="waiting">等待头显画面<br>请在已更新的 VR 看船应用中，使用与网页相同的账号登录。</p></div>
+    <p>默认铺满窗口，不拉伸画面；可切换“完整画面”查看上下被裁去的部分。</p>
+    <p>显示头显应用内的看船视角。关闭或离开此页面后会自动停止回传；网络较慢时画面可能延迟。</p>
+  </main>
+</body></html>

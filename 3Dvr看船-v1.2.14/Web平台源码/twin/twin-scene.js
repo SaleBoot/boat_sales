@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { Water } from 'three/addons/objects/Water.js'
 import Scene from '/js/Scene.js'
 import { SYSTEMS, DEVICES, CAMERAS } from './twin-data.js'
 
@@ -17,21 +18,25 @@ export class TwinScene {
     this.onSelect = onSelect
     this.onHover = onHover
     this.inner = new Scene(container)
+    this._bound = null
     this._setupSea()
     this._disableFreeOrbit()
     this.markers = new Map()
     this.markerMeshes = []
     this.raycaster = new THREE.Raycaster()
-    this.raycaster.far = 0.4
+    this.raycaster.far = Infinity
     this._downPos = null
     this._hovered = null
-    this._bound = null
     this._systemOn = {}
     this._layersOn = new Set()
     this._selectedId = null
     this._devicesRef = []
     this._camerasRef = []
     this._markerScale = 1
+    this._fxGroup = null
+    this._scanLight = null
+    this._routeFlow = []
+    this._fxStart = performance.now()
 
     this._onPointerDown = e => { this._downPos = { x: e.clientX, y: e.clientY } }
     this._onPointerUp = e => this._handlePointerUp(e)
@@ -46,11 +51,11 @@ export class TwinScene {
   // 只允许左侧按钮控制视角：关闭画布自由旋转/缩放/平移
   _disableFreeOrbit() {
     const c = this.inner.controls
-    c.enableRotate = false
-    c.enableZoom = false
-    c.enablePan = false
+    c.enableRotate = true
+    c.enableZoom = true
+    c.enablePan = true
     c.enableDamping = false
-    c.enableZoom = false
+    c.maxPolarAngle = Math.PI * .48
   }
 
   _poseFromPoints(points, { distFactor = 2.5, pad = 0.25, dir = [0.7, 0.5, 1] } = {}) {
@@ -176,62 +181,128 @@ export class TwinScene {
   }
 
   focusView(kind, id, opts = {}) {
+    this.geography?.setMode('ship')
     this.animateTo(this.focusPose(kind, id), opts.dur || 0.75, opts.done)
   }
 
   _setupSea() {
-    const inner = this.inner
-    // 天空 -> 海面 渐变背景
-    const c = document.createElement('canvas')
-    c.width = 8; c.height = 256
-    const ctx = c.getContext('2d')
-    const g = ctx.createLinearGradient(0, 0, 0, 256)
-    g.addColorStop(0, '#bfe6ff')
-    g.addColorStop(0.42, '#e9f7ff')
-    g.addColorStop(0.56, '#a7ddf0')
-    g.addColorStop(1, '#2f86a8')
-    ctx.fillStyle = g
-    ctx.fillRect(0, 0, 8, 256)
-    const skyTex = new THREE.CanvasTexture(c)
-    skyTex.colorSpace = THREE.SRGBColorSpace
-    inner.scene.background = skyTex
-    // 平静海面用淡雾，让远海自然淡出
-    this._fog = new THREE.Fog(0xd3ecf7, 28, 120)
-    inner.scene.fog = this._fog
-    // 关掉默认的不透明底座，改用海面
-    if (inner.groundMesh) inner.groundMesh.visible = false
+    this.inner.scene.background = null
+    this.inner.scene.fog = null
+    this._fog = null
+    if (this.inner.groundMesh) this.inner.groundMesh.visible = false
   }
 
   _applyWater() {
-    const inner = this.inner
     if (this._waterMesh) {
-      inner.scene.remove(this._waterMesh)
-      this._waterMesh.geometry.dispose()
-      this._waterMesh.material.dispose()
-      this._waterMesh = null
+      this.inner.scene.remove(this._waterMesh)
+      this._dispose(this._waterMesh)
     }
-    if (!inner.currentModel) return
-    const box = new THREE.Box3().setFromObject(inner.currentModel)
-    const geo = new THREE.PlaneGeometry(120, 120)
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x2490b0, roughness: 0.28, metalness: 0.02,
-      transparent: true, opacity: 0.95
+    const box = this._bound
+    const normals = new THREE.TextureLoader().load('/twin/waternormals.jpg')
+    normals.wrapS = normals.wrapT = THREE.RepeatWrapping
+    const water = new Water(new THREE.PlaneGeometry(180,180), {
+      textureWidth:512, textureHeight:512, waterNormals:normals,
+      sunDirection:new THREE.Vector3(-.4,.7,.5).normalize(),
+      sunColor:0xc4ddf2, waterColor:0x063055, distortionScale:1.8, alpha:1
     })
-    const water = new THREE.Mesh(geo, mat)
-    water.rotation.x = -Math.PI / 2
-    water.position.y = box.min.y + (box.max.y - box.min.y) * 0.03
-    water.receiveShadow = true
-    water.name = 'TwinWater'
-    inner.scene.add(water)
+    water.material.uniforms.size.value = 18
+    water.material.transparent = true
+    water.material.fragmentShader = water.material.fragmentShader.replace(
+      'gl_FragColor = vec4( outgoingLight, alpha );',
+      'gl_FragColor = vec4(outgoingLight, alpha * (1.0-smoothstep(35.0,85.0,length(worldPosition.xz))));'
+    )
+    water.rotation.x = -Math.PI/2
+    water.position.y = box.min.y + (box.max.y-box.min.y)*.10
+    this.inner.scene.add(water)
     this._waterMesh = water
+    if (this.inner.groundMesh) this.inner.groundMesh.visible = false
   }
 
   async loadBoat(variant, onProgress) {
     await this.inner.loadVariant(variant, onProgress)
     this._bound = new THREE.Box3().setFromObject(this.inner.currentModel)
+    this.inner.renderer.shadowMap.autoUpdate = false
+    this.inner.renderer.shadowMap.needsUpdate = true
     this._applyWater()
+    this._buildShipFx()
     this.refreshMarkers()
     return this.inner.currentModel
+  }
+
+  _buildShipFx() {
+    if (this._fxGroup) {
+      this.inner.scene.remove(this._fxGroup)
+      this._dispose(this._fxGroup)
+    }
+    const box = this._bound
+    const size = box.getSize(new THREE.Vector3())
+    const center = box.getCenter(new THREE.Vector3())
+    const maxDim = Math.max(size.x, size.y, size.z)
+    const group = new THREE.Group()
+    group.name = 'Ship Hologram FX'
+
+    const shell = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(size.x * 1.05, size.y * 1.12, size.z * 1.08)),
+      new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending })
+    )
+    shell.position.copy(center)
+    group.add(shell)
+
+    const ringMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending })
+    for (const y of [box.min.y + size.y * 0.18, box.min.y + size.y * 0.5, box.max.y + size.y * 0.08]) {
+      const curve = new THREE.EllipseCurve(0, 0, size.x * 0.62, size.z * 0.62, 0, Math.PI * 2)
+      const ring = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(curve.getPoints(96)), ringMat)
+      ring.rotation.x = Math.PI / 2
+      ring.position.set(center.x, y, center.z)
+      group.add(ring)
+    }
+
+    const gridMat = new THREE.LineBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending })
+    const grid = new THREE.GridHelper(maxDim * 1.65, 18, 0x38bdf8, 0x38bdf8)
+    grid.material = gridMat
+    grid.position.set(center.x, box.min.y + size.y * 0.08, center.z)
+    group.add(grid)
+
+    this._scanLight = new THREE.Mesh(
+      new THREE.PlaneGeometry(size.x * 1.18, size.z * 1.18),
+      new THREE.MeshBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.16, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+    )
+    this._scanLight.rotation.x = -Math.PI / 2
+    this._scanLight.position.set(center.x, box.min.y, center.z)
+    group.add(this._scanLight)
+
+    this._routeFlow = []
+    const routeMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.72, blending: THREE.AdditiveBlending })
+    for (let i = 0; i < 4; i++) {
+      const z = center.z + (i - 1.5) * size.z * 0.22
+      const y = box.min.y + size.y * (0.08 + i * 0.035)
+      const pts = []
+      for (let n = 0; n < 64; n++) {
+        const k = n / 63
+        pts.push(new THREE.Vector3(center.x - size.x * (0.78 - k * 1.56), y + Math.sin(k * Math.PI * 2) * size.y * 0.015, z + Math.sin(k * Math.PI * 3 + i) * size.z * 0.06))
+      }
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), routeMat.clone())
+      line.userData.phase = i * 0.7
+      this._routeFlow.push(line)
+      group.add(line)
+    }
+
+    const particleCount = 48
+    const pos = new Float32Array(particleCount * 3)
+    for (let i = 0; i < particleCount; i++) {
+      pos[i * 3] = center.x + (Math.random() - 0.5) * size.x * 1.35
+      pos[i * 3 + 1] = box.min.y + size.y * (0.18 + Math.random() * 0.9)
+      pos[i * 3 + 2] = center.z + (Math.random() - 0.5) * size.z * 1.35
+    }
+    const particles = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(pos, 3)),
+      new THREE.PointsMaterial({ color: 0xbae6fd, size: maxDim * 0.008, transparent: true, opacity: 0.48, blending: THREE.AdditiveBlending, depthWrite: false })
+    )
+    particles.name = 'Ship FX Particles'
+    group.add(particles)
+
+    this._fxGroup = group
+    this.inner.scene.add(group)
   }
 
   setDevices(devices, cameras) {
@@ -285,7 +356,7 @@ export class TwinScene {
       const { group, dot } = this._makeMarker(device)
       group.position.copy(this._anchorToWorld(device.anchor))
       this.inner.scene.add(group)
-      this.markers.set(device.id, { group, dot })
+      this.markers.set(device.id, { group, dot, baseDot: 1, baseRing: 1 })
       this.markerMeshes.push(dot)
     }
     this._applyFilters()
@@ -293,7 +364,7 @@ export class TwinScene {
 
   _dispose(obj) {
     obj.traverse(child => {
-      if (child.isMesh) {
+      if (child.isMesh || child.isLine || child.isPoints) {
         child.geometry && child.geometry.dispose && child.geometry.dispose()
         if (child.material) {
           const mats = Array.isArray(child.material) ? child.material : [child.material]
@@ -398,16 +469,38 @@ export class TwinScene {
   start() {
     const raf = () => {
       if (this._stop) return
+      if (this._waterMesh) this._waterMesh.material.uniforms.time.value = performance.now() * .001
+      this._animateShipFx()
       this._pulse()
       requestAnimationFrame(raf)
     }
     raf()
   }
 
+  _animateShipFx() {
+    if (!this._fxGroup || !this._bound) return
+    const t = (performance.now() - this._fxStart) / 1000
+    const size = this._bound.getSize(new THREE.Vector3())
+    if (this._scanLight) {
+      this._scanLight.position.y = this._bound.min.y + ((t * 0.28) % 1) * size.y * 1.15
+      this._scanLight.material.opacity = 0.08 + Math.sin(t * 4) * 0.04
+    }
+    for (const line of this._routeFlow) {
+      line.material.opacity = 0.3 + ((Math.sin(t * 2.4 + line.userData.phase) + 1) / 2) * 0.48
+      line.position.x = Math.sin(t * 0.9 + line.userData.phase) * size.x * 0.025
+    }
+    const particles = this._fxGroup.getObjectByName('Ship FX Particles')
+    if (particles) {
+      particles.rotation.y = t * 0.08
+      particles.material.opacity = 0.32 + Math.sin(t * 1.8) * 0.1
+    }
+  }
+
   setInterior(enabled) { this.inner.setInteriorMaterialMode(enabled) }
   setCameraMode(mode) {
     // 船内不施加海面远景雾，避免舱内发白
     this.inner.scene.fog = mode === 'interior' ? null : this._fog
+    if (this._fxGroup) this._fxGroup.visible = mode !== 'interior'
     this.inner.setCameraMode(mode)
   }
 

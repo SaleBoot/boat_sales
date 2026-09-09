@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JS-1300X 数字孪生 · 智能监控中心</title>
   <link rel="stylesheet" href="twin.css">
+  <link rel="stylesheet" href="/vendor/cesium/Widgets/widgets.css">
+  <script src="/vendor/cesium/Cesium.js"></script>
   <script type="importmap">
   {
     "imports": {
@@ -18,7 +20,7 @@
   <header class="twin-header">
     <div class="brand">
       <span class="brand-mark">船·数孪</span>
-      <div class="brand-info"><h1 id="boatTitle">JS-1300X 铝合金智能消防艇</h1><p id="boatMeta">智能消防艇 · 数字孪生监控中心</p></div>
+      <div class="brand-info"><h1 id="boatTitle">JS-1300X</h1><p id="boatMeta">数字孪生监控中心</p></div>
     </div>
     <div class="kpis" id="kpiBar"></div>
     <div class="header-actions">
@@ -28,6 +30,7 @@
   </header>
 
   <div class="twin-stage">
+    <div id="geoViewport"></div>
     <div class="viewport" id="twinViewport">
       <div class="loading" id="modelLoading"><span>正在加载船模与设备点位…</span></div>
       <div class="marker-tooltip" id="markerTooltip" hidden></div>
@@ -40,6 +43,17 @@
         <button data-view="exterior" class="active">船外展示</button>
         <button data-view="interior">船内展示</button>
       </div>
+      <div class="panel-title">地理视图</div>
+      <div class="geo-modes" role="group" aria-label="地理视图">
+        <button data-geo="ship" aria-pressed="true">船舶</button>
+        <button data-geo="port" aria-pressed="false">港口</button>
+        <button data-geo="globe" aria-pressed="false">地球</button>
+      </div>
+      <p id="geoPosition" class="geo-position"></p>
+      <label class="geo-toggle"><input id="routeVisible" type="checkbox" checked>模拟航线</label>
+      <div class="geo-route-controls"><button id="routePlay" class="ghost-btn">播放航迹</button><button id="routeReset" class="ghost-btn">复位</button></div>
+      <input id="routeTime" type="range" min="0" max="1000" value="0" aria-label="航迹回放进度">
+      <p id="geoStatus" role="status" class="geo-position">地图加载中</p>
       <div class="panel-title">分专业</div>
       <div id="systemTree" class="system-tree"></div>
       <div class="panel-title">分层筛选</div>
@@ -61,7 +75,7 @@
 
     <div class="stage-bottom">
       <div class="legend" id="legend"></div>
-      <div class="viewport-hint">视角固定 · 由左侧按钮切换 · 点击设备点位查看详情</div>
+      <div id="geoCredit"></div>
     </div>
   </div>
 
