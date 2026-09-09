@@ -24,6 +24,7 @@ async function loadDetail(id) {
     if (!response.ok || !json.success) throw new Error(json.message || '未找到该船型');
     boatData = json.data; initializeSelections(); renderPage(); document.title = `${boatData.name} | 智能船舶设计与远程交付系统`;
     updateDigitalTwinEntry();
+    updateVrSyncEntry();
   } catch (error) { showPageError(error.message || '加载失败，请检查服务'); }
 }
 
@@ -181,6 +182,16 @@ function updateDigitalTwinEntry() {
     const sess = JSON.parse(localStorage.getItem('auth_user'));
     const loggedIn = !!(sess && sess.username);
     btn.style.display = (loggedIn && boatData && boatData.shipId) ? 'inline-flex' : 'none';
+  } catch (e) { btn.style.display = 'none'; }
+}
+function updateVrSyncEntry() {
+  const btn = document.getElementById('syncCurrentVrBtn');
+  if (!btn) return;
+  btn.textContent = '同步 VR 看船视角';
+  try {
+    const sess = JSON.parse(localStorage.getItem('auth_user'));
+    const role = sess && sess.role;
+    btn.style.display = (role === 'platform_admin' || role === 'admin' || role === 'shipyard_owner' || role === 'sales') ? 'inline-flex' : 'none';
   } catch (e) { btn.style.display = 'none'; }
 }
 function openDigitalTwin() {
@@ -401,9 +412,8 @@ async function syncCurrentVariantToVr() {
     const json = await response.json();
     if (!response.ok || !json.success) throw new Error(json.message || '同步失败');
     button.textContent = '已同步到VR';
-    toast('同步成功，PICO将在30秒内自动切换');
-    window.location.assign('/vr-screen.html');
-    setTimeout(() => { button.textContent = original; }, 3000);
+    toast('同步成功，正在打开 VR 直播视角');
+    setTimeout(() => { location.href = '/vr-screen.html'; }, 400);
   } catch (error) { button.textContent = original; toast(error.message || '同步失败', true); }
   finally { button.disabled = false; }
 }
@@ -431,23 +441,7 @@ async function submitCustomerOrder(event, closeDialog) {
 }
 
 function showPageError(message) { document.getElementById('configLayout').innerHTML = `<div class="detail-error">${escapeHtml(message)}<button class="detail-loading-retry" onclick="location.reload()">重新加载</button></div>`; }
-function returnToCatalog() {
-  var params = new URLSearchParams(window.location.search);
-  var isAdmin = params.get('admin') === '1';
-  if (isAdmin) {
-    try { window.close(); } catch (e) {}
-    setTimeout(function () { window.location.href = 'members.html'; }, 150);
-    return;
-  }
-  try {
-    if (history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) {
-      history.back();
-      return;
-    }
-  } catch (e) {}
-  window.location.href = 'index.html';
-}
-function toast(message, error = false) { const container = document.getElementById('toastContainer'); const item = document.createElement('div'); item.className = `toast ${error ? 'error' : 'success'}`; item.textContent = message; container.appendChild(item); setTimeout(() => item.remove(), 3500); }
+function toast(message, error = false) { const container = document.getElementById('toastContainer'); container.innerHTML = ''; const item = document.createElement('div'); item.className = `toast ${error ? 'error' : 'success'}`; item.textContent = message; container.appendChild(item); setTimeout(() => item.remove(), 3500); }
 function escapeHtml(value) { const span = document.createElement('span'); span.textContent = value == null ? '' : String(value); return span.innerHTML; }
 function escapeAttr(value) { return escapeHtml(value).replace(/"/g,'&quot;'); }
 function escapeJs(value) { return String(value || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
@@ -922,4 +916,4 @@ function exitCompareMode() {
   compareModeLock = false;
 }
 
-Object.assign(window, { switchTab, selectOption, submitConfig, syncCurrentVariantToVr, returnToCatalog, openSectionEditor, closeSectionEditor, addEditOption, uploadOptionImage, uploadSceneImage, previewImage, saveSection, syncSubtypeSelect, toggleCompareMode, loadCompareBoat, loadCompareCurrentBoat, loadCompareHome, loadCompareCurrentHome, exitCompareMode });
+Object.assign(window, { switchTab, selectOption, submitConfig, syncCurrentVariantToVr, openSectionEditor, closeSectionEditor, addEditOption, uploadOptionImage, uploadSceneImage, previewImage, saveSection, syncSubtypeSelect, toggleCompareMode, loadCompareBoat, loadCompareCurrentBoat, loadCompareHome, loadCompareCurrentHome, exitCompareMode });

@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFilters();
   initModal();
   initSidebarNav();
+  if (location.hash === '#boats') switchPanel('admin', document.querySelector('.mem-side-item--child[data-admin-panel="boats"]'));
   initAdminAccountMenu();
   document.getElementById('addMainCategoryBtn')?.addEventListener('click', addMainCategory);
   loadMembers();

@@ -1,0 +1,14 @@
+[Unit]
+Description=Ship model build queue (%i)
+ConditionPathExists=%h/ship-platform-api-6060/shared/build-config/%i.env
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/ship-platform-api-6060/shared/build-config/%i.env
+ExecStart=/usr/bin/env ${MODEL_BUILD_NODE} ${MODEL_BUILD_WORKER}
+TimeoutStartSec=infinity
+TimeoutStopSec=30
+KillMode=control-group
+Restart=on-failure
+RestartSec=15
+UMask=0027

@@ -74,6 +74,9 @@ function bindUi() {
   document.getElementById('saveInteriorPose').addEventListener('click', () => capturePreviewPose('interior'));
   document.getElementById('confirmModelPreview').addEventListener('click', confirmModelPreview);
   window.addEventListener('message', handlePreviewMessage);
+  window.addEventListener('message', event => {
+    if (event.origin === location.origin && event.source === window.top && event.data?.type === 'model-build-change' && Number(event.data.boatId) === Number(state.editing?.id)) renderVariants();
+  });
   document.getElementById('archiveBoatBtn').addEventListener('click', archiveBoat);
   document.getElementById('publishBoatBtn').addEventListener('click', () => state.editing && toggleBoatPublished(state.editing.id, !state.editing.published));
   document.getElementById('logoutBtn').addEventListener('click', logout);
@@ -159,7 +162,7 @@ function boatThumb(boat) {
 function boatRow(boat, boundReference = false, shipyardId = '') {
   const actions = boundReference
     ? `<button class="table-action" onclick="openBoatEditor(${boat.id})">查看</button><button class="table-action table-action--danger" onclick="unbindBoatFromShipyard(${Number(shipyardId)},${boat.id})">解绑</button>`
-    : `<button class="table-action" onclick="openBoatEditor(${boat.id})">编辑</button><button class="table-action" onclick="toggleBoatPublished(${boat.id},${!boat.published})">${boat.published ? '下架' : '上架'}</button><button class="table-action table-action--danger" onclick="archiveBoatFromList(${boat.id},${!boat.archived})">${boat.archived ? '恢复' : '归档'}</button>`;
+    : `<button class="table-action" onclick="openBoatEditor(${boat.id})">编辑</button><button class="table-action" onclick="openBoatEditor(${boat.id},null,true)">模型</button><button class="table-action" onclick="toggleBoatPublished(${boat.id},${!boat.published})">${boat.published ? '下架' : '上架'}</button><button class="table-action table-action--danger" onclick="archiveBoatFromList(${boat.id},${!boat.archived})">${boat.archived ? '恢复' : '归档'}</button>`;
   return `<tr class="${boat.archived ? 'is-archived' : ''}">
     <td>${boatThumb(boat)}</td>
     <td><strong title="船号：${escapeAttr(boat.shipId || '')}">${escapeHtml(boat.name)}</strong>${boundReference ? `<small>原所属：${escapeHtml(boat.manufacturer)}</small>` : ''}</td>
@@ -190,22 +193,23 @@ function defaultTabs(isUnmanned = false) {
   return common;
 }
 
-function openBoatEditor(id = null, ownerId = null) {
+function openBoatEditor(id = null, ownerId = null, manageModels = false) {
   // 编辑已有船型：跳转到detail页面，带admin标记
-  if (id) { window.open(`detail.html?id=${id}&admin=1`, '_blank'); return; }
+  if (id && !manageModels) { window.open(`detail.html?id=${id}&admin=1`, '_blank'); return; }
   // 新增船型：保留原有弹窗逻辑
-  const boat = null;
+  const boat = id ? state.boats.find(item => Number(item.id) === Number(id)) : null;
+  if (id && !boat) { toast('船型不存在，请刷新列表', true); return; }
   state.editing = boat ? structuredClone(boat) : {
     id: null, ownerShipyardId: Number(ownerId || (state.shipyards[0] && state.shipyards[0].id)), shipId: '', name: '',
     category: state.categories[0] ? state.categories[0].id : 'commercial', categoryName: state.categories[0] ? state.categories[0].name : '商用船',
     subtype: '', typeName: '', length: '', capacity: '', maxSpeed: '资料待确认', basePriceYuan: 0, description: '', features: [],
-    image: '', sceneImage: '', customizable: true, published: true, archived: false, variants: [], configTabs: defaultTabs(false)
+    image: '', sceneImage: '', customizable: true, published: false, archived: false, variants: [], configTabs: defaultTabs(false)
   };
   state.transferPending = false;
   state.archivePending = false;
   state.publishPending = false;
   state.editorStep = 'basic';
-  document.getElementById('boatEditorTitle').textContent = '新增船型';
+  document.getElementById('boatEditorTitle').textContent = boat ? '船型模型管理' : '新增船型';
   document.getElementById('boatId').value = state.editing.id || '';
   renderOwnerOptions(); renderCategoryOptions(); fillBasicFields(); renderVariants(); renderConfigTabs();
   const archive = document.getElementById('archiveBoatBtn');
@@ -215,7 +219,7 @@ function openBoatEditor(id = null, ownerId = null) {
   document.getElementById('uploadImageBtn').disabled = false;
   document.getElementById('uploadModelBtn').classList.remove('is-disabled');
   document.getElementById('editorStatus').textContent = '填写带 * 的基本资料后，即可直接选择并预览模型';
-  showEditorStep('basic');
+  showEditorStep(manageModels ? 'model' : 'basic');
   const overlay = document.getElementById('boatEditorOverlay');
   overlay.classList.add('show'); overlay.setAttribute('aria-hidden', 'false'); document.body.classList.add('modal-open');
 }
@@ -269,10 +273,48 @@ function fillBasicFields() {
   document.getElementById('editPublished').checked = state.editing.published !== false;
 }
 
-function renderVariants() {
+async function renderVariants() {
   const variants = state.editing.variants || [];
   const modelCards = variants.map(item => `<article><img src="${escapeAttr(item.thumbnailUrl || state.editing.image || '')}" alt=""><div><strong>${escapeHtml(item.variantName)}</strong><small>${escapeHtml(item.variantId)}</small><span>${(item.modelFiles || []).length} 个主模型 · ${item.detailedInterior ? '包含内饰' : '标准/外观模型'}</span><em class="model-ready-state">已确认入库</em></div></article>`).join('');
   document.getElementById('variantList').innerHTML = modelCards || '<div class="empty-small">尚未上传3D模型版本</div>';
+  if (!state.editing.id) return;
+  const boatId = state.editing.id;
+  try {
+    const result = await api(`/api/admin/boats/${boatId}/builds`);
+    if (state.editing?.id !== boatId) return;
+    const builds = new Map(result.data.map(item => [item.variant_id, item]));
+    if (state.editing.published && result.data.some(item => !item.is_published)) {
+      const publish = document.createElement('button');
+      publish.type = 'button'; publish.className = 'ui-button ui-button--ghost';
+      publish.textContent = '确认上架新版本';
+      publish.disabled = result.data.some(item => item.processing_status !== 'ready' || !item.bundle_file || !item.bundle_sha256);
+      publish.onclick = async () => {
+        publish.disabled = true;
+        try {
+          await api(`/api/admin/boats/${boatId}/publish`, jsonOptions('PUT', { published: true }));
+          toast('新版本已上架'); await renderVariants();
+        } catch (error) { toast(error.message, true); publish.disabled = false; }
+      };
+      document.getElementById('variantList').appendChild(publish);
+    }
+    document.querySelectorAll('#variantList article').forEach((card, i) => {
+      const build = builds.get(variants[i].variantId); if (!build) return;
+      const ready = Boolean(build.bundle_file && build.bundle_sha256);
+      card.querySelector('em').textContent = build.processing_error || ({ missing: '未上传模型', pending: '等待构建', building: '正在构建', failed: '构建失败', ready: build.is_published ? '已上架' : '待确认上架' }[build.processing_status] || (ready ? '可测试' : '待构建'));
+      if (!ready && build.processing_status !== 'failed') return;
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'ui-button ui-button--ghost';
+      button.textContent = ready ? 'VR 测试' : '重试构建';
+      button.onclick = async () => {
+        button.disabled = true;
+        try {
+          if (ready) { await api('/api/vr/current-model', jsonOptions('PUT', { variantId: build.variant_id })); window.location.assign('vr-screen.html'); }
+          else { await api(`/api/admin/boats/${boatId}/builds/${encodeURIComponent(build.variant_id)}/retry`, { method: 'POST' }); await renderVariants(); }
+        } catch (error) { toast(error.message, true); }
+        finally { button.disabled = false; }
+      };
+      card.appendChild(button);
+    });
+  } catch (error) { toast(error.message, true); }
 }
 
 function renderConfigTabs() {
@@ -463,8 +505,8 @@ async function uploadImage() {
 async function uploadModel() {
   const input = document.getElementById('modelFile');
   const files = Array.from(input.files || []); if (!files.length) return;
-  const entry = files.find(file => /\.(fbx|gltf|glb|obj)$/i.test(file.name));
-  if (!entry) { input.value = ''; return toast('请选择 FBX、GLTF、GLB 或 OBJ 主模型文件', true); }
+  const entry = files.length === 1 && /\.glb$/i.test(files[0].name) ? files[0] : null;
+  if (!entry) { input.value = ''; return toast('请选择一份内嵌贴图的 GLB 模型', true); }
   if (!(await ensureBoatSavedForUpload())) { input.value = ''; return; }
   const form = new FormData(); files.forEach(file => form.append('files', file)); form.append('variantName', entry.name.replace(/\.[^.]+$/, ''));
   document.getElementById('uploadModelBtn').classList.add('is-disabled');
@@ -619,12 +661,14 @@ async function confirmModelPreview() {
       : `/api/admin/boats/${state.editing.id}/variants/${encodeURIComponent(preview.variantId)}`;
     const json = await api(url, jsonOptions(preview.kind === 'draft' ? 'POST' : 'PUT', payload));
     state.editing = json.data; state.editing.configTabs = pendingTabs;
-    if (preview.kind === 'draft') preview.draftId = '';
+    if (preview.kind === 'draft') {
+      preview.draftId = '';
+      window.top.ShipBuildProgress?.track({ variant_id: state.editing.primaryVariantId, variant_name: payload.variantName,
+        ship_name: state.editing.name, boat_id: state.editing.id, processing_status: 'pending', processing_error: '' });
+    }
     await closeModelPreview(false); renderVariants(); renderConfigTabs();
-    const vrReady = json.variant && json.variant.vrBundle;
-    const pendingReason = json.variant && json.variant.vrProcessingError ? `，${json.variant.vrProcessingError}` : '';
-    setEditorStatus(preview.kind === 'draft' ? (vrReady ? '模型已入库并解锁同步到VR' : `模型已确认入库${pendingReason}`) : '模型展示视角已保存');
-    toast(preview.kind === 'draft' ? (vrReady ? '模型已入库，已解锁同步到VR' : '模型已确认并存入数据库') : '模型展示视角已保存');
+    const message = preview.kind === 'draft' ? '模型已入库，等待自动构建和管理员确认上架' : '模型展示视角已保存';
+    setEditorStatus(message); toast(message);
   } catch (error) {
     toast(error.message, true); button.disabled = false;
     button.textContent = preview.kind === 'draft' ? '确认并存入数据库' : '保存模型设置';

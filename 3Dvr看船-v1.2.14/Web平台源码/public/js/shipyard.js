@@ -60,7 +60,7 @@ function renderAccount(account) {
   document.getElementById('popoverExpiry').textContent = account.membershipActive ? `有效期至 ${expiry}` : `已于 ${expiry} 到期`;
   document.getElementById('membershipExpiry').classList.toggle('expired', !account.membershipActive);
   document.getElementById('quotaBar').style.width = `${Math.min(100, ((account.boundModelCount || 0) / Math.max(account.modelQuota || 1, 1)) * 100)}%`;
-  document.getElementById('roleHint').textContent = account.role === 'shipyard_owner' ? '可浏览全部船型、提交模型绑定申请，并管理本厂销售人员。' : '可浏览全部船型；PICO仅显示本厂家已绑定并上架的模型。';
+  document.getElementById('roleHint').textContent = account.role === 'shipyard_owner' ? '可浏览所有船型、提交模型绑定申请，并管理本厂销售人员。' : '可浏览所有船型；PICO仅显示本厂家已绑定并上架的模型。';
   const isOwner = account.role === 'shipyard_owner';
   document.getElementById('staffTab').hidden = !isOwner; document.getElementById('membershipTab').hidden = !isOwner;
   document.getElementById('accountStaffAction').hidden = !isOwner; document.getElementById('accountMembershipAction').hidden = !isOwner;
@@ -76,7 +76,7 @@ function renderModels() {
   if (!dashboard) return; const keyword = document.getElementById('modelSearch').value.trim().toLowerCase();
   const ownShipyardId = Number(dashboard.account.shipyardId);
   const title = document.getElementById('modelPanelTitle'); const intro = document.getElementById('modelPanelIntro');
-  if (title) title.textContent = modelScope === 'own' ? '本厂船舶模型' : '全部已上架船舶模型';
+  if (title) title.textContent = modelScope === 'own' ? '本厂船舶模型' : '所有上架船型';
   if (intro) intro.textContent = modelScope === 'own' ? '仅显示当前厂家自己发布或归属本厂的船型。' : '所有厂家均可浏览；已绑定模型将自动同步到本厂家的PICO账号。';
   const source = modelScope === 'own' ? dashboard.models.filter(item => Number(item.ownerShipyardId) === ownShipyardId) : dashboard.models;
   const models = source.filter(item => `${item.shipName} ${item.variantName} ${item.category}`.toLowerCase().includes(keyword));
@@ -136,7 +136,11 @@ function renderMembershipHistory(rows) {
 }
 async function submitMembershipRequest(event) { event.preventDefault(); const body = Object.fromEntries(new FormData(event.target).entries()); if (!body.targetPlanCode) return toast('当前已经是最高会员等级', true); try { await api('/api/shipyard/membership-requests', jsonOptions('POST', body)); toast('会员升级申请已提交'); await loadMembership(); } catch (error) { toast(error.message, true); } }
 
-async function logout() { try { await api('/api/auth/logout', { method: 'POST' }); } catch {} localStorage.removeItem('auth_user'); location.href = 'login.html'; }
+function logout() {
+  localStorage.removeItem('auth_user');
+  fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {});
+  location.href = 'login.html';
+}
 function toast(message, error = false) { const el = document.getElementById('shipyardToast'); el.textContent = message; el.classList.toggle('error', error); el.classList.add('show'); clearTimeout(el.timer); el.timer = setTimeout(() => el.classList.remove('show'), 2800); }
 function escapeHtml(value) { const el = document.createElement('span'); el.textContent = value == null ? '' : String(value); return el.innerHTML; }
 function escapeAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;'); }

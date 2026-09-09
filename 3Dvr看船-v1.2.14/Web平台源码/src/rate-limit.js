@@ -7,8 +7,7 @@ function rateLimit({ windowMs = 60 * 1000, max = 60, message = '请求过于频�
   const maxEntries = 100000;
 
   function clientKey(req) {
-    const forwarded = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-    const ip = forwarded || req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
     return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
   }
 
@@ -33,6 +32,7 @@ function rateLimit({ windowMs = 60 * 1000, max = 60, message = '请求过于频�
     res.setHeader('X-RateLimit-Remaining', String(Math.max(0, max - bucket.count)));
 
     if (bucket.count > max) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))));
       return res.status(429).json({ success: false, message });
     }
     next();

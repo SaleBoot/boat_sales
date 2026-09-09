@@ -8,6 +8,7 @@ const path = require('path');
 const { PlatformStore } = require('../src/platform-store');
 const { installPlatformRoutes } = require('../src/platform-routes');
 const { makePassword } = require('../src/security');
+const modelBytes = require('./glb-fixture')();
 
 async function main() {
   const rootDir = path.resolve(__dirname, '..');
@@ -53,7 +54,7 @@ async function main() {
 
     const form = new FormData();
     form.append('variantName', '暂存预览回归模型');
-    form.append('files', new Blob([Buffer.from('0123456789')]), 'qa-model.glb');
+    form.append('files', new Blob([modelBytes]), 'qa-model.glb');
     const stagedResponse = await fetch(`${baseUrl}/api/admin/boats/${boat.id}/model-drafts`, { method: 'POST', headers, body: form });
     const staged = await stagedResponse.json();
     assert.equal(stagedResponse.status, 201);
@@ -62,7 +63,7 @@ async function main() {
 
     const previewResponse = await fetch(`${baseUrl}${staged.data.modelUrl}`, { headers });
     assert.equal(previewResponse.status, 200, '管理员必须能读取暂存模型进行预览');
-    assert.equal((await previewResponse.arrayBuffer()).byteLength, 10);
+    assert.equal((await previewResponse.arrayBuffer()).byteLength, modelBytes.length);
 
     const confirmedResponse = await fetch(`${baseUrl}/api/admin/boats/${boat.id}/model-drafts/${staged.data.draftId}/confirm`, {
       method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
@@ -78,6 +79,17 @@ async function main() {
     assert.equal(confirmed.variant.viewSettings.bowDirection, '+x');
     assert.equal(Number((await store.pool.query('SELECT COUNT(*) AS count FROM v12_vr_models')).rows[0].count), initialModelCount + 1, '确认后模型索引必须入库');
     assert.ok(fs.existsSync(path.join(permanentDir, 'uploads', confirmed.variant.variantId, 'qa-model.glb')), '确认后的模型文件必须移入正式目录');
+    assert.equal((await fetch(`${baseUrl}/api/admin/model-builds`)).status, 401);
+    const progressResponse = await fetch(`${baseUrl}/api/admin/model-builds`, { headers });
+    assert.equal(progressResponse.status, 200);
+    assert.equal(progressResponse.headers.get('cache-control'), 'no-store');
+    const progress = (await progressResponse.json()).data.find(item => item.variant_id === confirmed.variant.variantId);
+    assert.equal(progress.processing_status, 'pending');
+    assert.equal(Number(progress.boat_id), Number(boat.id));
+    const retryUrl = `${baseUrl}/api/admin/boats/${boat.id}/builds/${confirmed.variant.variantId}/retry`;
+    assert.equal((await fetch(retryUrl, { method: 'POST', headers })).status, 409, 'Active tasks cannot be enqueued twice');
+    await store.pool.query("UPDATE v12_vr_models SET processing_status='failed',processing_error='qa failure' WHERE variant_id=$1", [confirmed.variant.variantId]);
+    assert.equal((await fetch(retryUrl, { method: 'POST', headers })).status, 200);
 
     const editedResponse = await fetch(`${baseUrl}/api/admin/boats/${boat.id}/variants/${confirmed.variant.variantId}`, {
       method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json' },

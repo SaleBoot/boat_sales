@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 仅信任本地反向代理（nginx）透传的真实客户端 IP，供限流与日志使用。
-app.set('trust proxy', 'loopback');
+app.set('trust proxy', (process.env.TRUSTED_PROXIES || 'loopback').split(',').map(value => value.trim()).filter(Boolean));
 
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -126,6 +126,7 @@ app.use('/uploads', express.static(uploadDir));
 const vrContentRoot = process.env.VR_CONTENT_ROOT || path.join(__dirname, 'vr-content');
 const vrContentAndroidDir = process.env.VR_CONTENT_DIR || path.join(vrContentRoot, 'android');
 fs.mkdirSync(vrContentAndroidDir, { recursive: true });
+app.use('/vr-content/android', express.static(vrContentAndroidDir, { immutable: true, maxAge: '7d' }));
 app.use('/vr-content', express.static(vrContentRoot, {
   immutable: true,
   maxAge: '7d'

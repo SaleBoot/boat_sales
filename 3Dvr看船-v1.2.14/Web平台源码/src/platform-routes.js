@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { validatePassword } = require('./security');
 const { generateOrderPdf } = require('./order-pdf');
 const { rateLimit } = require('./rate-limit');
+const { validateGlb } = require('./glb-validation');
 
 const SECURITY_QUESTIONS = [
   '您的出生城市是？',
@@ -47,24 +48,6 @@ function asyncRoute(handler) {
 
 function installPlatformRoutes(app, store, options = {}) {
   const modelDrafts = new Map();
-  const modelExtensions = new Set(['.fbx', '.gltf', '.glb', '.obj']);
-  const vrBundleExtensions = new Set(['.bundle']);
-  const copyVrAsset = (variantId, permanentDirectory, file, assetFormat) => {
-    if (!options.vrContentDir) return null;
-    const source = path.join(permanentDirectory, file);
-    const targetDir = path.join(options.vrContentDir, 'uploads', variantId);
-    fs.mkdirSync(targetDir, { recursive: true });
-    fs.copyFileSync(source, path.join(targetDir, file));
-    const buffer = fs.readFileSync(source);
-    const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
-    return {
-      assetFormat,
-      file: `uploads/${variantId}/${file}`,
-      size: buffer.length,
-      sha256,
-      version: sha256.slice(0, 16)
-    };
-  };
   const removeDirectory = directory => {
     if (directory && fs.existsSync(directory)) fs.rmSync(directory, { recursive: true, force: true });
   };
@@ -77,6 +60,7 @@ function installPlatformRoutes(app, store, options = {}) {
     }
   };
   app.use(asyncRoute(async (req, res, next) => {
+    if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
     req.accessToken = requestToken(req);
     req.platformUser = await store.userFromToken(req.accessToken);
     next();
@@ -130,7 +114,6 @@ function installPlatformRoutes(app, store, options = {}) {
     if (!username || !password) return res.status(400).json({ success: false, message: '请输入用户名和密码' });
     const user = await store.authenticate(username, password);
     if (!user) return res.status(401).json({ success: false, message: '用户名或密码错误' });
-    await store.deletePlatformSessions(user.id);
     const session = await store.createSession(user.id, 'web');
     setSessionCookie(res, session.token, session.expiresAt);
     res.json({ success: true, message: '登录成功', data: store.userDto(user) });
@@ -195,8 +178,8 @@ function installPlatformRoutes(app, store, options = {}) {
 
   app.post('/api/vr/login', loginLimiter, asyncRoute(async (req, res) => {
     const user = await store.authenticate(req.body.username, req.body.password);
-    if (!user || !['shipyard_owner', 'sales'].includes(user.role) || !user.shipyard_id) {
-      return res.status(401).json({ success: false, message: '船厂账号或密码错误' });
+    if (!user || !(user.role === 'platform_admin' || (['shipyard_owner', 'sales'].includes(user.role) && user.shipyard_id))) {
+      return res.status(401).json({ success: false, message: 'VR账号或密码错误' });
     }
     const session = await store.createSession(user.id, 'vr');
     const catalog = await store.vrCatalog(user);
@@ -207,7 +190,8 @@ function installPlatformRoutes(app, store, options = {}) {
     });
   }));
 
-  app.get('/api/vr/catalog', requireShipyard, asyncRoute(async (req, res) => {
+  app.get('/api/vr/catalog', requireVrUser, asyncRoute(async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
     res.json(await store.vrCatalog(req.platformUser));
   }));
 
@@ -483,6 +467,23 @@ function installPlatformRoutes(app, store, options = {}) {
     const data = await store.setBoatPublished(req.params.id, req.body.published !== false, req.platformUser.id);
     res.json({ success: true, message: data.published ? '船型已上架' : '船型已下架', data });
   }));
+  admin.get('/model-builds', asyncRoute(async (req, res) => {
+    const rows = await store.pool.query("SELECT m.variant_id,m.variant_name,m.ship_name,m.processing_status,m.processing_error,b.id AS boat_id FROM v12_vr_models m JOIN v12_boats b ON b.ship_id=m.ship_id WHERE b.archived_at IS NULL AND m.source_file<>'' ORDER BY m.updated_at DESC");
+    res.json({ success: true, data: rows.rows });
+  }));
+  admin.get('/boats/:id/builds', asyncRoute(async (req, res) => {
+    const boat = await store.boat(req.params.id);
+    if (!boat) return res.status(404).json({ success: false, message: '船型不存在' });
+    const rows = await store.pool.query('SELECT variant_id,variant_name,processing_status,processing_error,bundle_file,bundle_sha256,is_published FROM v12_vr_models WHERE ship_id=$1 ORDER BY variant_id', [boat.shipId]);
+    res.json({ success: true, data: rows.rows });
+  }));
+  admin.post('/boats/:id/builds/:variantId/retry', asyncRoute(async (req, res) => {
+    const boat = await store.boat(req.params.id);
+    if (!boat) return res.status(404).json({ success: false, message: '船型不存在' });
+    const result = await store.pool.query("UPDATE v12_vr_models SET processing_status='pending',processing_error='' WHERE ship_id=$1 AND variant_id=$2 AND processing_status='failed' RETURNING variant_id", [boat.shipId, req.params.variantId]);
+    if (!result.rowCount) return res.status(409).json({ success: false, message: '仅失败任务可以重试' });
+    res.json({ success: true });
+  }));
   admin.put('/shipyards/:shipyardId/boats/:boatId/unbind', asyncRoute(async (req, res) => {
     const count = await store.unbindShipyardBoat(req.params.shipyardId, req.params.boatId, req.platformUser.id);
     res.json({ success: true, message: '船型已解绑', count });
@@ -516,11 +517,13 @@ function installPlatformRoutes(app, store, options = {}) {
         return res.status(404).json({ success: false, message: '船型不存在' });
       }
       const files = Array.isArray(req.files) ? req.files : [];
-      const entry = files.find(file => modelExtensions.has(path.extname(file.filename).toLowerCase()));
+      const entry = files.length === 1 && path.extname(files[0].filename).toLowerCase() === '.glb' ? files[0] : null;
       if (!entry) {
         removeDirectory(req.modelDraftId && path.join(options.modelStagingDir, req.modelDraftId));
-        return res.status(400).json({ success: false, message: '请选择 FBX、GLTF、GLB 或 OBJ 主模型文件' });
+        return res.status(400).json({ success: false, message: '每次请选择一份内嵌贴图的 GLB 模型' });
       }
+      try { validateGlb(path.join(options.modelStagingDir, req.modelDraftId, entry.filename)); }
+      catch (error) { removeDirectory(path.join(options.modelStagingDir, req.modelDraftId)); throw error; }
       const draft = {
         id: req.modelDraftId,
         boatId: Number(boat.id),
@@ -569,7 +572,6 @@ function installPlatformRoutes(app, store, options = {}) {
       const variantId = `admin_${String(boat.shipId).replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}`;
       const permanentRoot = path.join(options.modelUploadDir, 'uploads');
       const permanentDirectory = path.join(permanentRoot, variantId);
-      const bundleFile = draft.files.find(file => vrBundleExtensions.has(path.extname(file).toLowerCase()));
       fs.mkdirSync(permanentRoot, { recursive: true });
       try {
         fs.renameSync(draft.directory, permanentDirectory);
@@ -591,19 +593,8 @@ function installPlatformRoutes(app, store, options = {}) {
         viewSettings: req.body.viewSettings || { bowDirection: 'auto', exterior: null, interior: null },
         vrBundle: null
       };
-      const entryExt = path.extname(draft.entryFile).toLowerCase();
-      if (bundleFile) {
-        variant.vrBundle = copyVrAsset(variantId, permanentDirectory, bundleFile, 'assetbundle');
-      } else if (entryExt === '.glb') {
-        variant.vrBundle = copyVrAsset(variantId, permanentDirectory, draft.entryFile, 'glb');
-      }
-      if (variant.vrBundle) {
-        variant.vrProcessingStatus = 'ready';
-        variant.vrProcessingError = '';
-      } else {
-        variant.vrProcessingStatus = 'pending';
-        variant.vrProcessingError = entryExt === '.glb' ? 'VR资源目录未配置' : '请上传单文件GLB，或后续由离线工具转换为GLB后再解锁VR';
-      }
+      variant.vrProcessingStatus = 'pending';
+      variant.vrProcessingError = '';
       try {
         const data = await store.addBoatVariant(req.params.id, variant, req.platformUser.id);
         modelDrafts.delete(draft.id);

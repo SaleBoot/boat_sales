@@ -39,7 +39,7 @@ async function main() {
     assert.ok(membersHtml.includes('data-nav="categories"'), '系统设置必须恢复船型分类入口');
     assert.ok(membersHtml.includes('id="fieldManageWrap"'), '船型分类管理面板必须存在');
     const adminHtml = fs.readFileSync(path.join(rootDir, 'public', 'admin.html'), 'utf8');
-    assert.ok(/id="modelFile"[^>]*multiple/.test(adminHtml), '模型上传必须支持主模型和外部贴图多文件选择');
+    assert.ok(/id="modelFile"[^>]*accept=".glb"/.test(adminHtml), '正式上传采用内嵌贴图的单文件 GLB');
     assert.ok(adminHtml.includes('id="modelPreviewOverlay"'), '上传模型后必须进入3D预览确认');
     assert.ok(adminHtml.includes('for="modelFile"'), '模型上传必须使用可直接唤起文件选择器的原生标签');
     assert.ok(!adminHtml.includes('id="viewVariantList"'), '定制配置中不得增加独立的视角模块');

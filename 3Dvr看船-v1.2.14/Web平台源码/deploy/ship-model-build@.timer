@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll persistent ship model queue (%i)
+
+[Timer]
+OnBootSec=30
+OnUnitInactiveSec=15
+AccuracySec=1
+Unit=ship-model-build@%i.service
+
+[Install]
+WantedBy=timers.target

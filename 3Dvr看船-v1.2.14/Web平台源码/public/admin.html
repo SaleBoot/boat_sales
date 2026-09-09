@@ -73,7 +73,7 @@
             </div>
             <div class="inline-actions">
               <label class="switch-label"><input type="checkbox" id="editCustomizable">允许定制</label>
-              <label class="switch-label"><input type="checkbox" id="editPublished">网页上架</label>
+              <label class="switch-label"><input type="checkbox" id="editPublished" disabled>已确认上架</label>
               <button type="button" class="ui-button ui-button--ghost" id="uploadImageBtn">选择封面图片</button><input type="file" id="imageFile" accept=".png,.jpg,.jpeg" hidden>
             </div>
             <details class="editor-advanced"><summary>更多资料（说明、特点和图片路径）</summary><div class="form-grid form-grid--3">
@@ -85,11 +85,11 @@
           </section>
 
           <section class="editor-section editor-step-panel" data-editor-panel="model">
-            <div class="section-heading"><div><h3>3D模型</h3><span>支持同时选择主模型、贴图和材质文件</span></div></div>
+            <div class="section-heading"><div><h3>3D模型</h3></div></div>
             <div class="model-upload-card">
-              <div><b>上传新的3D模型</b><p>支持 FBX、GLTF、GLB、OBJ；GLB 可直接解锁 PICO VR 同步。</p><small>选择文件 → 在线预览 → 确认入库；GLB 会自动写入VR资源并绑定所属厂家</small></div>
+              <div><b>上传新的3D模型</b><p>GLB · 内嵌材质与贴图</p></div>
               <label class="ui-button ui-button--primary model-file-label" id="uploadModelBtn" for="modelFile" role="button" tabindex="0">选择3D模型文件</label>
-              <input type="file" id="modelFile" accept=".fbx,.gltf,.glb,.obj,.bundle,.manifest,.bin,.mtl,.png,.jpg,.jpeg,.webp,.tga,.bmp" multiple hidden>
+              <input type="file" id="modelFile" accept=".glb" hidden>
             </div>
             <div class="saved-model-heading"><strong>已入库的模型版本</strong><span>展示视角在下一步“定制配置”中设置</span></div>
             <div id="variantList" class="variant-list"></div>

@@ -1,0 +1,18 @@
+[Unit]
+Description=Ship platform company API
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/ship-platform-api-6060/current
+EnvironmentFile=%h/ship-platform-api-6060/env
+ExecStart=/usr/local/bin/node server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=control-group
+NoNewPrivileges=true
+UMask=0027
+
+[Install]
+WantedBy=default.target

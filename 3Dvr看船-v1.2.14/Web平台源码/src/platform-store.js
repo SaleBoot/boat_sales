@@ -620,11 +620,14 @@ class PlatformStore {
     await this.ensureIndexes();
     await this.seedPlans();
     await this.seedBoatCategories();
-    const jingsui = await this.seedJingsuiShipyard();
     await this.seedDemoShipyardVendors();
-    await this.seedModels();
-    await this.seedBoats(jingsui.id);
-    await this.seedJingsuiCatalogOnce(jingsui.id);
+    const seeds = await this.pool.query("SELECT key FROM v12_settings WHERE key IN ('seed_models_v1212','seed_boats_v1212','jingsui_catalog_v1212')");
+    if (seeds.rowCount < 3) {
+      const jingsui = await this.seedJingsuiShipyard();
+      await this.seedModels();
+      await this.seedBoats(jingsui.id);
+      await this.seedJingsuiCatalogOnce(jingsui.id);
+    }
     await this.seedPricingOnce();
     await this.importLegacyUsers();
     console.log(`V1.2 平台数据层已就绪（${this.usingMemory ? '本地内存数据库' : 'PostgreSQL'}）`);
@@ -679,7 +682,11 @@ class PlatformStore {
   }
 
   async ensureIndexes() {
+    if (!this.usingMemory) await this.pool.query(`DELETE FROM v12_sessions WHERE token_hash IN (
+      SELECT token_hash FROM (SELECT token_hash,ROW_NUMBER() OVER (PARTITION BY user_id,kind ORDER BY created_at DESC,token_hash DESC) AS position FROM v12_sessions) ranked WHERE position > 1
+    )`);
     const statements = [
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_v12_sessions_user_kind ON v12_sessions(user_id,kind)',
       'CREATE INDEX IF NOT EXISTS idx_v12_sessions_user_id ON v12_sessions(user_id)',
       'CREATE INDEX IF NOT EXISTS idx_v12_vr_models_ship_id ON v12_vr_models(ship_id)',
       'CREATE INDEX IF NOT EXISTS idx_v12_audit_logs_actor ON v12_audit_logs(actor_user_id)',
@@ -1017,16 +1024,20 @@ class PlatformStore {
   }
 
   async createSession(userId, kind = 'web') {
+    if (!['web', 'vr'].includes(kind)) throw new Error('Invalid session kind');
     const token = makeToken();
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    await this.pool.query('INSERT INTO v12_sessions(token_hash,user_id,expires_at,kind) VALUES($1,$2,$3,$4)',
-      [hashToken(token), userId, expiresAt, kind]);
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT id FROM v12_users WHERE id=$1 FOR UPDATE', [userId]);
+      await client.query('DELETE FROM v12_sessions WHERE user_id=$1 AND kind=$2', [userId, kind]);
+      await client.query('INSERT INTO v12_sessions(token_hash,user_id,expires_at,kind) VALUES($1,$2,$3,$4)',
+        [hashToken(token), userId, expiresAt, kind]);
+      await client.query('COMMIT');
+    } catch (error) { await client.query('ROLLBACK'); throw error; }
+    finally { client.release(); }
     return { token, expiresAt };
-  }
-
-  async deletePlatformSessions(userId) {
-    if (!userId) return;
-    await this.pool.query('DELETE FROM v12_sessions WHERE user_id=$1 AND kind=$2', [userId, 'web']);
   }
 
   async deleteSession(token) {
@@ -1188,7 +1199,7 @@ class PlatformStore {
          WHERE sb.shipyard_id=$1 AND sb.active=TRUE
          GROUP BY sm.ship_id
        ) ship_bound ON ship_bound.ship_id=m.ship_id
-       WHERE $2=TRUE OR (m.is_published=TRUE AND boat.id IS NOT NULL)
+       WHERE $2=TRUE OR (m.is_published=TRUE AND boat.is_published=TRUE AND boat.id IS NOT NULL)
        ORDER BY m.ship_name,m.variant_name`,
       [shipyardId || null, Boolean(user && user.role === 'platform_admin')]
     );
@@ -1225,81 +1236,41 @@ class PlatformStore {
   }
 
   async vrCatalog(user) {
-    if (!user.shipyard_id) return { version: String(Date.now()), generatedAtUtc: new Date().toISOString(), entries: [] };
-    if (user.shipyard_status && user.shipyard_status !== 'active') {
-      return { version: String(Date.now()), generatedAtUtc: new Date().toISOString(), entries: [] };
-    }
-    if (user.membership_expires_at && new Date(user.membership_expires_at).getTime() <= Date.now()) {
-      return { version: String(Date.now()), generatedAtUtc: new Date().toISOString(), entries: [] };
-    }
-    const result = await this.pool.query(
-      `SELECT m.variant_id,m.ship_id,m.ship_name,m.variant_name,m.category,m.description,m.length_m,
-              m.bundle_version,m.bundle_file,m.bundle_size,m.bundle_sha256,m.thumbnail_url,
-              m.asset_format,m.detailed_interior
-      FROM v12_vr_models m JOIN v12_shipyard_model_bindings b ON b.variant_id=m.variant_id
-       WHERE b.shipyard_id=$1 AND b.active=TRUE AND m.is_published=TRUE
-         AND m.bundle_file<>'' AND m.bundle_sha256<>'' ORDER BY m.variant_id`, [user.shipyard_id]
-    );
-    return {
-      version: crypto.createHash('sha1').update(JSON.stringify(result.rows)).digest('hex').slice(0, 16),
-      generatedAtUtc: new Date().toISOString(),
-      entries: result.rows.map(row => ({
-        variantId: row.variant_id, shipId: row.ship_id, shipName: row.ship_name,
-        variantName: row.variant_name, category: row.category, description: row.description,
-        length: Number(row.length_m), thumbnailUrl: row.thumbnail_url,
-        detailedInterior: Boolean(row.detailed_interior), assetFormat: row.asset_format || 'assetbundle',
-        version: row.bundle_version, file: row.bundle_file,
-        size: Number(row.bundle_size), sha256: row.bundle_sha256
-      }))
-    };
-  }
-
-  async currentVrModel(user) {
-    const result = await this.pool.query(
-      `SELECT m.variant_id,m.ship_id,m.ship_name,m.variant_name,m.category,m.description,m.length_m,
-              m.bundle_version,m.bundle_file,m.bundle_size,m.bundle_sha256,m.thumbnail_url,
-              m.asset_format,m.detailed_interior,s.updated_at
-       FROM v12_vr_account_sync s
-       JOIN v12_vr_models m ON m.variant_id=s.variant_id
-       LEFT JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
-       WHERE s.user_id=$1 AND m.is_published=TRUE AND boat.id IS NOT NULL
-         AND m.bundle_file<>'' AND m.bundle_sha256<>''`, [user.id]
-    );
-    if (!result.rowCount) return null;
-    const row = result.rows[0];
-    return {
+    const admin = user.role === 'platform_admin';
+    const active = admin || (user.shipyard_id && ['shipyard_owner', 'sales'].includes(user.role) &&
+      (!user.shipyard_status || user.shipyard_status === 'active') &&
+      (!user.membership_expires_at || new Date(user.membership_expires_at).getTime() > Date.now()));
+    const result = active ? await this.pool.query(
+      `SELECT m.* FROM v12_vr_models m
+       JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
+       ${admin ? '' : 'JOIN v12_shipyard_model_bindings b ON b.variant_id=m.variant_id AND b.shipyard_id=$1 AND b.active=TRUE'}
+       WHERE m.bundle_file<>'' AND m.bundle_sha256<>''
+       ${admin ? '' : 'AND boat.is_published=TRUE AND m.is_published=TRUE'}
+       ORDER BY m.variant_id`, admin ? [] : [user.shipyard_id]
+    ) : { rows: [] };
+    const entries = result.rows.map(row => ({
       variantId: row.variant_id, shipId: row.ship_id, shipName: row.ship_name,
       variantName: row.variant_name, category: row.category, description: row.description,
       length: Number(row.length_m), thumbnailUrl: row.thumbnail_url,
       detailedInterior: Boolean(row.detailed_interior), assetFormat: row.asset_format || 'assetbundle',
-      version: row.bundle_version, file: row.bundle_file, size: Number(row.bundle_size),
-      sha256: row.bundle_sha256, syncedAtUtc: row.updated_at.toISOString()
+      version: row.bundle_version, file: row.bundle_file, size: Number(row.bundle_size), sha256: row.bundle_sha256
+    }));
+    return {
+      version: crypto.createHash('sha256').update(JSON.stringify(entries)).digest('hex').slice(0, 16),
+      generatedAtUtc: new Date().toISOString(), entries
     };
   }
 
+  async currentVrModel(user) {
+    const sync = (await this.pool.query('SELECT variant_id,updated_at FROM v12_vr_account_sync WHERE user_id=$1', [user.id])).rows[0];
+    if (!sync) return null;
+    const entry = (await this.vrCatalog(user)).entries.find(item => item.variantId === sync.variant_id);
+    return entry ? { ...entry, syncedAtUtc: new Date(sync.updated_at).toISOString() } : null;
+  }
+
   async setCurrentVrModel(user, variantId) {
-    const isAdmin = user.role === 'platform_admin';
-    const params = [variantId];
-    let accessJoin = '';
-    if (!isAdmin) {
-      params.push(user.shipyard_id);
-      accessJoin = `LEFT JOIN v12_shipyard_model_bindings b
-                      ON b.variant_id=m.variant_id AND b.shipyard_id=$2 AND b.active=TRUE`;
-    }
-    const model = await this.pool.query(
-      `SELECT m.variant_id,m.is_published,m.bundle_file,m.bundle_sha256,m.asset_format,boat.id AS boat_id,
-              ${isAdmin ? 'TRUE' : 'CASE WHEN b.active=TRUE THEN TRUE ELSE FALSE END'} AS has_access
-       FROM v12_vr_models m
-       LEFT JOIN v12_boats boat ON boat.ship_id=m.ship_id AND boat.archived_at IS NULL
-       ${accessJoin}
-       WHERE m.variant_id=$1`, params
-    );
-    const row = model.rows[0];
-    if (!row) throw Object.assign(new Error('未找到该模型版本'), { status: 404 });
-    if (!row.boat_id) throw Object.assign(new Error('该船型已下架或已归档，暂不能同步到VR'), { status: 403 });
-    if (!row.is_published) throw Object.assign(new Error('该模型尚未上架，暂不能同步到VR'), { status: 403 });
-    if (!row.has_access) throw Object.assign(new Error('当前账号还没有绑定该模型，暂不能同步到VR'), { status: 403 });
-    if (!row.bundle_file || !row.bundle_sha256) throw Object.assign(new Error('该模型暂未生成可供PICO直接加载的VR资源，请上传单文件GLB后再同步'), { status: 403 });
+    const allowed = (await this.vrCatalog(user)).entries.some(item => item.variantId === variantId);
+    if (!allowed) throw Object.assign(new Error('模型未构建完成、未上架或当前账号无权查看'), { status: 403 });
     await this.pool.query(
       `INSERT INTO v12_vr_account_sync(user_id,variant_id,updated_by,updated_at)
        VALUES($1,$2,$1,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE
@@ -1718,8 +1689,9 @@ class PlatformStore {
     } finally { client.release(); }
   }
 
-  boatDto(row) {
-    const variants = parseJson(row.variants_json, []).map(normalizeVariant);
+  boatDto(row, publishedVariants = null) {
+    const variants = parseJson(row.variants_json, []).map(normalizeVariant)
+      .filter(variant => !publishedVariants || publishedVariants.has(variant.variantId));
     const basePriceYuan = normalizeMoneyYuan(row.base_price_yuan);
     const twinConfig = parseJson(row.twin_config, {});
     return {
@@ -1748,7 +1720,8 @@ class PlatformStore {
       `SELECT b.*,s.name AS manufacturer FROM v12_boats b JOIN v12_shipyards s ON s.id=b.owner_shipyard_id
        WHERE ${where.join(' AND ')} ORDER BY b.id`, params
     );
-    return result.rows.map(row => this.boatDto(row));
+    const published = new Set((await this.pool.query('SELECT variant_id FROM v12_vr_models WHERE is_published=TRUE')).rows.map(row => row.variant_id));
+    return result.rows.map(row => this.boatDto(row, published));
   }
 
   async adminBoats(filters = {}) {
@@ -1777,12 +1750,14 @@ class PlatformStore {
     }));
   }
 
-  async boat(id, includeArchived = true) {
-    const result = await this.pool.query(
+  async boat(id, includeArchived = true, db = this.pool) {
+    const result = await db.query(
       `SELECT b.*,s.name AS manufacturer FROM v12_boats b JOIN v12_shipyards s ON s.id=b.owner_shipyard_id
        WHERE b.id=$1 ${includeArchived ? '' : 'AND b.archived_at IS NULL AND b.is_published=TRUE'}`, [id]
     );
-    return result.rows[0] ? this.boatDto(result.rows[0]) : null;
+    if (!result.rows[0]) return null;
+    const published = includeArchived ? null : new Set((await db.query('SELECT variant_id FROM v12_vr_models WHERE ship_id=$1 AND is_published=TRUE', [result.rows[0].ship_id])).rows.map(row => row.variant_id));
+    return this.boatDto(result.rows[0], published);
   }
 
   async updateBoat(id, data, actorId) {
@@ -1805,7 +1780,7 @@ class PlatformStore {
         JSON.stringify(data.features == null ? current.features : (Array.isArray(data.features) ? data.features : String(data.features).split('、').map(x => x.trim()).filter(Boolean))),
         data.image == null ? current.image : data.image, data.sceneImage == null ? current.sceneImage : data.sceneImage,
         data.customizable == null ? current.customizable : Boolean(data.customizable),
-        data.published == null ? current.published : Boolean(data.published), JSON.stringify(configTabs)]
+        current.published, JSON.stringify(configTabs)]
     );
     await this.audit(actorId, 'boat.update', 'boat', id, data);
     const row = result.rows[0];
@@ -1849,7 +1824,7 @@ class PlatformStore {
         data.categoryName || '商用船', data.subtype || 'workboat', data.typeName || '工作船', data.length || '',
         data.capacity || '', data.maxSpeed || '资料待确认', formatReferencePrice(basePriceYuan), basePriceYuan, data.description || '',
         JSON.stringify(Array.isArray(data.features) ? data.features : []), data.image || '', data.sceneImage || '',
-        JSON.stringify(tabs), data.customizable !== false, data.published !== false]
+        JSON.stringify(tabs), data.customizable !== false, false]
     );
     await this.audit(actorId, 'boat.create', 'boat', result.rows[0].id, { shipId, ownerShipyardId });
     return this.boat(result.rows[0].id);
@@ -1866,13 +1841,29 @@ class PlatformStore {
   }
 
   async setBoatPublished(id, published, actorId) {
-    const result = await this.pool.query(
+    const client = await this.pool.connect();
+    try {
+    await client.query('BEGIN');
+    await client.query('SELECT id FROM v12_boats WHERE id=$1 FOR UPDATE', [id]);
+    const boat = await this.boat(id, true, client);
+    if (!boat || boat.archived) throw Object.assign(new Error('船型不存在或已归档'), { status: 404 });
+    if (published) {
+      const models = (await client.query('SELECT bundle_file,bundle_sha256,processing_status FROM v12_vr_models WHERE ship_id=$1 FOR UPDATE', [boat.shipId])).rows;
+      if (!models.length || models.some(m => !m.bundle_file || !m.bundle_sha256 || ['pending','building','failed'].includes(m.processing_status)))
+        throw Object.assign(new Error('所有模型构建成功后才能确认上架'), { status: 409 });
+    }
+    await client.query('UPDATE v12_vr_models SET is_published=$2 WHERE ship_id=$1', [boat.shipId, Boolean(published)]);
+    const result = await client.query(
       'UPDATE v12_boats SET is_published=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND archived_at IS NULL RETURNING id',
       [id, Boolean(published)]
     );
     if (!result.rowCount) throw Object.assign(new Error('船型不存在或已归档'), { status: 404 });
-    await this.audit(actorId, published ? 'boat.publish' : 'boat.unpublish', 'boat', id, {});
-    return this.boat(id);
+    await this.audit(actorId, published ? 'boat.publish' : 'boat.unpublish', 'boat', id, {}, client);
+    const data = await this.boat(id, true, client);
+    await client.query('COMMIT');
+    return data;
+    } catch (error) { await client.query('ROLLBACK'); throw error; }
+    finally { client.release(); }
   }
 
   async unbindShipyardBoat(shipyardId, boatId, actorId) {
@@ -1936,8 +1927,12 @@ class PlatformStore {
   }
 
   async addBoatVariant(id, variant, actorId) {
-    const current = await this.boat(id);
-    if (!current) throw Object.assign(new Error('船型不存在'), { status: 404 });
+    const client = await this.pool.connect();
+    try {
+    await client.query('BEGIN');
+    await client.query('SELECT id FROM v12_boats WHERE id=$1 FOR UPDATE', [id]);
+    const current = await this.boat(id, true, client);
+    if (!current || current.archived) throw Object.assign(new Error('船型不存在或已归档'), { status: 404 });
     const variants = Array.isArray(current.variants) ? current.variants.slice() : [];
     const normalizedVariant = normalizeVariant(variant);
     const vrAsset = variant.vrBundle || null;
@@ -1946,11 +1941,11 @@ class PlatformStore {
       throw Object.assign(new Error('模型版本缺少有效文件'), { status: 400 });
     }
     variants.push(normalizedVariant);
-    await this.pool.query(
+    await client.query(
       'UPDATE v12_boats SET variants_json=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',
       [id, JSON.stringify(variants)]
     );
-    await this.pool.query(
+    await client.query(
       `INSERT INTO v12_vr_models(
         variant_id,ship_id,ship_name,variant_name,category,description,length_m,
         bundle_version,bundle_file,bundle_size,bundle_sha256,thumbnail_url,is_published,owner_shipyard_id,
@@ -1969,18 +1964,21 @@ class PlatformStore {
         current.categoryName || current.category, current.description || '', Number.parseFloat(current.length) || 0,
         vrAsset ? vrAsset.version : '', vrAsset ? vrAsset.file : '',
         vrAsset ? vrAsset.size : 0, vrAsset ? vrAsset.sha256 : '',
-        normalizedVariant.thumbnailUrl || current.image || '', Boolean(vrAsset), current.ownerShipyardId,
-        assetFormat, normalizedVariant.modelFiles[0] || '', vrAsset ? 'ready' : (variant.vrProcessingStatus || 'pending'),
+        normalizedVariant.thumbnailUrl || current.image || '', false, current.ownerShipyardId,
+        assetFormat, normalizedVariant.modelFiles[0] || '', vrAsset ? 'ready' : (normalizedVariant.modelFiles[0] ? (variant.vrProcessingStatus || 'pending') : 'missing'),
         vrAsset ? '' : (variant.vrProcessingError || '')]
     );
-    if (vrAsset && current.ownerShipyardId) await this.pool.query(
+    if (current.ownerShipyardId) await client.query(
       `INSERT INTO v12_shipyard_model_bindings(shipyard_id,variant_id,bound_by,active)
        VALUES($1,$2,$3,TRUE) ON CONFLICT(shipyard_id,variant_id)
        DO UPDATE SET active=TRUE,bound_by=EXCLUDED.bound_by,bound_at=CURRENT_TIMESTAMP`,
       [current.ownerShipyardId, normalizedVariant.variantId, actorId]
     );
-    await this.audit(actorId, 'boat.model_upload', 'boat', id, { variantId: normalizedVariant.variantId, modelFiles: normalizedVariant.modelFiles });
+    await this.audit(actorId, 'boat.model_upload', 'boat', id, { variantId: normalizedVariant.variantId, modelFiles: normalizedVariant.modelFiles }, client);
+    await client.query('COMMIT');
     return { ...current, variants, primaryVariantId: normalizedVariant.variantId, modelFile: normalizedVariant.modelFiles[0] };
+    } catch (error) { await client.query('ROLLBACK'); throw error; }
+    finally { client.release(); }
   }
 
   async updateBoatVariant(id, variantId, data, actorId) {
@@ -2342,8 +2340,8 @@ class PlatformStore {
     return result.rows[0];
   }
 
-  async audit(actorId, action, targetType, targetId, detail) {
-    await this.pool.query(
+  async audit(actorId, action, targetType, targetId, detail, db = this.pool) {
+    await db.query(
       `INSERT INTO v12_audit_logs(actor_user_id,action,target_type,target_id,detail_json) VALUES($1,$2,$3,$4,$5)`,
       [actorId || null, action, targetType, String(targetId), JSON.stringify(detail || {})]
     );

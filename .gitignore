@@ -14,9 +14,11 @@ doc0*/
 gltf/
 static/
 scripts/
+!3Dvr看船-v1.2.14/Web平台源码/scripts/
 service/
 temp/
 test/
+!3Dvr看船-v1.2.14/Web平台源码/test/
 SalesBoat-code-only-20260514-013133.zip
 salesboat-deploy.zip
 admin-session*

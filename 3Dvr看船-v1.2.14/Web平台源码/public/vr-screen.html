@@ -14,12 +14,12 @@
     .screen:fullscreen video{max-height:none}
   </style>
   <script src="/vendor/livekit-client.umd.js" defer></script>
-  <script src="/js/vr-screen.js?v=1.2.17.3" defer></script>
+  <script src="/js/vr-screen.js?v=1.2.17.4" defer></script>
 </head>
 <body>
-  <header><h1>VR 实时画面</h1><button id="back">返回看船</button></header>
+  <header><h1>VR 实时画面</h1><button id="back">返回同步 VR 看船视角</button></header>
   <main>
-    <div class="toolbar"><span id="status" role="status" aria-live="polite">正在连接头显…</span><div><button id="fit">完整画面</button> <button id="play" hidden>播放画面</button> <button id="fullscreen">全屏观看</button></div></div>
+    <div class="toolbar"><span id="status" role="status" aria-live="polite">正在连接头显…</span><div><button id="exit">退出直播</button> <button id="fit">完整画面</button> <button id="play" hidden>播放画面</button> <button id="fullscreen">全屏观看</button></div></div>
     <div class="screen" id="screen"><video id="frame" aria-label="VR头显中的实时看船画面" autoplay muted playsinline hidden></video><p id="waiting">等待头显画面<br>请在已更新的 VR 看船应用中，使用与网页相同的账号登录。</p></div>
     <p>默认铺满窗口，不拉伸画面；可切换“完整画面”查看上下被裁去的部分。</p>
     <p>显示头显应用内的看船视角。关闭或离开此页面后会自动停止回传；网络较慢时画面可能延迟。</p>

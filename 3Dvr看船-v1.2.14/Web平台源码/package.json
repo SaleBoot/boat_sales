@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/platform-regression.js && node test/model-upload-regression.js && node test/drawing-export-regression.js && node test/drawing-ui-security-regression.js && node test/order-pdf-regression.js"
+    "test": "node test/platform-regression.js && node test/model-upload-regression.js && node test/vr-release-regression.js && node test/detail-navigation-regression.js && node test/communication-regression.cjs && node test/vr-screen-regression.cjs && node test/vr-screen-ui-regression.cjs && node test/rate-limit-regression.cjs && node test/drawing-export-regression.js && node test/drawing-ui-security-regression.js && node test/order-pdf-regression.js"
   },
   "dependencies": {
     "archiver": "^8.0.0",

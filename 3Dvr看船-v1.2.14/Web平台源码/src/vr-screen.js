@@ -1,6 +1,8 @@
 const express = require('express');
 
 module.exports = function installVrScreen(app, requireVrUser) {
+  const roomPrefix = process.env.SHIPVR_ROOM_PREFIX || 'shipvr-user-';
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(roomPrefix)) throw new Error('Invalid VR room prefix');
   // ponytail: one Node process and at most 100 active accounts; use a media relay for larger deployments.
   const screens = new Map();
   const leaseMs = 10000;
@@ -43,7 +45,7 @@ module.exports = function installVrScreen(app, requireVrUser) {
       if (!key || !secret || !process.env.SHIPVR_LIVEKIT_URL) return res.status(503).json({ message: '视频服务尚未配置' });
       if (role === 'publisher' && (screens.get(req.platformUser.id)?.until || 0) < Date.now()) return res.sendStatus(409);
       const { AccessToken } = require('livekit-server-sdk');
-      const room = 'shipvr-user-' + req.platformUser.id;
+      const room = roomPrefix + req.platformUser.id;
       const token = new AccessToken(key, secret, { identity: role === 'publisher' ? 'headset' : 'viewer-' + require('crypto').randomUUID(), ttl: '15m' });
       token.addGrant({ roomJoin: true, room, canPublish: role === 'publisher', canSubscribe: role === 'viewer', canPublishData: false });
       res.set('Cache-Control', 'no-store').json({ url: process.env.SHIPVR_LIVEKIT_URL, token: await token.toJwt() });
